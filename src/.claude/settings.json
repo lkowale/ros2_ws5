@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /home/aa remote -v)",
+      "Read(//home/aa/**)"
+    ]
+  }
+}

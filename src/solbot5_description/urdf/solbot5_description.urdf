@@ -1,0 +1,309 @@
+<?xml version="1.0"?>
+<robot name="solbot5" xmlns:xacro="http://ros.org/wiki/xacro">
+    <xacro:arg name="namespace" default=""/>
+<xacro:include filename="$(find solbot5_description)/urdf/solbot3_steering_hinge.xacro" />
+<xacro:include filename="$(find solbot5_description)/urdf/limo_xacro.xacro" />
+    <!-- Variables -->
+    <xacro:property name="M_PI" value="3.14159"/>
+
+  <!-- Define robot constants -->
+  <xacro:property name="base_width" value="0.77"/>
+  <xacro:property name="base_length" value="1.20"/>
+  <xacro:property name="base_height" value="0.20"/>
+
+  <xacro:property name="wheel_radius" value="0.20"/>
+  <xacro:property name="wheel_width" value="0.10"/>
+  <xacro:property name="wheel_ygap" value="0.025"/>
+  <xacro:property name="wheel_zoff" value="0.76"/>
+  <xacro:property name="wheel_xoff" value="0.60"/>
+
+  <xacro:property name="caster_xoff" value="2.00"/>
+
+    <xacro:property name="wheelbase" value="1.20"/>
+    <xacro:property name="track" value="0.77"/>
+    <xacro:property name="wheel_vertical_offset" value="-0.76" />
+    <xacro:property name="wheel_length" value="0.001" />
+    <xacro:property name="wheel_radius" value="0.20" />
+
+  <!-- Define inertial property macros  -->
+  <xacro:macro name="box_inertia" params="m w h d">
+    <inertial>
+      <origin xyz="0 0 0" rpy="${pi/2} 0 ${pi/2}"/>
+      <mass value="${m}"/>
+      <inertia ixx="${(m/12) * (h*h + d*d)}" ixy="0.0" ixz="0.0" iyy="${(m/12) * (w*w + d*d)}" iyz="0.0" izz="${(m/12) * (w*w + h*h)}"/>
+    </inertial>
+  </xacro:macro>
+
+  <xacro:macro name="cylinder_inertia" params="m r h">
+    <inertial>
+      <origin xyz="0 0 0" rpy="${pi/2} 0 0" />
+      <mass value="${m}"/>
+      <inertia ixx="${(m/12) * (3*r*r + h*h)}" ixy = "0" ixz = "0" iyy="${(m/12) * (3*r*r + h*h)}" iyz = "0" izz="${(m/2) * (r*r)}"/>
+    </inertial>
+  </xacro:macro>
+
+  <xacro:macro name="sphere_inertia" params="m r">
+    <inertial>
+      <mass value="${m}"/>
+      <inertia ixx="${(2/5) * m * (r*r)}" ixy="0.0" ixz="0.0" iyy="${(2/5) * m * (r*r)}" iyz="0.0" izz="${(2/5) * m * (r*r)}"/>
+    </inertial>
+  </xacro:macro>
+
+  <!-- Robot Footprint -->
+  <link name="base_footprint"/>
+
+  <link name="base_link">
+    <visual>
+      <pose>0 0 0 0 0 0</pose>
+      <geometry>
+        <box size="${base_length} ${base_width} ${base_height}"/>
+      </geometry>
+      <material name="Cyan">
+        <color rgba="0 1.0 1.0 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <pose>0 0 0 0 0 0</pose>
+      <geometry>
+        <box size="${base_length} ${base_width} ${base_height}"/>
+      </geometry>
+    </collision>
+
+    <xacro:box_inertia m="15" w="${base_width}" d="${base_length}" h="${base_height}"/>
+  </link>
+
+  <joint name="base_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0.0 0.0 ${(wheel_radius+wheel_zoff)}" rpy="0 0 0"/>
+  </joint>
+
+  <xacro:limo_left_steering_hinge parent_prefix="base_link" wheel_prefix="front_left">
+    <origin xyz="${wheelbase/2-wheel_radius} ${track/2} ${wheel_vertical_offset}" rpy="0 0  0" />
+  </xacro:limo_left_steering_hinge>
+
+  <xacro:limo_right_steering_hinge parent_prefix="base_link" wheel_prefix="front_right">
+    <origin xyz="${wheelbase/2-wheel_radius} ${-track/2} ${wheel_vertical_offset}" rpy="${M_PI} 0 0" />
+  </xacro:limo_right_steering_hinge>
+
+    <xacro:limo_wheel parent_prefix="base_link" wheel_prefix="rear_left" reflect="1" fixed_on="false">
+        <origin xyz="${-wheelbase/2+wheel_radius} ${track/2} ${wheel_vertical_offset}" rpy="0 0 0" />
+    </xacro:limo_wheel>
+
+    <xacro:limo_wheel parent_prefix="base_link" wheel_prefix="rear_right" reflect="-1" fixed_on="false">
+        <origin xyz="${-wheelbase/2+wheel_radius} ${-track/2} ${wheel_vertical_offset}" rpy="${M_PI} 0 0" />
+    </xacro:limo_wheel>
+
+<!--              "imu_link"                  -->    
+<link name="imu_link">
+  <visual>
+    <geometry>
+      <box size="0.1 0.1 0.1"/>
+    </geometry>
+  </visual>
+
+  <collision>
+    <geometry>
+      <box size="0.1 0.1 0.1"/>
+    </geometry>
+  </collision>
+
+  <xacro:box_inertia m="0.1" w="0.1" d="0.1" h="0.1"/>
+</link>
+
+<joint name="imu_joint" type="fixed">
+  <parent link="base_link"/>
+  <child link="imu_link"/>
+  <origin xyz="0 0 0.01"/>
+</joint>
+
+ <gazebo reference="imu_link">
+  <sensor name="imu_sensor" type="imu">
+      <always_on>true</always_on>
+      <update_rate>20</update_rate>
+      <topic>imu_gazebo</topic>
+      <gz_frame_id>imu_link</gz_frame_id>
+      <imu>
+        <angular_velocity>
+          <x>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.01</stddev>
+            </noise>
+          </x>
+          <y>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.01</stddev>
+            </noise>
+          </y>
+          <z>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.01</stddev>
+            </noise>
+          </z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x>
+            <noise type="gaussian">
+              <mean>0.01</mean>
+              <stddev>0.01</stddev>
+            </noise>
+          </x>
+          <y>
+            <noise type="gaussian">
+              <mean>0.01</mean>
+              <stddev>0.01</stddev>
+            </noise>
+          </y>
+          <z>
+            <noise type="gaussian">
+              <mean>0.01</mean>
+              <stddev>0.01</stddev>
+            </noise>
+          </z>
+        </linear_acceleration>
+      </imu>
+  </sensor>
+</gazebo>
+
+<!--              "gps_link"                  -->    
+<link name="gps_link">
+  <visual>
+    <geometry>
+      <box size="0.1 0.1 0.1"/>
+    </geometry>
+  </visual>
+
+  <collision>
+    <geometry>
+      <box size="0.1 0.1 0.1"/>
+    </geometry>
+  </collision>
+
+  <xacro:box_inertia m="0.1" w="0.1" d="0.1" h="0.1"/>
+</link>
+
+<joint name="gps_joint" type="fixed">
+  <parent link="base_link"/>
+  <child link="gps_link"/>
+  <origin xyz="${wheelbase/2 + 0.35} 0 0.01"/>
+</joint>
+
+ <gazebo reference="gps_link">
+  <sensor name="navsat" type="navsat">
+    <always_on>true</always_on>
+    <update_rate>10</update_rate>
+    <topic>$(arg namespace)/gps/fix</topic>
+    <gz_frame_id>gps_link</gz_frame_id>
+    <navsat>
+      <position_sensing>
+        <horizontal>
+          <noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.0</stddev>
+          </noise>
+        </horizontal>
+        <vertical>
+          <noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.0</stddev>
+          </noise>
+        </vertical>
+      </position_sensing>
+    </navsat>
+  </sensor>
+</gazebo>
+
+<!--              "gps_rear_link"                  -->
+<link name="gps_rear_link">
+  <visual>
+    <geometry>
+      <box size="0.1 0.1 0.1"/>
+    </geometry>
+  </visual>
+
+  <collision>
+    <geometry>
+      <box size="0.1 0.1 0.1"/>
+    </geometry>
+  </collision>
+
+  <xacro:box_inertia m="0.1" w="0.1" d="0.1" h="0.1"/>
+</link>
+
+<joint name="gps_rear_joint" type="fixed">
+  <parent link="base_link"/>
+  <child link="gps_rear_link"/>
+  <origin xyz="${-(wheelbase/2 + 0.35)} 0 0.01"/>
+</joint>
+
+<gazebo reference="gps_rear_link">
+  <sensor name="navsat_rear" type="navsat">
+    <always_on>true</always_on>
+    <update_rate>10</update_rate>
+    <topic>$(arg namespace)/gps_rear/fix</topic>
+    <gz_frame_id>gps_rear_link</gz_frame_id>
+    <navsat>
+      <position_sensing>
+        <horizontal>
+          <noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.0</stddev>
+          </noise>
+        </horizontal>
+        <vertical>
+          <noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.0</stddev>
+          </noise>
+        </vertical>
+      </position_sensing>
+    </navsat>
+  </sensor>
+</gazebo>
+
+    <!--              ackermann plugin                 -->    
+  <gazebo>
+      <plugin
+        filename="gz-sim-ackermann-steering-system"
+        name="gz::sim::systems::AckermannSteering">
+        <left_joint>front_left_wheel</left_joint>
+        <left_joint>rear_left_wheel</left_joint>
+        <right_joint>front_right_wheel</right_joint>
+        <right_joint>rear_right_wheel</right_joint>
+        <left_steering_joint>front_left_steering</left_steering_joint>
+        <right_steering_joint>front_right_steering</right_steering_joint>
+        <kingpin_width>0.6</kingpin_width>
+        <steering_limit>0.7</steering_limit>
+        <wheel_base>${wheelbase}</wheel_base>
+        <wheel_separation>0.77</wheel_separation>
+        <wheel_radius>${wheel_radius}</wheel_radius>
+        <min_velocity>-5</min_velocity>
+        <max_velocity>5</max_velocity>
+        <min_acceleration>-3</min_acceleration>
+        <max_acceleration>3</max_acceleration>
+        <topic>cmd_vel_ackermann</topic>
+
+
+        <frame_id>odom</frame_id>
+        <child_frame_id>base_footprint</child_frame_id>
+
+      </plugin>
+
+      <plugin
+        filename="gz-sim-joint-state-publisher-system"
+        name="gz::sim::systems::JointStatePublisher">
+        <joint_name>rear_left_wheel</joint_name>
+        <joint_name>rear_right_wheel</joint_name>
+        <joint_name>front_left_wheel</joint_name>
+        <joint_name>front_right_wheel</joint_name>
+        <joint_name>front_left_steering</joint_name>
+        <joint_name>front_right_steering</joint_name>
+        <topic>joint_states</topic>
+        <update_rate>30</update_rate>
+      </plugin>
+
+  </gazebo>
+</robot>
