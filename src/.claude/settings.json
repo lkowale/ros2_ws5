@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(git -C /home/aa remote -v)",
-      "Read(//home/aa/**)"
+      "Read(//home/aa/**)",
+      "Bash(xargs -n1 basename)",
+      "Bash(mv configs/solbot4_gz_bridge.yaml configs/solbot5_gz_bridge.yaml)",
+      "Bash(sed -i 's/solbot4_gz_bridge/solbot5_gz_bridge/g; s/solbot4_description/solbot5_description/g' launch/spawn_robot.launch.py launch/simulation.launch.py)",
+      "Bash(sed -i 's/solbot4_description/solbot5_description/g' package.xml CMakeLists.txt)"
     ]
   }
 }

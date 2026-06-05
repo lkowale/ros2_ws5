@@ -1,0 +1,103 @@
+# EKF configuration using heading_fuser as single IMU source.
+#
+# heading_fuser publishes /imu/fused_heading — an IMU message with:
+#   - Absolute yaw orientation (fused from BNO080 yaw rate + GPS heading reference)
+#   - Accurate yaw rate from BNO080 (passed through)
+#   - Yaw covariance: 0.01 (~5.7°)
+#
+# imu0: heading_fuser — absolute yaw + yaw rate (non-differential)
+# imu1: raw BNO080 /imu — roll + pitch only (yaw ignored; heading_fuser owns yaw)
+#   two_d_mode: false so roll/pitch propagate into the TF tree, enabling
+#   navsat_transform to automatically correct GPS position for antenna tilt.
+
+ekf_filter_node_odom:
+  ros__parameters:
+    frequency: 15.0
+    two_d_mode: true
+    print_diagnostics: false
+    debug: false
+    publish_tf: true
+
+    transform_timeout: 0.1
+    transform_time_offset: 0.0
+    predict_to_current_time: true
+    reset_on_time_jump: true
+
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_footprint
+    world_frame: odom
+
+    # GPS odometry from navsat_transform — provides X, Y position
+    odom0: odometry/gps
+    odom0_config: [true,  true,  false,
+                   false, false, false,
+                   false, false, false,
+                   false, false, false,
+                   false, false, false]
+    odom0_queue_size: 10
+    odom0_differential: false
+    odom0_relative: false
+
+    # heading_fuser output — absolute yaw + trusted yaw rate.
+    # Not differential: heading_fuser maintains ground-truth heading internally.
+    imu0: imu/fused_heading
+    imu0_config: [false, false, false,
+                  false, false, true,
+                  false, false, false,
+                  false, false, false,
+                  false, false, false]
+    imu0_differential: false
+    imu0_relative: false
+    imu0_queue_size: 10
+    imu0_remove_gravitational_acceleration: true
+
+    # Raw BNO080 — roll and pitch only. Yaw ignored (heading_fuser owns yaw).
+    imu1: imu
+    imu1_config: [false, false, false,
+                  true,  true,  false,
+                  false, false, false,
+                  false, false, false,
+                  false, false, false]
+    imu1_differential: false
+    imu1_relative: false
+    imu1_queue_size: 10
+    imu1_remove_gravitational_acceleration: true
+
+    use_control: false
+
+    process_noise_covariance: [0.05, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.05, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  1e-3, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.3,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.3,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.05, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.05, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.05, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.1,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.3,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.3,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.05, 0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.3,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.3,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.3]
+
+navsat_transform:
+  ros__parameters:
+    frequency: 15.0
+    delay: 0.0
+    magnetic_declination_radians: 0.0
+    yaw_offset: 0.0
+    zero_altitude: true
+    broadcast_cartesian_transform: true
+    publish_filtered_gps: true
+    use_odometry_yaw: false
+    wait_for_datum: true
+
+    world_frame: odom
+    base_link_frame: base_footprint
+
+    qos_overrides:
+      /gps/fix:
+        subscription:
+          reliability: best_effort

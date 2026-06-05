@@ -1,0 +1,38 @@
+steer:
+  max_left: 250
+  degreess_max_left: 35
+  max_right: 1300
+  degreess_max_right: -35
+  zero: 746
+wheels:
+  width: 0.7
+  length: 1.25
+  diameter: 0.45
+  gear_ratio: 1
+  active:
+  - FL
+  - FR
+  - RL
+  - RR
+  reference_wheel: RL
+  direction:
+    FL: 0
+    FR: 1
+    RL: 0
+    RR: 1
+lift:
+  up_position: 800
+  down_position: 1100
+drive:
+  speed_multiplier: 5
+planter:
+  desired_density: 40
+  aospr: 50
+imu:
+  yaw_offset: 1.73469
+iso_current:
+  enabled: true
+  gain: 1.0
+  max_correction_rpm: 25.0
+  iq_deadband_a: 2.0
+  min_turn_angle: 0.1
