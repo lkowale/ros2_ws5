@@ -31,7 +31,6 @@ setup(
             'drive = solbot5_control.drive:main',
             'steering = solbot5_control.steering:main',
             'imu_bridge = solbot5_control.imu_bridge:main',
-            'ackermann_odom = solbot5_control.ackermann_odom:main',
             'navsat_init = solbot5_control.navsat_init:main',
         ],
     },

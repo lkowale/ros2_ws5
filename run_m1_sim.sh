@@ -77,21 +77,36 @@ export LD_LIBRARY_PATH=$(echo "$LD_LIBRARY_PATH" | tr ':' '\n' | grep -v snap | 
 echo "Cleaning up existing sim processes..."
 pkill -9 -f "gz sim|ruby.*gz" 2>/dev/null || true
 pkill -9 -f "ekf_node|ekf_filter_node_odom|navsat_transform|relposned_heading" 2>/dev/null || true
-pkill -9 -f "sim_relposned|sim_wheel_speed|ackermann_odom|navsat_init|covariance_injector|parameter_bridge|robot_state_pub" 2>/dev/null || true
+pkill -9 -f "sim_relposned|navsat_init|covariance_injector|parameter_bridge|robot_state_pub" 2>/dev/null || true
 sleep 2
+
+# Log every run to a timestamped file (+ a 'latest' symlink) so the full
+# stdout/stderr of the stack is reviewable after the fact.
+LOG_DIR="$HOME/ros2_ws5/logs/m1_sim"
+mkdir -p "$LOG_DIR"
+LOG_FILE="$LOG_DIR/m1_sim_$(date +%Y%m%d_%H%M%S).log"
+ln -sf "$LOG_FILE" "$LOG_DIR/latest.log"
 
 echo "=========================================="
 echo "  solbot5 M1 — minimal localization sim"
 echo "=========================================="
 echo "  Headless       : $HEADLESS"
 echo "  Heading offset : $HEADING_OFFSET deg"
+echo "  Log            : $LOG_FILE"
 echo ""
 echo "  Drive:     ros2 run teleop_twist_keyboard teleop_twist_keyboard \\"
 echo "               --ros-args -r cmd_vel:=/cmd_vel_ackermann"
 echo "  Calibrate: bash run_m1_sim.sh calibrate"
 echo "=========================================="
 
+{
+    echo "=== solbot5 M1 sim — $(date) ==="
+    echo "headless=$HEADLESS  heading_offset_deg=$HEADING_OFFSET"
+    echo "git: $(git -C "$HOME/ros2_ws5" rev-parse --short HEAD) $(git -C "$HOME/ros2_ws5" log -1 --format='%s')"
+    echo "dirty: $(git -C "$HOME/ros2_ws5" status --porcelain | wc -l) modified/untracked"
+} | tee "$LOG_FILE"
+
 ros2 launch solbot5_gazebo_spawn m1_localization_sim.launch.py \
     headless:=$HEADLESS \
     heading_offset_deg:=$HEADING_OFFSET \
-    "$@"
+    "$@" 2>&1 | tee -a "$LOG_FILE"

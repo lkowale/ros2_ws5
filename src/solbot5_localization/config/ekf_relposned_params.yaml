@@ -35,31 +35,31 @@ ekf_filter_node_odom:
     odom0_differential: false
     odom0_relative: false
 
-    # IMU — yaw RATE only. Absolute yaw comes from the dual-antenna heading
-    # below, so we no longer use the IMU's (unreliable) absolute yaw nor rely on
-    # differential integration for heading.
-    imu0: imu
+    # Dual-antenna absolute heading — the primary orientation source. Fused as
+    # absolute yaw (not yaw-rate) at high weight: a continuous, strong yaw keeps
+    # position propagation correct through turns. Valid at all speeds + reverse.
+    imu0: imu/gps_heading
     imu0_config: [false, false, false,
-                  false, false, false,
-                  false, false, false,
                   false, false, true,
+                  false, false, false,
+                  false, false, false,
                   false, false, false]
     imu0_differential: false
     imu0_relative: false
     imu0_queue_size: 10
-    imu0_remove_gravitational_acceleration: true
+    imu0_remove_gravitational_acceleration: false
 
-    # Dual-antenna absolute heading — valid at all speeds and in reverse.
-    imu1: imu/gps_heading
+    # IMU — yaw RATE only, to smooth orientation between heading updates.
+    imu1: imu
     imu1_config: [false, false, false,
-                  false, false, true,
+                  true, true, false,
                   false, false, false,
                   false, false, false,
                   false, false, false]
     imu1_differential: false
     imu1_relative: false
-    imu1_queue_size: 5
-    imu1_remove_gravitational_acceleration: false
+    imu1_queue_size: 10
+    imu1_remove_gravitational_acceleration: true
 
     use_control: false
 

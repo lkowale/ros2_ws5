@@ -9,7 +9,6 @@ find_package(ament_cmake REQUIRED)
 
 # Install Python nodes
 install(PROGRAMS
-  localization/gps_roll_correction_node.py
   localization/relposned_heading.py
   DESTINATION lib/${PROJECT_NAME}
 )

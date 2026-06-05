@@ -56,15 +56,21 @@ def generate_launch_description():
         }.items(),
     )
 
-    sim_wheel_speed_pub = Node(
+    # Correct /gps/fix from Gazebo ground truth (the gz NavSat sensor's lat/lon
+    # is rotated vs world ENU, so it is not bridged — see solbot5_gz_bridge.yaml).
+    sim_gps_fix = Node(
         package='solbot5_gazebo_spawn',
-        executable='sim_wheel_speed_publisher.py',
-        name='sim_wheel_speed_publisher',
+        executable='sim_gps_fix_publisher.py',
+        name='sim_gps_fix_publisher',
         output='both',
         parameters=[{
             'use_sim_time': use_sim_time,
-            'wheel_radius': 0.20,
-            'gear_ratio': 1.0,
+            'datum_lat': 53.5204991,
+            'datum_lon': 17.8258532,
+            'datum_alt': 100.0,
+            'antenna_x': 0.95,
+            'antenna_y': 0.0,
+            'rate_hz': 10.0,
         }],
     )
 
@@ -80,24 +86,6 @@ def generate_launch_description():
             'heading_noise_deg': 0.0,
             'rate_hz': 8.0,
         }],
-    )
-
-    ackermann_odom_node = TimerAction(
-        period=3.0,
-        actions=[Node(
-            package='solbot5_control',
-            executable='ackermann_odom',
-            name='ackermann_odom',
-            output='both',
-            parameters=[{
-                'use_sim_time': use_sim_time,
-                'wheelbase': 1.20,
-                'track_width': 0.77,
-                'wheel_diameter': 0.40,
-                'gear_ratio': 1.0,
-                'publish_rate': 20.0,
-            }],
-        )]
     )
 
     navsat_init_node = Node(
@@ -130,9 +118,8 @@ def generate_launch_description():
         declare_headless_cmd,
         declare_heading_offset_cmd,
         simulation_cmd,
-        sim_wheel_speed_pub,
+        sim_gps_fix,
         sim_relposned,
-        ackermann_odom_node,
         navsat_init_node,
         localization_cmd,
     ])

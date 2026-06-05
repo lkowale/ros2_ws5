@@ -73,7 +73,6 @@ def generate_launch_description():
         parameters=[params_file, {'use_sim_time': use_sim_time}],
         remappings=[
             ('odometry/filtered', 'odom'),
-            ('imu1/data', 'imu/gps_heading'),
         ],
     )
 

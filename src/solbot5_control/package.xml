@@ -3,18 +3,16 @@
 <package format="3">
   <name>solbot5_control</name>
   <version>1.0.0</version>
-  <description>Control nodes for solbot robot: drive, steering, lift, planter, IMU, and MQTT</description>
+  <description>Control nodes for solbot5: drive, steering, imu_bridge, navsat_init</description>
   <maintainer email="lkowale@gmail.com">aa</maintainer>
   <license>Apache-2.0</license>
 
   <exec_depend>rclpy</exec_depend>
   <exec_depend>std_msgs</exec_depend>
-  <exec_depend>action_msgs</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>nav_msgs</exec_depend>
-  <exec_depend>tf2_ros</exec_depend>
-  <exec_depend>tf_transformations</exec_depend>
+  <exec_depend>geographic_msgs</exec_depend>
   <!-- solbot5_msgs / telemetry deps added back in later milestones with their nodes -->
   <exec_depend>ublox_ubx_msgs</exec_depend>
 

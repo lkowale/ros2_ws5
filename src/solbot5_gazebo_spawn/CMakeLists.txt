@@ -14,9 +14,8 @@ install(
     scripts/ackermann_cmd_vel_preprocessor.py
     scripts/odom_covariance_injector.py
     scripts/imu_covariance_injector.py
-    scripts/sim_wheel_speed_publisher.py
-    scripts/sim_gps_vel_odom.py
     scripts/sim_relposned_publisher.py
+    scripts/sim_gps_fix_publisher.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
