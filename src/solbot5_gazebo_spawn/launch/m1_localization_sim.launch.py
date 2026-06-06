@@ -88,18 +88,9 @@ def generate_launch_description():
         }],
     )
 
-    navsat_init_node = Node(
-        package='solbot5_control',
-        executable='navsat_init',
-        name='navsat_init',
-        output='both',
-        parameters=[{
-            'use_sim_time': use_sim_time,
-            'min_speed_mps': 0.0,
-        }],
-    )
-
     # Localization (delayed to let Gazebo + bridge publish first messages).
+    # navsat_init now lives inside ekf_relposned.launch.py so it re-sets the
+    # datum on a standalone localization restart.
     localization_cmd = TimerAction(
         period=4.0,
         actions=[IncludeLaunchDescription(
@@ -120,6 +111,5 @@ def generate_launch_description():
         simulation_cmd,
         sim_gps_fix,
         sim_relposned,
-        navsat_init_node,
         localization_cmd,
     ])

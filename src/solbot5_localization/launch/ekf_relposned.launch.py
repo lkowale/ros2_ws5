@@ -1,8 +1,15 @@
 """solbot5 EKF localization — GPS position + dual-antenna heading.
 
+Self-contained: this launch owns everything needed to (re)start localization
+without touching the hardware/sim layer, so it can be relaunched standalone
+(e.g. run_localization.sh restart). In particular navsat_init lives here, not
+in the core/sim launch — navsat_transform comes up with wait_for_datum=true and
+needs /datum set on every fresh start, which a co-launched navsat_init handles.
+
 Nodes:
 - relposned_heading : UBXNavRelPosNED -> /imu/gps_heading (absolute yaw)
-- navsat_transform  : /gps/fix -> /odometry/gps
+- navsat_transform  : /gps/fix -> /odometry/gps  (waits for datum)
+- navsat_init       : sets /datum from first GPS fix (re-sets on each restart)
 - ekf_filter_node_odom : fuse GPS odom + IMU yaw-rate + dual-antenna heading
 - static map->odom identity (single EKF, no global filter)
 """
@@ -65,6 +72,17 @@ def generate_launch_description():
         ],
     )
 
+    # Sets navsat_transform's /datum from the first GPS fix. Co-located with
+    # navsat_transform so a standalone localization restart re-sets the datum
+    # (navsat_transform comes up datum-less on every fresh start).
+    navsat_init_node = Node(
+        package='solbot5_control',
+        executable='navsat_init',
+        name='navsat_init',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}],
+    )
+
     ekf_node = Node(
         package='robot_localization',
         executable='ekf_node',
@@ -90,6 +108,7 @@ def generate_launch_description():
         declare_gps_odom_topic_cmd,
         relposned_heading_node,
         navsat_transform_node,
+        navsat_init_node,
         ekf_node,
         map_to_odom_tf,
     ])
