@@ -44,7 +44,11 @@ with hardware nodes replaced by Gazebo adapters.
     ground-truth yaw (with optional noise) so the localization path is identical
     sim↔real.
   - Validate: heading correct at standstill, forward, reverse, turning.
-- **M2 — Nav2 drive** — add Nav2, send goals manually.
+- **M2 — Nav2 drive** — add Nav2, send goals manually. ← IN PROGRESS
+  - KNOWN ISSUE deferred from M1: EKF localizes the GPS antenna (gps_link, 0.95m
+    fwd of base_footprint), so base_footprint estimate is biased 0.95m forward.
+    Fix = antenna lever-arm correction in navsat_transform. Address during M2
+    since Nav2 accuracy depends on it.
 - **M3 — one_line navigator** — port + simplify BT (heading always available).
 - **M4 — field navigator** — port + simplify BT.
 

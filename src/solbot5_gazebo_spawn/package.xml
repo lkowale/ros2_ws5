@@ -10,6 +10,9 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>solbot5_description</depend>
+  <exec_depend>solbot5_localization</exec_depend>
+  <exec_depend>solbot5_nav2_bringup</exec_depend>
+  <exec_depend>swri_transform_util</exec_depend>
   <depend>ros_gz_bridge</depend>
   <depend>ros_gz_sim</depend>
   <depend>robot_state_publisher</depend>

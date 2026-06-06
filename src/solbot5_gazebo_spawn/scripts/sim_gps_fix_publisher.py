@@ -16,7 +16,7 @@ path downstream (navsat_transform + EKF) is exercised on clean data — and the
 sim matches the real robot at the /gps/fix boundary.
 
 Subscribes: /odometry/gazebo  (nav_msgs/Odometry, ground-truth ENU pose)
-Publishes:  /gps/fix          (sensor_msgs/NavSatFix, best_effort)
+Publishes:  /gps/fix          (sensor_msgs/NavSatFix, reliable — see QoS note below)
 """
 
 import math
@@ -57,11 +57,14 @@ class SimGpsFix(Node):
         self._m_per_rad_lat = _A * (1.0 - _E2) / (denom ** 3)
         self._m_per_rad_lon = _A * math.cos(self._lat0) / denom
 
-        best_effort = QoSProfile(
+        # RELIABLE so Mapviz's navsat plugin (which subscribes reliable) receives
+        # it; best_effort subscribers (navsat_transform, navsat_init) are still
+        # served fine since reliable satisfies best_effort.
+        qos = QoSProfile(
             depth=10,
-            reliability=ReliabilityPolicy.BEST_EFFORT,
+            reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.VOLATILE)
-        self._pub = self.create_publisher(NavSatFix, '/gps/fix', best_effort)
+        self._pub = self.create_publisher(NavSatFix, '/gps/fix', qos)
 
         self._pose = None
         self.create_subscription(Odometry, '/odometry/gazebo', self._cb, 10)
