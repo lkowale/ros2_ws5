@@ -72,10 +72,11 @@
     <xacro:box_inertia m="15" w="${base_width}" d="${base_length}" h="${base_height}"/>
   </link>
 
+  <!-- base_footprint coincides with the front GPS antenna for zero lever-arm; base_link shifted back by the antenna offset -->
   <joint name="base_joint" type="fixed">
     <parent link="base_footprint"/>
     <child link="base_link"/>
-    <origin xyz="0.0 0.0 ${(wheel_radius+wheel_zoff)}" rpy="0 0 0"/>
+    <origin xyz="${-(wheelbase/2 + 0.35)} 0.0 ${(wheel_radius+wheel_zoff)}" rpy="0 0 0"/>
   </joint>
 
   <xacro:limo_left_steering_hinge parent_prefix="base_link" wheel_prefix="front_left">

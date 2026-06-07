@@ -43,9 +43,9 @@ class SimGpsFix(Node):
         self._lon0 = math.radians(self.declare_parameter('datum_lon', 17.8258532).value)
         self._alt0 = self.declare_parameter('datum_alt', 100.0).value
 
-        # gps_link antenna offset from base_footprint, in the body frame (m).
-        # Front antenna: +x = wheelbase/2 + 0.35 = 0.95.
-        self._ant_x = self.declare_parameter('antenna_x', 0.95).value
+        # Antenna offset from base_footprint, in the body frame (m). base_footprint
+        # is defined to coincide with the front antenna (gps_link), so this is 0.
+        self._ant_x = self.declare_parameter('antenna_x', 0.0).value
         self._ant_y = self.declare_parameter('antenna_y', 0.0).value
 
         self._rate_hz = self.declare_parameter('rate_hz', 10.0).value
