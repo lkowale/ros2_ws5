@@ -43,7 +43,7 @@ def generate_launch_description():
 
     bt_xml = os.path.join(
         os.path.expanduser('~'), 'ros2_ws5', 'src',
-        'solbot5_nav2_bringup', 'behavior_trees', 'navigate_plan_once.xml')
+        'navigation', 'nav2_bringup', 'behavior_trees', 'navigate_plan_once.xml')
     log_bt = LogInfo(msg=f'[M3] BT XML: {bt_xml}')
 
     m1_cmd = IncludeLaunchDescription(
