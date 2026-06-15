@@ -45,11 +45,12 @@ if [[ "${1:-}" == "goal" ]]; then
     Y="${3:?Usage: run_m3_sim.sh goal <x> <y> [yaw_deg]}"
     YAW="${4:-90}"
     read QZ QW < <(_deg2quat_z "$YAW")
-    echo "NavigateToPose: x=$X y=$Y yaw=${YAW}° (qz=$QZ qw=$QW)"
+    LOG_FILE="$HOME/ros2_ws5/logs/m3_sim/latest.log"
+    echo "NavigateToPose: x=$X y=$Y yaw=${YAW}° (qz=$QZ qw=$QW)" | tee -a "$LOG_FILE"
     ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
         "{pose: {header: {frame_id: map}, pose: {position: {x: $X, y: $Y, z: 0.0}, \
 orientation: {x: 0.0, y: 0.0, z: $QZ, w: $QW}}}}" \
-        --feedback
+        --feedback 2>&1 | tee -a "$LOG_FILE"
     exit 0
 fi
 
@@ -62,25 +63,30 @@ fi
 
 if [[ "${1:-}" == "test" ]]; then
     _set_cli_cyclone
+    LOG_FILE="$HOME/ros2_ws5/logs/m3_sim/latest.log"
+    {
     echo ""
     echo "═══════════════════════════════════════════════════"
     echo "  solbot5 M3 — Reeds-Shepp planner test suite"
     echo "  Robot starts at map (0,0), heading=90° (North)"
     echo "═══════════════════════════════════════════════════"
     echo ""
+    } | tee -a "$LOG_FILE"
 
     _goal() {
         local label="$1" x="$2" y="$3" yaw="${4:-90}"
         read QZ QW < <(_deg2quat_z "$yaw")
+        {
         echo ""
         echo "────────────────────────────────────────────"
         echo "  GOAL: $label"
         echo "  x=$x  y=$y  yaw=${yaw}° → qz=$QZ qw=$QW"
         echo "────────────────────────────────────────────"
+        } | tee -a "$LOG_FILE"
         ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
             "{pose: {header: {frame_id: map}, pose: {position: {x: $x, y: $y, z: 0.0}, \
 orientation: {x: 0.0, y: 0.0, z: $QZ, w: $QW}}}}" \
-            --feedback || true
+            --feedback 2>&1 | tee -a "$LOG_FILE" || true
     }
 
     # Test 1: straight ahead (should be a short straight RS path)
@@ -104,10 +110,12 @@ orientation: {x: 0.0, y: 0.0, z: $QZ, w: $QW}}}}" \
     # Test 7: return to origin heading North
     _goal "7: back to origin, heading North" 0 0 90
 
+    {
     echo ""
     echo "═══════════════════════════════════════════════════"
     echo "  Test suite complete."
     echo "═══════════════════════════════════════════════════"
+    } | tee -a "$LOG_FILE"
     exit 0
 fi
 
