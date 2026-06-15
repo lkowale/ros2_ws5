@@ -265,7 +265,22 @@
   </sensor>
 </gazebo>
 
-    <!--              ackermann plugin                 -->    
+<!--              tool_link                  -->
+<!-- On the robot symmetry line, same plane as base_footprint (z=0),
+     80 cm behind the front axle.
+     base_footprint = front GPS antenna.
+     Front axle in base_footprint frame = -(wheelbase/2 + 0.35) + (wheelbase/2 - wheel_radius)
+                                        = -(0.35 + wheel_radius) = -0.55 m.
+     tool_link x = -0.55 - 0.80 = -1.35 m. -->
+<link name="tool_link"/>
+
+<joint name="tool_joint" type="fixed">
+  <parent link="base_footprint"/>
+  <child link="tool_link"/>
+  <origin xyz="-1.35 0.0 0.0" rpy="0 0 0"/>
+</joint>
+
+    <!--              ackermann plugin                 -->
   <gazebo>
       <plugin
         filename="gz-sim-ackermann-steering-system"
