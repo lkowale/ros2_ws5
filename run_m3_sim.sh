@@ -147,7 +147,7 @@ echo "=========================================="
     echo "git: $(git -C "$HOME/ros2_ws5" rev-parse --short HEAD 2>/dev/null) $(git -C "$HOME/ros2_ws5" log -1 --format='%s' 2>/dev/null)"
 } | tee "$LOG_FILE"
 
-ros2 launch solbot5_gazebo_spawn m3_nav_sim.launch.py \
+ros2 launch gazebo_spawn m3_nav_sim.launch.py \
     headless:=$HEADLESS \
     heading_offset_deg:=$HEADING_OFFSET \
     "$@" 2>&1 | tee -a "$LOG_FILE"
