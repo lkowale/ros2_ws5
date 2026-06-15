@@ -1,0 +1,12 @@
+<library path="solbot5_planner_plugin">
+  <class name="solbot5_planner/ReedsSheppPlanner"
+         type="solbot5_planner::ReedsSheppPlanner"
+         base_class_type="nav2_core::GlobalPlanner">
+    <description>
+      Reeds-Shepp path planner for Ackermann robots.
+      Plans the minimum-length forward+reverse arc/straight path from start pose
+      to goal pose, respecting a configurable minimum turning radius.
+      Outputs a dense waypoint sequence (nav_msgs/Path) suitable for RPP.
+    </description>
+  </class>
+</library>

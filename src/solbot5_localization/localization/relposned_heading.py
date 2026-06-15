@@ -83,7 +83,9 @@ class RelPosNedHeading(Node):
 
     def _log_stats(self):
         if self._n_pub or self._n_rejected:
-            self.get_logger().info(
+            # debug-level: keep counters available via --log-level debug, but
+            # don't spam the terminal at info every 5 s.
+            self.get_logger().debug(
                 f'heading: {self._n_pub} published, {self._n_rejected} rejected (last 5 s)')
             self._n_pub = 0
             self._n_rejected = 0

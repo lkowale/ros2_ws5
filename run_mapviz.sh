@@ -45,7 +45,9 @@ if [ -z "${MAPVIZ_WAYLAND:-}" ]; then
     export GDK_BACKEND=x11
 fi
 
-CONFIG=$(ros2 pkg prefix solbot5_nav2_bringup)/share/solbot5_nav2_bringup/config/mapviz_m2.mvc
+# M=2 (default) or M=3 selects which mapviz config to load.
+M="${M:-2}"
+CONFIG="$HOME/ros2_ws5/src/solbot5_nav2_bringup/config/mapviz_m${M}.mvc"
 
 LOG_DIR="$HOME/ros2_ws5/logs/mapviz"
 mkdir -p "$LOG_DIR"
