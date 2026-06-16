@@ -19,6 +19,7 @@ find_package(nav2_costmap_2d REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(pluginlib REQUIRED)
+find_package(nav2_regulated_pure_pursuit_controller REQUIRED)
 
 set(library_name ${PROJECT_NAME}_plugin)
 
@@ -34,11 +35,13 @@ set(dependencies
   tf2_ros
   tf2_geometry_msgs
   pluginlib
+  nav2_regulated_pure_pursuit_controller
 )
 
 add_library(${library_name} SHARED
   src/tool_line_follower_controller.cpp
   src/tool_arc_follower_controller.cpp
+  src/tool_rpp_controller.cpp
 )
 
 target_include_directories(${library_name} PUBLIC

@@ -20,3 +20,15 @@
     </description>
   </class>
 </library>
+
+<library path="tool_line_follower_controller_plugin">
+  <class name="tool_rpp_controller/ToolAnchoredRPPController"
+         type="tool_rpp_controller::ToolAnchoredRPPController"
+         base_class_type="nav2_core::Controller">
+    <description>
+      RPP controller anchored to a configurable TF frame (gps_frame_id, default gps_link).
+      Set gps_frame_id to tool_link to keep the implement hitch point on arc paths
+      using dual-antenna heading for orientation.
+    </description>
+  </class>
+</library>
