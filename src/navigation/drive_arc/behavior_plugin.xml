@@ -1,0 +1,7 @@
+<library path="drive_arc_behavior">
+  <class name="drive_arc/DriveArcBehavior"
+         type="drive_arc::DriveArcBehavior"
+         base_class_type="nav2_core::Behavior">
+    <description>Drive an arc of specified radius and angle (+ left, - right; - speed = reverse).</description>
+  </class>
+</library>

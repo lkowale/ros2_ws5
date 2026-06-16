@@ -1,0 +1,15 @@
+# Drive an arc of given radius and angle.
+# Positive angle = left (CCW), negative = right (CW).
+# Negative speed = reverse.
+float64 radius       # turning radius [m]  (must be > 0)
+float64 angle        # arc angle to sweep [rad]  (signed: + left, - right)
+float64 speed        # linear speed [m/s]  (signed: + forward, - reverse)
+float64 time_allowance  # max time [s], 0 = no limit
+---
+uint16 error_code
+uint16 NONE=0
+uint16 TIMEOUT=1
+uint16 TF_ERROR=2
+builtin_interfaces/Duration total_elapsed_time
+---
+float32 angle_traveled
