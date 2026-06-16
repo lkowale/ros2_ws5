@@ -19,6 +19,7 @@
   <depend>pluginlib</depend>
   <depend>behaviortree_cpp</depend>
   <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
   <depend>tf2</depend>
   <depend>solbot5_msgs</depend>
 

@@ -25,8 +25,8 @@
       <DriveArc radius="1.5" angle="1.5708" speed="0.4" time_allowance="30.0"
                 error_code_id="{turn_arc1_error}"/>
 
-      <!-- Seg 2: reverse right 60° -->
-      <DriveArc radius="1.5" angle="-1.0472" speed="-0.3" time_allowance="30.0"
+      <!-- Seg 2: reverse right 60° (negative speed + positive angle → rear swings right) -->
+      <DriveArc radius="1.5" angle="1.0472" speed="-0.3" time_allowance="30.0"
                 error_code_id="{turn_arc2_error}"/>
 
       <!-- Seg 3: forward left connecting arc ~120° -->

@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <memory>
+#include <string>
 
 #include "nav2_util/robot_utils.hpp"
 #include "tf2/utils.h"
@@ -9,10 +10,63 @@
 namespace drive_arc
 {
 
+static constexpr double PATH_STEP = 0.05;  // metres between path waypoints
+
 DriveArcBehavior::DriveArcBehavior()
 : nav2_behaviors::TimedBehavior<solbot5_msgs::action::DriveArc>(),
   feedback_(std::make_shared<ActionT::Feedback>())
 {}
+
+void DriveArcBehavior::onConfigure()
+{
+  auto node = node_.lock();
+  path_pub_ = node->create_publisher<nav_msgs::msg::Path>("/plan_turn", 1);
+}
+
+void DriveArcBehavior::publishPredictedPath(double radius, double angle, double speed)
+{
+  geometry_msgs::msg::PoseStamped current;
+  if (!nav2_util::getCurrentPose(current, *tf_, local_frame_, robot_base_frame_,
+      transform_tolerance_)) {
+    return;
+  }
+
+  nav_msgs::msg::Path path;
+  path.header.frame_id = "map";
+  path.header.stamp    = clock_->now();
+
+  double x   = current.pose.position.x;
+  double y   = current.pose.position.y;
+  double yaw = tf2::getYaw(current.pose.orientation);
+
+  double angle_sign = (angle >= 0.0) ? 1.0 : -1.0;
+  double total_arc  = std::fabs(angle) * radius;
+  int    n           = std::max(2, static_cast<int>(std::ceil(total_arc / PATH_STEP)));
+
+  // Centre of curvature
+  double cx = x - angle_sign * radius * std::sin(yaw);
+  double cy = y + angle_sign * radius * std::cos(yaw);
+
+  for (int i = 0; i <= n; ++i) {
+    double swept = angle * i / n;  // signed
+    double px = cx + angle_sign * radius * std::sin(yaw + swept);
+    double py = cy - angle_sign * radius * std::cos(yaw + swept);
+    double py_yaw = yaw + swept;
+
+    // Reverse segments: flip yaw so mapviz shows direction of travel
+    double display_yaw = (speed < 0.0) ? py_yaw + M_PI : py_yaw;
+
+    geometry_msgs::msg::PoseStamped ps;
+    ps.header = path.header;
+    ps.pose.position.x = px;
+    ps.pose.position.y = py;
+    ps.pose.orientation.z = std::sin(display_yaw / 2.0);
+    ps.pose.orientation.w = std::cos(display_yaw / 2.0);
+    path.poses.push_back(ps);
+  }
+
+  path_pub_->publish(path);
+}
 
 nav2_behaviors::ResultStatus DriveArcBehavior::onRun(
   const std::shared_ptr<const ActionT::Goal> command)
@@ -22,16 +76,12 @@ nav2_behaviors::ResultStatus DriveArcBehavior::onRun(
     return {nav2_behaviors::Status::FAILED, ActionT::Result::TF_ERROR};
   }
 
-  target_angle_  = command->angle;   // signed
-  linear_speed_  = command->speed;   // signed
+  radius_        = command->radius;
+  target_angle_  = command->angle;
+  linear_speed_  = command->speed;
 
-  // angular.z = v / r, sign from: forward+left → positive omega
-  // omega = v * sin(angle_sign) / r  — but simpler:
-  // left arc  (+angle): omega = +|v|/r  (forward) or -|v|/r (reverse)
-  // right arc (-angle): omega = -|v|/r  (forward) or +|v|/r (reverse)
-  // Unified: omega = speed / radius * sign(angle)
-  double angle_sign = (command->angle >= 0.0) ? 1.0 : -1.0;
-  angular_speed_ = linear_speed_ / command->radius * angle_sign;
+  double angle_sign  = (command->angle >= 0.0) ? 1.0 : -1.0;
+  angular_speed_     = linear_speed_ / command->radius * angle_sign;
 
   time_allowance_ = rclcpp::Duration::from_seconds(
     command->time_allowance > 0.0 ? command->time_allowance : 60.0);
@@ -43,6 +93,8 @@ nav2_behaviors::ResultStatus DriveArcBehavior::onRun(
     RCLCPP_ERROR(logger_, "DriveArc: cannot get initial pose");
     return {nav2_behaviors::Status::FAILED, ActionT::Result::TF_ERROR};
   }
+
+  publishPredictedPath(command->radius, command->angle, command->speed);
 
   RCLCPP_INFO(logger_,
     "DriveArc: radius=%.2f angle=%.1f° speed=%.2f omega=%.3f",
@@ -67,18 +119,15 @@ nav2_behaviors::ResultStatus DriveArcBehavior::onCycleUpdate()
     return {nav2_behaviors::Status::FAILED, ActionT::Result::TF_ERROR};
   }
 
-  // Measure swept angle as difference in yaw from initial pose.
-  double yaw0 = tf2::getYaw(initial_pose_.pose.orientation);
-  double yaw1 = tf2::getYaw(current_pose.pose.orientation);
+  double yaw0  = tf2::getYaw(initial_pose_.pose.orientation);
+  double yaw1  = tf2::getYaw(current_pose.pose.orientation);
   double swept = yaw1 - yaw0;
-  // Normalise to [-π, π]
   while (swept >  M_PI) swept -= 2.0 * M_PI;
   while (swept < -M_PI) swept += 2.0 * M_PI;
 
   feedback_->angle_traveled = static_cast<float>(swept);
   action_server_->publish_feedback(feedback_);
 
-  // Done when |swept| >= |target_angle|
   if (std::fabs(swept) >= std::fabs(target_angle_)) {
     stopRobot();
     RCLCPP_INFO(logger_, "DriveArc: done, swept=%.1f°", swept * 180.0 / M_PI);
@@ -86,7 +135,7 @@ nav2_behaviors::ResultStatus DriveArcBehavior::onCycleUpdate()
   }
 
   auto cmd = std::make_unique<geometry_msgs::msg::TwistStamped>();
-  cmd->header.stamp = clock_->now();
+  cmd->header.stamp    = clock_->now();
   cmd->header.frame_id = robot_base_frame_;
   cmd->twist.linear.x  = linear_speed_;
   cmd->twist.angular.z = angular_speed_;

@@ -4,14 +4,12 @@
 #include <memory>
 #include "nav2_behaviors/timed_behavior.hpp"
 #include "nav2_util/node_utils.hpp"
+#include "nav_msgs/msg/path.hpp"
 #include "solbot5_msgs/action/drive_arc.hpp"
 
 namespace drive_arc
 {
 
-// Nav2 behavior plugin: drive an arc of specified radius and angle.
-// Publishes constant linear.x + angular.z = linear.x / radius.
-// Stops when the swept yaw equals the requested angle.
 class DriveArcBehavior : public nav2_behaviors::TimedBehavior<solbot5_msgs::action::DriveArc>
 {
   using ActionT = solbot5_msgs::action::DriveArc;
@@ -31,16 +29,20 @@ public:
   }
 
 protected:
-  void onConfigure() override {}
+  void onConfigure() override;
 
 private:
   geometry_msgs::msg::PoseStamped initial_pose_;
-  double target_angle_;   // signed: + left, - right [rad]
-  double linear_speed_;   // signed [m/s]
-  double angular_speed_;  // derived: linear / radius, sign matches curve direction
+  double target_angle_;
+  double linear_speed_;
+  double angular_speed_;
+  double radius_;
   rclcpp::Time end_time_;
   rclcpp::Duration time_allowance_{0, 0};
   typename ActionT::Feedback::SharedPtr feedback_;
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
+
+  void publishPredictedPath(double radius, double angle, double speed);
 };
 
 }  // namespace drive_arc
