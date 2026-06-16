@@ -1,0 +1,5 @@
+{
+  "description": "Test swath line in sim — 20m north from origin, heading North (90°)",
+  "start": { "x":  0.0, "y":  0.0, "yaw": 1.5708 },
+  "end":   { "x":  0.0, "y": 20.0, "yaw": 1.5708 }
+}

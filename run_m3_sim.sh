@@ -12,6 +12,10 @@
 # ── Run the automated RS test suite ──────────────────────────────────────────
 #   bash run_m3_sim.sh test
 #
+# ── Run one-line swath navigator ─────────────────────────────────────────────
+#   bash run_m3_sim.sh line [field_name]
+#     field_name: directory under src/fields/ containing line.json (default: test_line)
+#
 # Environment:
 #   HEADLESS=True|False       Gazebo GUI            (default: True)
 #   HEADING_OFFSET=<deg>      antenna offset        (default: 0.0)
@@ -58,6 +62,18 @@ if [[ "${1:-}" == "cancel" ]]; then
     _set_cli_cyclone
     echo "Cancelling navigation..."
     ros2 action cancel /navigate_to_pose 2>/dev/null || true
+    ros2 action cancel /run_one_line 2>/dev/null || true
+    exit 0
+fi
+
+if [[ "${1:-}" == "line" ]]; then
+    _set_cli_cyclone
+    FIELD="${2:-test_line}"
+    LOG_FILE="$HOME/ros2_ws5/logs/m3_sim/latest.log"
+    echo "RunOneLine: field=$FIELD" | tee -a "$LOG_FILE"
+    ros2 action send_goal /run_one_line solbot5_msgs/action/RunOneLine \
+        "{field_name: '$FIELD'}" \
+        --feedback 2>&1 | tee -a "$LOG_FILE" || true
     exit 0
 fi
 
@@ -144,9 +160,10 @@ echo "  Headless       : $HEADLESS"
 echo "  Heading offset : $HEADING_OFFSET deg"
 echo "  Log            : $LOG_FILE"
 echo ""
-echo "  Single goal: bash run_m3_sim.sh goal <x> <y> [yaw_deg]"
-echo "  Test suite : bash run_m3_sim.sh test"
-echo "  Cancel     : bash run_m3_sim.sh cancel"
+echo "  Single goal : bash run_m3_sim.sh goal <x> <y> [yaw_deg]"
+echo "  Test suite  : bash run_m3_sim.sh test"
+echo "  Swath line  : bash run_m3_sim.sh line [field_name]"
+echo "  Cancel      : bash run_m3_sim.sh cancel"
 echo "=========================================="
 
 {
