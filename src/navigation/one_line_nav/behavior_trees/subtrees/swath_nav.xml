@@ -1,0 +1,20 @@
+<!--
+  Swath Navigation SubTree
+
+  Follows a straight-line path through map_points using the straight-line
+  planner and ToolLineFollowerController (cross-track PID on tool_link/gps_link).
+
+  Blackboard inputs:
+    map_points: vector<PoseStamped>  — start and end of swath
+-->
+<root BTCPP_format="4" main_tree_to_execute="SwathNav">
+  <BehaviorTree ID="SwathNav">
+    <Sequence>
+      <ComputePathThroughPoses goals="{map_points}" path="{swath_path}"
+                                planner_id="StraightLine"
+                                error_code_id="{swath_compute_error}"/>
+      <FollowPath path="{swath_path}" controller_id="SwathFollow"
+                  error_code_id="{swath_follow_error}"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

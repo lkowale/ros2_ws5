@@ -1,0 +1,23 @@
+<!--
+  Turn Swath SubTree
+
+  After completing a swath, reverses map_points and drives to the new start
+  using the RS planner (handles the 180° U-turn kinematically).
+
+  Blackboard inputs/outputs:
+    map_points: vector<PoseStamped>  — reversed in place after turn
+-->
+<root BTCPP_format="4" main_tree_to_execute="TurnSwath">
+  <BehaviorTree ID="TurnSwath">
+    <Sequence>
+      <!-- Reverse the point list so next swath goes the other direction -->
+      <ReversePoses poses="{map_points}" reversed="{map_points}"/>
+      <!-- Drive to new swath start using RS planner -->
+      <GetPoseFromPoses poses="{map_points}" pose="{turn_goal_pose}" index="0"/>
+      <ComputePathToPose goal="{turn_goal_pose}" path="{turn_path}"
+                         planner_id="GridBased" error_code_id="{turn_compute_error}"/>
+      <FollowPath path="{turn_path}" controller_id="FollowPath"
+                  error_code_id="{turn_follow_error}"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

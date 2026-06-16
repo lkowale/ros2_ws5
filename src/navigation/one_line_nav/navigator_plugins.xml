@@ -1,0 +1,14 @@
+<class_libraries>
+  <library path="one_line_navigator">
+    <class
+      name="one_line_nav/OneLineNavigator"
+      type="one_line_nav::OneLineNavigator"
+      base_class_type="nav2_core::NavigatorBase">
+      <description>
+        Single-line swath navigator for solbot5. Accepts map-frame start/end
+        points or a field_name to load from file. Approach and U-turn use the
+        RS planner; swath following uses ToolLineFollowerController.
+      </description>
+    </class>
+  </library>
+</class_libraries>

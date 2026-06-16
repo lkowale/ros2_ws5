@@ -1,0 +1,20 @@
+<!--
+  Approach Swath SubTree
+
+  Drives base_footprint to map_points[0] using the RS planner + RPP controller.
+  The RS planner handles any start pose — forward or reverse approach.
+
+  Blackboard inputs:
+    map_points: vector<PoseStamped>  — swath waypoints, [0] is approach target
+-->
+<root BTCPP_format="4" main_tree_to_execute="ApproachSwath">
+  <BehaviorTree ID="ApproachSwath">
+    <Sequence>
+      <GetPoseFromPoses poses="{map_points}" pose="{approach_goal_pose}" index="0"/>
+      <ComputePathToPose goal="{approach_goal_pose}" path="{approach_path}"
+                         planner_id="GridBased" error_code_id="{approach_compute_error}"/>
+      <FollowPath path="{approach_path}" controller_id="FollowPath"
+                  error_code_id="{approach_follow_error}"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

@@ -1,0 +1,39 @@
+<!--
+  One Line Behavior Tree for solbot5
+
+  Approach swath start with RS planner, follow swath with cross-track PID,
+  U-turn with RS planner, repeat indefinitely.
+
+  Uses ToolLineFollowerController ("SwathFollow") for the swath segment so
+  tool_link tracks the line. RS planner ("GridBased") handles approach and turn.
+
+  Blackboard variables set by OneLineNavigator:
+    map_points: vector<PoseStamped>  — [start, end] in map frame
+
+  Send goal:
+    ros2 action send_goal /run_one_line solbot5_msgs/action/RunOneLine \
+      "{field_name: 'my_field'}" --feedback
+
+  Cancel:
+    ros2 action cancel /run_one_line
+-->
+<root BTCPP_format="4" main_tree_to_execute="OneLineBT">
+  <include path="subtrees/approach_swath.xml"/>
+  <include path="subtrees/swath_nav.xml"/>
+  <include path="subtrees/turn_swath.xml"/>
+
+  <BehaviorTree ID="OneLineBT">
+    <Sequence>
+      <!-- Drive to swath start (RS planner, RPP controller) -->
+      <SubTree ID="ApproachSwath" _autoremap="true"/>
+
+      <!-- Repeat: follow swath → turn → follow back → turn → ... -->
+      <KeepRunningUntilFailure>
+        <Sequence>
+          <SubTree ID="SwathNav"   _autoremap="true"/>
+          <SubTree ID="TurnSwath"  _autoremap="true"/>
+        </Sequence>
+      </KeepRunningUntilFailure>
+    </Sequence>
+  </BehaviorTree>
+</root>
