@@ -110,7 +110,7 @@ planner_server:
     # (no sensors) the costmap updates at 1 Hz; raise the timeout so it doesn't
     # abort before the first update arrives.
     costmap_update_timeout: 5.0
-    planner_plugins: ["GridBased", "StraightLine", "SwathTurn1", "SwathTurn3"]
+    planner_plugins: ["GridBased", "StraightLine", "SwathTurn1", "SwathTurn2", "SwathTurn3"]
     GridBased:
       plugin: "planner/ReedsSheppPlanner"
       min_turning_radius: 3.0
@@ -125,6 +125,11 @@ planner_server:
       lead_in_length: 0.5
       lead_out_length: 0.5
       segment: 1
+    SwathTurn2:
+      plugin: "planner/SwathTurnPlanner"
+      min_turning_radius: 3.0
+      interpolation_resolution: 0.05
+      segment: 2
     SwathTurn3:
       plugin: "planner/SwathTurnPlanner"
       min_turning_radius: 3.0

@@ -44,11 +44,10 @@ class AckermannCmdVelPreprocessor(Node):
         output_msg.angular.x = msg.angular.x
         output_msg.angular.y = msg.angular.y
 
-        # Invert angular.z when driving in reverse
-        if msg.linear.x < 0:
-            output_msg.angular.z = -msg.angular.z
-        else:
-            output_msg.angular.z = msg.angular.z
+        # Gazebo AckermannSteering bug: in reverse the plugin applies steering with
+        # the wrong sign. RPP already accounts for reverse geometry (yaw-flipped poses),
+        # so passing angular.z unchanged gives the correct physical turn direction.
+        output_msg.angular.z = msg.angular.z
 
         self.publisher.publish(output_msg)
 

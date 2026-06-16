@@ -3,8 +3,8 @@
 
   geo_points are reversed first so map_points[0] = next swath start (the turn goal).
 
-  Seg 1: SwathTurn1 — forward left arc 90°    (RPP, forward)
-  Seg 2: BackUp     — straight reverse 2.0m   (BackUp behavior, avoids RPP reverse issues)
+  Seg 1: SwathTurn1 — forward left arc 90°     (RPP, forward)
+  Seg 2: SwathTurn2 — reverse right arc 60°    (RPP, reverse; Gazebo angular.z sign fixed in preprocessor)
   Seg 3: SwathTurn3 — connecting arc + lead-in (RPP, forward, from current robot pose)
 
   Nav2 passes the robot's live pose as `start` to each ComputePathToPose call,
@@ -27,9 +27,13 @@
                   goal_checker_id="general_goal_checker"
                   error_code_id="{turn1_follow_error}"/>
 
-      <!-- Seg 2: straight reverse 2.0m (BackUp behavior — reliable reverse in Gazebo) -->
-      <BackUp backup_dist="2.0" backup_speed="0.3" time_allowance="15.0"
-              error_code_id="{turn2_backup_error}"/>
+      <!-- Seg 2: reverse right arc 60° -->
+      <ComputePathToPose goal="{turn_goal_pose}" path="{turn_path}"
+                         planner_id="SwathTurn2"
+                         error_code_id="{turn2_compute_error}"/>
+      <FollowPath path="{turn_path}" controller_id="FollowPath"
+                  goal_checker_id="general_goal_checker"
+                  error_code_id="{turn2_follow_error}"/>
 
       <!-- Seg 3: connecting arc + lead-in to swath start (planned from current pose) -->
       <ComputePathToPose goal="{turn_goal_pose}" path="{turn_path}"
