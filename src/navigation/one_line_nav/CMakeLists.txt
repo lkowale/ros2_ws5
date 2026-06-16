@@ -49,6 +49,7 @@ target_link_libraries(one_line_navigator nlohmann_json::nlohmann_json)
 add_library(one_line_bt_nodes SHARED
   src/bt_nodes.cpp
 )
+target_compile_definitions(one_line_bt_nodes PRIVATE BT_PLUGIN_EXPORT)
 ament_target_dependencies(one_line_bt_nodes
   behaviortree_cpp
   geometry_msgs
