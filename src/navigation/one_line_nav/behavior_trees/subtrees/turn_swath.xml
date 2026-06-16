@@ -3,7 +3,7 @@
 
   geo_points are reversed first so map_points[0] = next swath start (the turn goal).
 
-  Seg 1: SwathTurn1 — forward left arc 90°     (RPP, forward)
+  Seg 1: SwathTurn1 — forward left arc 120°    (RPP, forward)
   Seg 2: SwathTurn2 — reverse right arc 60°    (RPP, reverse; Gazebo angular.z sign fixed in preprocessor)
   Seg 3: SwathTurn3 — connecting arc + lead-in (RPP, forward, from current robot pose)
 
@@ -19,7 +19,7 @@
       <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
       <GetPoseFromPoses poses="{map_points}" pose="{turn_goal_pose}" index="0"/>
 
-      <!-- Seg 1: forward left arc 90° -->
+      <!-- Seg 1: forward left arc 120° -->
       <ComputePathToPose goal="{turn_goal_pose}" path="{turn_path}"
                          planner_id="SwathTurn1"
                          error_code_id="{turn1_compute_error}"/>

@@ -5,7 +5,7 @@
 // so segments chain correctly after the previous one is followed.
 //
 // Turn geometry (swath bearing α, radius ρ):
-//   Seg 1: forward left  arc 90°  from current pose
+//   Seg 1: forward left  arc 120° from current pose
 //   Seg 2: reverse right arc 60°  from current pose
 //   Seg 3: forward connecting arc from current pose to lead-in start,
 //           then straight lead-in to swath start
@@ -183,8 +183,8 @@ nav_msgs::msg::Path SwathTurnPlanner::createPlan(
       appendStraight(poses, S, lead_out_, true);
       arc_start = straightEnd(S, lead_out_, true);
     }
-    // Forward left arc 90°
-    appendArc(poses, arc_start, rho_, M_PI / 2.0, true, true);
+    // Forward left arc 120°
+    appendArc(poses, arc_start, rho_, 2.0 * M_PI / 3.0, true, true);
     RCLCPP_INFO(node_->get_logger(),
       "SwathTurnPlanner seg1: leadout=%.2fm fwd-left 90° from (%.2f,%.2f,%.1f°)",
       lead_out_, S.x, S.y, s_yaw * 180.0 / M_PI);
