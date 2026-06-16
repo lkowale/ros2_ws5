@@ -14,6 +14,7 @@
       <ComputePathToPose goal="{approach_goal_pose}" path="{approach_path}"
                          planner_id="GridBased" error_code_id="{approach_compute_error}"/>
       <FollowPath path="{approach_path}" controller_id="FollowPath"
+                  goal_checker_id="general_goal_checker"
                   error_code_id="{approach_follow_error}"/>
     </Sequence>
   </BehaviorTree>

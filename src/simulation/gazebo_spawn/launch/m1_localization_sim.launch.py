@@ -93,13 +93,17 @@ def generate_launch_description():
     # Localization (delayed to let Gazebo + bridge publish first messages).
     # navsat_init now lives inside ekf_relposned.launch.py so it re-sets the
     # datum on a standalone localization restart.
+    # Localization runs on wall time in sim — avoids EKF blocking on /clock.
+    # The EKF and navsat_transform process message timestamps directly; they
+    # do not need sim time. Sim time is only required by nodes that need to
+    # be in lock-step with Gazebo (bridge, costmaps, BT loop).
     localization_cmd = TimerAction(
         period=4.0,
         actions=[IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
                 os.path.join(loc_dir, 'launch', 'ekf_relposned.launch.py')),
             launch_arguments={
-                'use_sim_time': use_sim_time,
+                'use_sim_time': 'false',
                 'heading_offset_deg': heading_offset_deg,
                 'gps_odom_topic': 'odometry/gps_raw',
             }.items(),

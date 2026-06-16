@@ -35,6 +35,7 @@ ekf_filter_node_odom:
     odom0_differential: false
     odom0_relative: false
 
+
     # Dual-antenna absolute heading — the primary orientation source. Fused as
     # absolute yaw (not yaw-rate) at high weight: a continuous, strong yaw keeps
     # position propagation correct through turns. Valid at all speeds + reverse.
@@ -92,7 +93,7 @@ navsat_transform:
     use_odometry_yaw: false
     wait_for_datum: true
 
-    world_frame: odom
+    world_frame: map
     base_link_frame: base_footprint
 
     qos_overrides:

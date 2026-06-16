@@ -14,6 +14,7 @@
                                 planner_id="StraightLine"
                                 error_code_id="{swath_compute_error}"/>
       <FollowPath path="{swath_path}" controller_id="SwathFollow"
+                  goal_checker_id="swath_goal_checker"
                   error_code_id="{swath_follow_error}"/>
     </Sequence>
   </BehaviorTree>

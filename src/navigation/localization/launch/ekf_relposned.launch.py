@@ -39,9 +39,6 @@ def generate_launch_description():
         'heading_offset_deg', default_value='0.0',
         description='Antenna-baseline mounting offset, calibrated in sim')
 
-    # In sim, navsat output is post-processed by odom_covariance_injector
-    # (odometry/gps_raw -> odometry/gps), so navsat publishes to gps_raw there.
-    # On the real robot the EKF reads odometry/gps directly.
     declare_gps_odom_topic_cmd = DeclareLaunchArgument(
         'gps_odom_topic', default_value='odometry/gps',
         description='navsat_transform odometry output topic (use odometry/gps_raw in sim)')
@@ -67,14 +64,11 @@ def generate_launch_description():
             ('imu/data', 'imu'),
             ('gps/fix', 'gps/fix'),
             ('gps/filtered', 'gps/filtered'),
-            ('odometry/gps', gps_odom_topic),
             ('odometry/filtered', 'odom'),
+            ('odometry/gps', gps_odom_topic),
         ],
     )
 
-    # Sets navsat_transform's /datum from the first GPS fix. Co-located with
-    # navsat_transform so a standalone localization restart re-sets the datum
-    # (navsat_transform comes up datum-less on every fresh start).
     navsat_init_node = Node(
         package='control',
         executable='navsat_init',

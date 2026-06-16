@@ -11,7 +11,7 @@
       <RateController hz="0.01">
         <ComputePathToPose goal="{goal}" path="{path}" planner_id="{selected_planner}" error_code_id="{compute_path_error_code}"/>
       </RateController>
-      <FollowPath path="{path}" controller_id="{selected_controller}" error_code_id="{follow_path_error_code}"/>
+      <FollowPath path="{path}" controller_id="{selected_controller}" goal_checker_id="general_goal_checker" error_code_id="{follow_path_error_code}"/>
     </PipelineSequence>
   </BehaviorTree>
 </root>

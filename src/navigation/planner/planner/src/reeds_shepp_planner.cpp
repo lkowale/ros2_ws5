@@ -329,8 +329,9 @@ void ReedsSheppPlanner::configure(
   node_->get_parameter(name_ + ".min_turning_radius", rho_);
   node_->get_parameter(name_ + ".interpolation_resolution", step_);
 
-  fwd_pub_ = node_->create_publisher<nav_msgs::msg::Path>("/plan_forward", 1);
-  rev_pub_ = node_->create_publisher<nav_msgs::msg::Path>("/plan_reverse", 1);
+  auto qos = rclcpp::QoS(1).transient_local();
+  fwd_pub_ = node_->create_publisher<nav_msgs::msg::Path>("/plan_forward", qos);
+  rev_pub_ = node_->create_publisher<nav_msgs::msg::Path>("/plan_reverse", qos);
 
   RCLCPP_INFO(node_->get_logger(),
     "ReedsSheppPlanner configured: rho=%.2f m  step=%.3f m", rho_, step_);

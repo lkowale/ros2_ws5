@@ -1,45 +1,43 @@
 <!--
-  Turn Swath SubTree — headland turn as explicit arc segments
+  Turn Swath SubTree — 3-segment headland turn, each segment planned then followed.
 
-  After completing a swath (robot heading = swath bearing α):
+  geo_points are reversed first so map_points[0] = next swath start (the turn goal).
 
-    Seg 1: forward left arc  90°  radius=1.5m   (clear headland)
-    Seg 2: reverse right arc 60°  radius=1.5m   (back into position)
-    Seg 3: forward connecting arc (left, ~120°)  radius=1.5m
-    Seg 4: DriveOnHeading 0.5m forward          (lead-in to swath start)
+  Seg 1: SwathTurn1 — forward left arc 90°    (RPP, forward)
+  Seg 2: BackUp     — straight reverse 2.0m   (BackUp behavior, avoids RPP reverse issues)
+  Seg 3: SwathTurn3 — connecting arc + lead-in (RPP, forward, from current robot pose)
 
-  Then reverses geo_points and re-converts so next SwathNav runs the return pass.
-
-  Angles are in radians:
-    90°  = 1.5708
-    60°  = 1.0472
-   120°  = 2.0944
-
-  speed signs:  positive = forward,  negative = reverse
+  Nav2 passes the robot's live pose as `start` to each ComputePathToPose call,
+  so seg3 connects from wherever seg2 ends.
 -->
 <root BTCPP_format="4" main_tree_to_execute="TurnSwath">
   <BehaviorTree ID="TurnSwath">
     <Sequence>
 
-      <!-- Seg 1: forward left 90° -->
-      <DriveArc radius="1.5" angle="1.5708" speed="0.4" time_allowance="30.0"
-                error_code_id="{turn_arc1_error}"/>
-
-      <!-- Seg 2: reverse right 60° (negative speed + positive angle → rear swings right) -->
-      <DriveArc radius="1.5" angle="1.0472" speed="-0.3" time_allowance="30.0"
-                error_code_id="{turn_arc2_error}"/>
-
-      <!-- Seg 3: forward left connecting arc ~120° -->
-      <DriveArc radius="1.5" angle="2.0944" speed="0.4" time_allowance="30.0"
-                error_code_id="{turn_arc3_error}"/>
-
-      <!-- Seg 4: 0.5m lead-in straight -->
-      <DriveOnHeading dist_to_travel="0.5" speed="0.4" time_allowance="10.0"
-                      error_code_id="{turn_leadin_error}"/>
-
-      <!-- Prepare next swath: reverse geo_points and re-convert to map frame -->
+      <!-- Prepare: reverse geo_points so map_points[0] = next swath start -->
       <ReverseGeoPoints geo_points="{geo_points}"/>
       <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
+      <GetPoseFromPoses poses="{map_points}" pose="{turn_goal_pose}" index="0"/>
+
+      <!-- Seg 1: forward left arc 90° -->
+      <ComputePathToPose goal="{turn_goal_pose}" path="{turn_path}"
+                         planner_id="SwathTurn1"
+                         error_code_id="{turn1_compute_error}"/>
+      <FollowPath path="{turn_path}" controller_id="FollowPath"
+                  goal_checker_id="general_goal_checker"
+                  error_code_id="{turn1_follow_error}"/>
+
+      <!-- Seg 2: straight reverse 2.0m (BackUp behavior — reliable reverse in Gazebo) -->
+      <BackUp backup_dist="2.0" backup_speed="0.3" time_allowance="15.0"
+              error_code_id="{turn2_backup_error}"/>
+
+      <!-- Seg 3: connecting arc + lead-in to swath start (planned from current pose) -->
+      <ComputePathToPose goal="{turn_goal_pose}" path="{turn_path}"
+                         planner_id="SwathTurn3"
+                         error_code_id="{turn3_compute_error}"/>
+      <FollowPath path="{turn_path}" controller_id="FollowPath"
+                  goal_checker_id="general_goal_checker"
+                  error_code_id="{turn3_follow_error}"/>
 
     </Sequence>
   </BehaviorTree>
