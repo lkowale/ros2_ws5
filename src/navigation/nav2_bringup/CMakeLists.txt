@@ -17,6 +17,7 @@ install(DIRECTORY
 
 install(PROGRAMS
   scripts/origin_publisher.py
+  scripts/tf_pose_publisher.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

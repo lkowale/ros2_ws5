@@ -17,17 +17,21 @@ transform_timeout_ms: 500
 background: "#a0a0a4"
 image_transport: raw
 displays:
-  - type: mapviz_plugins/robot_image
+  - type: mapviz_plugins/pose
     name: robot
     config:
       visible: true
       collapsed: false
-      frame: base_footprint
-      image: /home/aa/ros2_ws5/src/navigation/nav2_bringup/config/robot_icon.png
-      width: 2
-      height: 1
-      offset_x: 0
-      offset_y: 0
+      topic: /robot_pose
+      color: "#ff6600"
+      draw_style: arrow
+      position_tolerance: 0
+      static_arrow_sizes: true
+      arrow_size: 30
+      qos_depth: 1
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
   - type: mapviz_plugins/tile_map
     name: tiles
     config:

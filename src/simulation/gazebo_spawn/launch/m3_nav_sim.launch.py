@@ -64,6 +64,14 @@ def generate_launch_description():
         parameters=[{'use_sim_time': use_sim_time}],
     )
 
+    tf_pose_publisher = Node(
+        package='solbot5_nav2_bringup',
+        executable='tf_pose_publisher.py',
+        name='tf_pose_publisher',
+        output='both',
+        parameters=[{'use_sim_time': use_sim_time}],
+    )
+
     static_tf_map_origin = Node(
         package='tf2_ros', executable='static_transform_publisher',
         name='static_transform_map_origin',
@@ -93,6 +101,7 @@ def generate_launch_description():
         log_bt,
         m1_cmd,
         origin_publisher,
+        tf_pose_publisher,
         static_tf_map_origin,
         nav2_cmd,
     ])
