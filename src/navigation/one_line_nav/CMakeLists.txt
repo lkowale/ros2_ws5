@@ -18,6 +18,8 @@ find_package(pluginlib REQUIRED)
 find_package(solbot5_msgs REQUIRED)
 find_package(behaviortree_cpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(geographic_msgs REQUIRED)
+find_package(robot_localization REQUIRED)
 find_package(nlohmann_json REQUIRED)
 
 include_directories(include)
@@ -33,6 +35,7 @@ set(nav_dependencies
   solbot5_msgs
   behaviortree_cpp
   geometry_msgs
+  geographic_msgs
 )
 
 # Navigator plugin
@@ -42,13 +45,16 @@ add_library(one_line_navigator SHARED
 ament_target_dependencies(one_line_navigator ${nav_dependencies})
 target_link_libraries(one_line_navigator nlohmann_json::nlohmann_json)
 
-# BT node plugins (ReversePoses, GetPoseFromPoses)
+# BT node plugins
 add_library(one_line_bt_nodes SHARED
   src/bt_nodes.cpp
 )
 ament_target_dependencies(one_line_bt_nodes
   behaviortree_cpp
   geometry_msgs
+  geographic_msgs
+  robot_localization
+  rclcpp
 )
 
 pluginlib_export_plugin_description_file(nav2_core navigator_plugins.xml)

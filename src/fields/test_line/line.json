@@ -1,5 +1,5 @@
 {
-  "description": "Test swath line in sim — 20m north from origin, heading North (90°)",
-  "start": { "x":  0.0, "y":  0.0, "yaw": 1.5708 },
-  "end":   { "x":  0.0, "y": 20.0, "yaw": 1.5708 }
+  "description": "Test swath line in sim — 20m north from world origin (datum 53.5204991, 17.8258532)",
+  "start": { "latitude": 53.5204991, "longitude": 17.8258532 },
+  "end":   { "latitude": 53.5206789, "longitude": 17.8258532 }
 }

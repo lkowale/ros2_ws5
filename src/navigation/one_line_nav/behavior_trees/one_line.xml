@@ -1,21 +1,18 @@
 <!--
   One Line Behavior Tree for solbot5
 
-  Approach swath start with RS planner, follow swath with cross-track PID,
-  U-turn with RS planner, repeat indefinitely.
-
-  Uses ToolLineFollowerController ("SwathFollow") for the swath segment so
-  tool_link tracks the line. RS planner ("GridBased") handles approach and turn.
+  Converts WGS84 geo_points to map_points once via fromLL, then:
+  - Approach swath start with RS planner + RPP controller
+  - Follow swath with ToolLineFollowerController (cross-track PID on gps_link)
+  - U-turn: reverse geo_points → re-convert → RS planner to new start
+  - Repeat indefinitely
 
   Blackboard variables set by OneLineNavigator:
-    map_points: vector<PoseStamped>  — [start, end] in map frame
+    geo_points: vector<GeoPoint>  — [start, end] in WGS84
 
   Send goal:
     ros2 action send_goal /run_one_line solbot5_msgs/action/RunOneLine \
       "{field_name: 'my_field'}" --feedback
-
-  Cancel:
-    ros2 action cancel /run_one_line
 -->
 <root BTCPP_format="4" main_tree_to_execute="OneLineBT">
   <include path="subtrees/approach_swath.xml"/>
@@ -24,10 +21,13 @@
 
   <BehaviorTree ID="OneLineBT">
     <Sequence>
+      <!-- Convert geo_points to map frame once at start -->
+      <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
+
       <!-- Drive to swath start (RS planner, RPP controller) -->
       <SubTree ID="ApproachSwath" _autoremap="true"/>
 
-      <!-- Repeat: follow swath → turn → follow back → turn → ... -->
+      <!-- Repeat: follow swath → turn+re-convert → repeat -->
       <KeepRunningUntilFailure>
         <Sequence>
           <SubTree ID="SwathNav"   _autoremap="true"/>

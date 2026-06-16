@@ -1,11 +1,7 @@
-# Goal — navigate along a single line in map frame.
-# Provide start/end as map-frame x/y, or field_name to load from file.
-float64 start_x
-float64 start_y
-float64 start_yaw   # heading at start (rad ENU), used for swath direction
-float64 end_x
-float64 end_y
-float64 end_yaw     # heading at end (rad ENU)
+# Goal — navigate along a single line defined by WGS84 start/end points.
+# Either provide start_point/end_point directly, or field_name to load from file.
+geographic_msgs/GeoPoint start_point
+geographic_msgs/GeoPoint end_point
 string field_name   # if set, load from {fields_directory}/{field_name}/line.json
 string behavior_tree
 ---

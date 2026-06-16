@@ -8,7 +8,7 @@
 #include "nav2_core/behavior_tree_navigator.hpp"
 #include "solbot5_msgs/action/run_one_line.hpp"
 #include "nav2_util/odometry_utils.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
+#include "geographic_msgs/msg/geo_point.hpp"
 
 namespace one_line_nav
 {
@@ -41,8 +41,8 @@ protected:
 
   bool loadLineFromFile(
     const std::string & field_name,
-    double & start_x, double & start_y, double & start_yaw,
-    double & end_x, double & end_y, double & end_yaw);
+    geographic_msgs::msg::GeoPoint & start_point,
+    geographic_msgs::msg::GeoPoint & end_point);
 
   std::string fields_directory_;
 };

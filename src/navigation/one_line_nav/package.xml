@@ -23,6 +23,8 @@
   <depend>solbot5_msgs</depend>
   <depend>behaviortree_cpp</depend>
   <depend>geometry_msgs</depend>
+  <depend>geographic_msgs</depend>
+  <depend>robot_localization</depend>
   <depend>nlohmann_json</depend>
 
   <test_depend>ament_lint_auto</test_depend>

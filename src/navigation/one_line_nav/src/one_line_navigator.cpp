@@ -4,12 +4,10 @@
 #include <string>
 #include <memory>
 #include <vector>
-#include <cmath>
 #include <fstream>
 
 #include "one_line_nav/one_line_navigator.hpp"
 #include "ament_index_cpp/get_package_share_directory.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
 #include <nlohmann/json.hpp>
 
 namespace one_line_nav
@@ -50,8 +48,8 @@ std::string OneLineNavigator::getDefaultBTFilepath(
 
 bool OneLineNavigator::loadLineFromFile(
   const std::string & field_name,
-  double & start_x, double & start_y, double & start_yaw,
-  double & end_x, double & end_y, double & end_yaw)
+  geographic_msgs::msg::GeoPoint & start_point,
+  geographic_msgs::msg::GeoPoint & end_point)
 {
   std::string file_path = fields_directory_ + "/" + field_name + "/line.json";
   std::ifstream file(file_path);
@@ -63,30 +61,18 @@ bool OneLineNavigator::loadLineFromFile(
   try {
     nlohmann::json j;
     file >> j;
-    start_x   = j["start"]["x"].get<double>();
-    start_y   = j["start"]["y"].get<double>();
-    start_yaw = j["start"].value("yaw", 0.0);
-    end_x     = j["end"]["x"].get<double>();
-    end_y     = j["end"]["y"].get<double>();
-    end_yaw   = j["end"].value("yaw", 0.0);
+    start_point.latitude  = j["start"]["latitude"].get<double>();
+    start_point.longitude = j["start"]["longitude"].get<double>();
+    start_point.altitude  = 0.0;
+    end_point.latitude    = j["end"]["latitude"].get<double>();
+    end_point.longitude   = j["end"]["longitude"].get<double>();
+    end_point.altitude    = 0.0;
     RCLCPP_INFO(logger_, "Loaded line from %s", file_path.c_str());
     return true;
   } catch (const std::exception & e) {
     RCLCPP_ERROR(logger_, "Failed to parse %s: %s", file_path.c_str(), e.what());
     return false;
   }
-}
-
-static geometry_msgs::msg::PoseStamped makePose(
-  double x, double y, double yaw, const std::string & frame)
-{
-  geometry_msgs::msg::PoseStamped p;
-  p.header.frame_id = frame;
-  p.pose.position.x = x;
-  p.pose.position.y = y;
-  p.pose.orientation.z = std::sin(yaw / 2.0);
-  p.pose.orientation.w = std::cos(yaw / 2.0);
-  return p;
 }
 
 bool OneLineNavigator::goalReceived(ActionT::Goal::ConstSharedPtr goal)
@@ -99,42 +85,32 @@ bool OneLineNavigator::goalReceived(ActionT::Goal::ConstSharedPtr goal)
     return false;
   }
 
-  double sx = goal->start_x, sy = goal->start_y, syaw = goal->start_yaw;
-  double ex = goal->end_x,   ey = goal->end_y,   eyaw = goal->end_yaw;
+  geographic_msgs::msg::GeoPoint start_point = goal->start_point;
+  geographic_msgs::msg::GeoPoint end_point   = goal->end_point;
 
-  bool coords_provided = !(sx == 0.0 && sy == 0.0 && ex == 0.0 && ey == 0.0);
+  bool coords_provided =
+    (start_point.latitude != 0.0 || start_point.longitude != 0.0) &&
+    (end_point.latitude   != 0.0 || end_point.longitude   != 0.0);
 
-  if (!coords_provided) {
-    if (goal->field_name.empty()) {
-      RCLCPP_ERROR(logger_, "No coordinates and no field_name provided");
+  if (!coords_provided && !goal->field_name.empty()) {
+    if (!loadLineFromFile(goal->field_name, start_point, end_point)) {
+      RCLCPP_ERROR(logger_, "Failed to load line from field: %s", goal->field_name.c_str());
       return false;
     }
-    if (!loadLineFromFile(goal->field_name, sx, sy, syaw, ex, ey, eyaw)) {
-      return false;
-    }
-  }
-
-  // Compute swath heading from start→end if yaw is not specified
-  if (syaw == 0.0 && eyaw == 0.0) {
-    double heading = std::atan2(ey - sy, ex - sx);
-    syaw = heading;
-    eyaw = heading;
+  } else if (!coords_provided) {
+    RCLCPP_ERROR(logger_, "No coordinates provided and no field_name specified");
+    return false;
   }
 
   auto blackboard = bt_action_server_->getBlackboard();
-
-  std::vector<geometry_msgs::msg::PoseStamped> map_points = {
-    makePose(sx, sy, syaw, "map"),
-    makePose(ex, ey, eyaw, "map"),
-  };
-  blackboard->set<std::vector<geometry_msgs::msg::PoseStamped>>("map_points", map_points);
+  std::vector<geographic_msgs::msg::GeoPoint> geo_points = {start_point, end_point};
+  blackboard->set<std::vector<geographic_msgs::msg::GeoPoint>>("geo_points", geo_points);
   blackboard->set<std::string>("field_name", goal->field_name);
   blackboard->set<std::string>("fields_directory", fields_directory_);
 
-  RCLCPP_INFO(logger_,
-    "OneLineNavigator: start=(%.2f, %.2f, %.2f°) end=(%.2f, %.2f, %.2f°)",
-    sx, sy, syaw * 180.0 / M_PI,
-    ex, ey, eyaw * 180.0 / M_PI);
+  RCLCPP_INFO(logger_, "OneLineNavigator: start=(%.6f, %.6f) end=(%.6f, %.6f)",
+    start_point.latitude, start_point.longitude,
+    end_point.latitude,   end_point.longitude);
 
   return true;
 }
@@ -155,25 +131,20 @@ void OneLineNavigator::onPreempt(ActionT::Goal::ConstSharedPtr goal)
 {
   RCLCPP_INFO(logger_, "OneLineNavigator: goal preempted");
 
-  double sx = goal->start_x, sy = goal->start_y, syaw = goal->start_yaw;
-  double ex = goal->end_x,   ey = goal->end_y,   eyaw = goal->end_yaw;
-  bool coords_provided = !(sx == 0.0 && sy == 0.0 && ex == 0.0 && ey == 0.0);
+  geographic_msgs::msg::GeoPoint start_point = goal->start_point;
+  geographic_msgs::msg::GeoPoint end_point   = goal->end_point;
+
+  bool coords_provided =
+    (start_point.latitude != 0.0 || start_point.longitude != 0.0) &&
+    (end_point.latitude   != 0.0 || end_point.longitude   != 0.0);
 
   if (!coords_provided && !goal->field_name.empty()) {
-    loadLineFromFile(goal->field_name, sx, sy, syaw, ex, ey, eyaw);
+    loadLineFromFile(goal->field_name, start_point, end_point);
   }
 
-  if (syaw == 0.0 && eyaw == 0.0) {
-    double heading = std::atan2(ey - sy, ex - sx);
-    syaw = heading; eyaw = heading;
-  }
-
-  std::vector<geometry_msgs::msg::PoseStamped> map_points = {
-    makePose(sx, sy, syaw, "map"),
-    makePose(ex, ey, eyaw, "map"),
-  };
+  std::vector<geographic_msgs::msg::GeoPoint> geo_points = {start_point, end_point};
   bt_action_server_->getBlackboard()->set<
-    std::vector<geometry_msgs::msg::PoseStamped>>("map_points", map_points);
+    std::vector<geographic_msgs::msg::GeoPoint>>("geo_points", geo_points);
 }
 
 void OneLineNavigator::goalCompleted(

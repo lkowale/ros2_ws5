@@ -1,16 +1,162 @@
 // BT nodes for one_line_nav:
-//   ReversePoses     — reverses a vector<PoseStamped> in place on the blackboard
-//   GetPoseFromPoses — extracts one PoseStamped from a vector by index
+//   ConvertGeoPoints      — calls fromLL to convert geo_points → map_points (PoseStamped)
+//   ReverseGeoPoints      — reverses geo_points in place on the blackboard
+//   GetGeoPointFromVector — extracts one GeoPoint from geo_points by index
+//   ReversePoses          — reverses map_points vector, flipping each orientation 180°
+//   GetPoseFromPoses      — extracts one PoseStamped from map_points by index
 
+#include <cmath>
 #include <algorithm>
 #include <memory>
 #include <vector>
 
+#include "rclcpp/rclcpp.hpp"
 #include "behaviortree_cpp/action_node.h"
 #include "behaviortree_cpp/bt_factory.h"
+#include "robot_localization/srv/from_ll.hpp"
+#include "geographic_msgs/msg/geo_point.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 
-// ── ReversePoses ─────────────────────────────────────────────────────────────
+// ── ConvertGeoPoints ──────────────────────────────────────────────────────────
+
+class ConvertGeoPoints : public BT::SyncActionNode
+{
+public:
+  ConvertGeoPoints(const std::string & name, const BT::NodeConfiguration & config)
+  : BT::SyncActionNode(name, config)
+  {
+    node_ = rclcpp::Node::make_shared("convert_geo_points_bt_node");
+    client_ = node_->create_client<robot_localization::srv::FromLL>("fromLL");
+  }
+
+  static BT::PortsList providedPorts()
+  {
+    return {
+      BT::InputPort<std::vector<geographic_msgs::msg::GeoPoint>>("geo_points"),
+      BT::OutputPort<std::vector<geometry_msgs::msg::PoseStamped>>("map_points"),
+    };
+  }
+
+  BT::NodeStatus tick() override
+  {
+    std::vector<geographic_msgs::msg::GeoPoint> geo_points;
+    if (!getInput("geo_points", geo_points)) {
+      RCLCPP_ERROR(node_->get_logger(), "Missing input [geo_points]");
+      return BT::NodeStatus::FAILURE;
+    }
+
+    if (!client_->wait_for_service(std::chrono::seconds(2))) {
+      RCLCPP_ERROR(node_->get_logger(), "Service fromLL not available");
+      return BT::NodeStatus::FAILURE;
+    }
+
+    std::vector<geometry_msgs::msg::PoseStamped> map_points;
+
+    for (auto & gp : geo_points) {
+      auto req = std::make_shared<robot_localization::srv::FromLL::Request>();
+      req->ll_point = gp;
+
+      auto future = client_->async_send_request(req);
+      auto result = rclcpp::spin_until_future_complete(
+        node_, future, std::chrono::seconds(2));
+
+      if (result != rclcpp::FutureReturnCode::SUCCESS) {
+        RCLCPP_ERROR(node_->get_logger(), "Failed to call fromLL");
+        return BT::NodeStatus::FAILURE;
+      }
+
+      geometry_msgs::msg::PoseStamped pose;
+      pose.header.stamp = node_->now();
+      pose.header.frame_id = "map";
+      pose.pose.position = future.get()->map_point;
+      pose.pose.orientation.w = 1.0;
+      map_points.push_back(pose);
+
+      RCLCPP_INFO(node_->get_logger(),
+        "Converted (%.6f, %.6f) -> map (%.3f, %.3f)",
+        gp.latitude, gp.longitude,
+        pose.pose.position.x, pose.pose.position.y);
+    }
+
+    // Set orientations to the swath heading (start → end)
+    if (map_points.size() >= 2) {
+      double dx = map_points[1].pose.position.x - map_points[0].pose.position.x;
+      double dy = map_points[1].pose.position.y - map_points[0].pose.position.y;
+      double yaw = std::atan2(dy, dx);
+      geometry_msgs::msg::Quaternion q;
+      q.x = 0.0; q.y = 0.0;
+      q.z = std::sin(yaw / 2.0);
+      q.w = std::cos(yaw / 2.0);
+      for (auto & p : map_points) {p.pose.orientation = q;}
+    }
+
+    setOutput("map_points", map_points);
+    return BT::NodeStatus::SUCCESS;
+  }
+
+private:
+  rclcpp::Node::SharedPtr node_;
+  rclcpp::Client<robot_localization::srv::FromLL>::SharedPtr client_;
+};
+
+// ── ReverseGeoPoints ──────────────────────────────────────────────────────────
+
+class ReverseGeoPoints : public BT::SyncActionNode
+{
+public:
+  ReverseGeoPoints(const std::string & name, const BT::NodeConfiguration & config)
+  : BT::SyncActionNode(name, config) {}
+
+  static BT::PortsList providedPorts()
+  {
+    return {
+      BT::BidirectionalPort<std::vector<geographic_msgs::msg::GeoPoint>>("geo_points"),
+    };
+  }
+
+  BT::NodeStatus tick() override
+  {
+    std::vector<geographic_msgs::msg::GeoPoint> geo_points;
+    if (!getInput("geo_points", geo_points)) {return BT::NodeStatus::FAILURE;}
+    std::reverse(geo_points.begin(), geo_points.end());
+    setOutput("geo_points", geo_points);
+    return BT::NodeStatus::SUCCESS;
+  }
+};
+
+// ── GetGeoPointFromVector ─────────────────────────────────────────────────────
+
+class GetGeoPointFromVector : public BT::SyncActionNode
+{
+public:
+  GetGeoPointFromVector(const std::string & name, const BT::NodeConfiguration & config)
+  : BT::SyncActionNode(name, config) {}
+
+  static BT::PortsList providedPorts()
+  {
+    return {
+      BT::InputPort<std::vector<geographic_msgs::msg::GeoPoint>>("geo_points"),
+      BT::InputPort<int>("index", 0, "Index to extract"),
+      BT::OutputPort<geographic_msgs::msg::GeoPoint>("geo_point"),
+    };
+  }
+
+  BT::NodeStatus tick() override
+  {
+    std::vector<geographic_msgs::msg::GeoPoint> geo_points;
+    int index = 0;
+    if (!getInput("geo_points", geo_points) || !getInput("index", index)) {
+      return BT::NodeStatus::FAILURE;
+    }
+    if (index < 0 || index >= static_cast<int>(geo_points.size())) {
+      return BT::NodeStatus::FAILURE;
+    }
+    setOutput("geo_point", geo_points[index]);
+    return BT::NodeStatus::SUCCESS;
+  }
+};
+
+// ── ReversePoses ──────────────────────────────────────────────────────────────
 
 class ReversePoses : public BT::SyncActionNode
 {
@@ -30,13 +176,11 @@ public:
     std::vector<geometry_msgs::msg::PoseStamped> poses;
     if (!getInput("poses", poses)) {return BT::NodeStatus::FAILURE;}
     std::reverse(poses.begin(), poses.end());
-    // Flip orientations: each pose now points in the reverse swath direction
     for (auto & p : poses) {
-      // Rotate yaw by π: q_new = q * [0,0,1,0] (multiply by 180° z rotation)
       double qz = p.pose.orientation.z;
       double qw = p.pose.orientation.w;
-      p.pose.orientation.z =  qw;   // sin((yaw+π)/2) = cos(yaw/2)
-      p.pose.orientation.w = -qz;   // cos((yaw+π)/2) = -sin(yaw/2)
+      p.pose.orientation.z =  qw;
+      p.pose.orientation.w = -qz;
     }
     setOutput("poses", poses);
     return BT::NodeStatus::SUCCESS;
@@ -79,6 +223,9 @@ public:
 
 BT_REGISTER_NODES(factory)
 {
+  factory.registerNodeType<ConvertGeoPoints>("ConvertGeoPoints");
+  factory.registerNodeType<ReverseGeoPoints>("ReverseGeoPoints");
+  factory.registerNodeType<GetGeoPointFromVector>("GetGeoPointFromVector");
   factory.registerNodeType<ReversePoses>("ReversePoses");
   factory.registerNodeType<GetPoseFromPoses>("GetPoseFromPoses");
 }
