@@ -27,12 +27,12 @@
                   goal_checker_id="general_goal_checker"
                   error_code_id="{turn1_follow_error}"/>
 
-      <!-- Seg 2: reverse right arc 60° -->
+      <!-- Seg 2: reverse right arc 60° — position-only goal checker (end pose yaw is π-flipped) -->
       <ComputePathToPose goal="{turn_goal_pose}" path="{turn_path}"
                          planner_id="SwathTurn2"
                          error_code_id="{turn2_compute_error}"/>
       <FollowPath path="{turn_path}" controller_id="FollowPath"
-                  goal_checker_id="general_goal_checker"
+                  goal_checker_id="arc_goal_checker"
                   error_code_id="{turn2_follow_error}"/>
 
       <!-- Seg 3: connecting arc + lead-in to swath start (planned from current pose) -->
