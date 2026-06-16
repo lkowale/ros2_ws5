@@ -2,7 +2,12 @@
   Turn Swath SubTree
 
   After completing a swath: reverse geo_points, re-convert to map frame,
-  then drive to the new swath start using the RS planner.
+  then execute the headland turn using SwathTurnPlanner.
+
+  SwathTurnPlanner takes:
+    start = current robot pose (at swath end)
+    goal  = next swath start pose (position + swath bearing)
+  and produces: fwd-left-90° arc + rev-right-60° arc + connecting arc + 0.5m lead-in.
 
   Blackboard inputs/outputs:
     geo_points: vector<GeoPoint>      — reversed in place
@@ -15,10 +20,10 @@
       <ReverseGeoPoints geo_points="{geo_points}"/>
       <!-- Re-convert to map frame (heading recalculated from new start→end) -->
       <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
-      <!-- Drive to new swath start using RS planner -->
+      <!-- Drive headland turn to new swath start using SwathTurnPlanner -->
       <GetPoseFromPoses poses="{map_points}" pose="{turn_goal_pose}" index="0"/>
       <ComputePathToPose goal="{turn_goal_pose}" path="{turn_path}"
-                         planner_id="GridBased" error_code_id="{turn_compute_error}"/>
+                         planner_id="SwathTurn" error_code_id="{turn_compute_error}"/>
       <FollowPath path="{turn_path}" controller_id="FollowPath"
                   error_code_id="{turn_follow_error}"/>
     </Sequence>

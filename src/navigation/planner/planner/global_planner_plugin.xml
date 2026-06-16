@@ -9,6 +9,13 @@
       Outputs a dense waypoint sequence (nav_msgs/Path) suitable for RPP.
     </description>
   </class>
+  <class name="planner/SwathTurnPlanner"
+         type="planner::SwathTurnPlanner"
+         base_class_type="nav2_core::GlobalPlanner">
+    <description>
+      Headland turn planner: fwd-left-90 + rev-right-60 + connecting arc + lead-in straight.
+    </description>
+  </class>
   <class name="nav2_straightline_planner/StraightLine"
          type="nav2_straightline_planner::StraightLine"
          base_class_type="nav2_core::GlobalPlanner">

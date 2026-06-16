@@ -103,7 +103,7 @@ planner_server:
     # (no sensors) the costmap updates at 1 Hz; raise the timeout so it doesn't
     # abort before the first update arrives.
     costmap_update_timeout: 5.0
-    planner_plugins: ["GridBased", "StraightLine"]
+    planner_plugins: ["GridBased", "StraightLine", "SwathTurn"]
     GridBased:
       plugin: "planner/ReedsSheppPlanner"
       min_turning_radius: 1.5
@@ -111,6 +111,11 @@ planner_server:
     StraightLine:
       plugin: "nav2_straightline_planner::StraightLine"
       interpolation_resolution: 0.05
+    SwathTurn:
+      plugin: "planner/SwathTurnPlanner"
+      min_turning_radius: 1.5
+      interpolation_resolution: 0.05
+      lead_in_length: 0.5
 
 smoother_server:
   ros__parameters:
