@@ -9,4 +9,9 @@
       Outputs a dense waypoint sequence (nav_msgs/Path) suitable for RPP.
     </description>
   </class>
+  <class name="nav2_straightline_planner/StraightLine"
+         type="nav2_straightline_planner::StraightLine"
+         base_class_type="nav2_core::GlobalPlanner">
+    <description>Straight-line interpolation planner for swath following.</description>
+  </class>
 </library>

@@ -32,6 +32,7 @@ set(dependencies
 
 add_library(${library_name} SHARED
   src/reeds_shepp_planner.cpp
+  src/straight_line_planner.cpp
 )
 
 target_include_directories(${library_name} PUBLIC
