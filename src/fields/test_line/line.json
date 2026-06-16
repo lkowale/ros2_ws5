@@ -1,5 +1,5 @@
 {
-  "description": "Test swath line in sim — 20m north from world origin (datum 53.5204991, 17.8258532)",
+  "description": "Test swath — 2m east (straight ahead of robot start pose at datum)",
   "start": { "latitude": 53.5204991, "longitude": 17.8258532 },
-  "end":   { "latitude": 53.5206789, "longitude": 17.8258532 }
+  "end":   { "latitude": 53.5204991, "longitude": 17.8258834 }
 }
