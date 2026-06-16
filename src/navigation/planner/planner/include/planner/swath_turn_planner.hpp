@@ -64,6 +64,7 @@ private:
   double rho_;          // min turning radius [m]
   double step_;         // waypoint spacing [m]
   double lead_in_;      // lead-in straight length [m]
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
 
   struct Pose2D { double x, y, yaw; };
 

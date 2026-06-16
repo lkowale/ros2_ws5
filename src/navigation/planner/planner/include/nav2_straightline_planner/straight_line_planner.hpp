@@ -85,19 +85,12 @@ public:
     std::function<bool()> cancel_checker) override;
 
 private:
-  // TF buffer
   std::shared_ptr<tf2_ros::Buffer> tf_;
-
-  // node ptr
   nav2_util::LifecycleNode::SharedPtr node_;
-
-  // Global Costmap
   nav2_costmap_2d::Costmap2D * costmap_;
-
-  // The global frame of the costmap
   std::string global_frame_, name_;
-
   double interpolation_resolution_;
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
 };
 
 }  // namespace nav2_straightline_planner

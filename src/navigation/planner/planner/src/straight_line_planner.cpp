@@ -64,6 +64,7 @@ void StraightLine::configure(
     node_, name_ + ".interpolation_resolution", rclcpp::ParameterValue(
       0.1));
   node_->get_parameter(name_ + ".interpolation_resolution", interpolation_resolution_);
+  path_pub_ = node_->create_publisher<nav_msgs::msg::Path>("/plan_swath", 1);
 }
 
 void StraightLine::cleanup()
@@ -139,6 +140,7 @@ nav_msgs::msg::Path StraightLine::createPlan(
   goal_pose.header.frame_id = global_frame_;
   global_path.poses.push_back(goal_pose);
 
+  path_pub_->publish(global_path);
   return global_path;
 }
 

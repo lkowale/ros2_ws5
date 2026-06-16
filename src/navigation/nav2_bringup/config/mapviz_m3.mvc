@@ -105,6 +105,28 @@ displays:
       qos_history: 1
       qos_reliability: 1
       qos_durability: 2
+  - type: mapviz_plugins/path
+    name: swath path
+    config:
+      visible: true
+      collapsed: false
+      topic: /plan_swath
+      color: "#00ffff"
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
+  - type: mapviz_plugins/path
+    name: turn path
+    config:
+      visible: true
+      collapsed: false
+      topic: /plan_turn
+      color: "#ffff00"
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
   - type: mapviz_plugins/tf_frame
     name: base_footprint
     config:

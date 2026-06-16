@@ -157,6 +157,7 @@ void SwathTurnPlanner::configure(
   node_->get_parameter(name_ + ".min_turning_radius",      rho_);
   node_->get_parameter(name_ + ".interpolation_resolution", step_);
   node_->get_parameter(name_ + ".lead_in_length",          lead_in_);
+  path_pub_ = node_->create_publisher<nav_msgs::msg::Path>("/plan_turn", 1);
 
   RCLCPP_INFO(node_->get_logger(),
     "SwathTurnPlanner configured: rho=%.2f m  step=%.3f m  lead_in=%.2f m",
@@ -295,6 +296,7 @@ nav_msgs::msg::Path SwathTurnPlanner::createPlan(
   appendStraight(poses, P_lead, lead_in_, true);
 
   path.poses = poses;
+  path_pub_->publish(path);
 
   RCLCPP_INFO(node_->get_logger(),
     "SwathTurnPlanner: start=(%.2f,%.2f,%.1f°) goal=(%.2f,%.2f,%.1f°) "
