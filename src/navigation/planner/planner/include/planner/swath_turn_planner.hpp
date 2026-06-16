@@ -63,7 +63,8 @@ private:
   std::string name_;
   double rho_;          // min turning radius [m]
   double step_;         // waypoint spacing [m]
-  double lead_in_;      // lead-in straight length [m]
+  double lead_in_;      // lead-in straight length before swath start [m]
+  double lead_out_;     // lead-out straight length after swath end [m]
   int    segment_;      // which segment to plan: 1, 2, or 3
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
 

@@ -127,18 +127,21 @@ void SwathTurnPlanner::configure(
   nav2_util::declare_parameter_if_not_declared(
     node_, name_ + ".lead_in_length",           rclcpp::ParameterValue(0.5));
   nav2_util::declare_parameter_if_not_declared(
+    node_, name_ + ".lead_out_length",          rclcpp::ParameterValue(0.0));
+  nav2_util::declare_parameter_if_not_declared(
     node_, name_ + ".segment",                  rclcpp::ParameterValue(1));
 
   node_->get_parameter(name_ + ".min_turning_radius",       rho_);
   node_->get_parameter(name_ + ".interpolation_resolution", step_);
   node_->get_parameter(name_ + ".lead_in_length",           lead_in_);
+  node_->get_parameter(name_ + ".lead_out_length",          lead_out_);
   node_->get_parameter(name_ + ".segment",                  segment_);
 
   path_pub_ = node_->create_publisher<nav_msgs::msg::Path>("/plan_turn", 1);
 
   RCLCPP_INFO(node_->get_logger(),
-    "SwathTurnPlanner[seg%d] configured: rho=%.2f step=%.3f lead_in=%.2f",
-    segment_, rho_, step_, lead_in_);
+    "SwathTurnPlanner[seg%d] configured: rho=%.2f step=%.3f lead_in=%.2f lead_out=%.2f",
+    segment_, rho_, step_, lead_in_, lead_out_);
 }
 
 void SwathTurnPlanner::cleanup()    {}
@@ -174,11 +177,17 @@ nav_msgs::msg::Path SwathTurnPlanner::createPlan(
   std::vector<geometry_msgs::msg::PoseStamped> poses;
 
   if (segment_ == 1) {
+    // Optional leadout: straight forward along swath before the arc
+    Pose2D arc_start = S;
+    if (lead_out_ > 0.0) {
+      appendStraight(poses, S, lead_out_, true);
+      arc_start = straightEnd(S, lead_out_, true);
+    }
     // Forward left arc 90°
-    appendArc(poses, S, rho_, M_PI / 2.0, true, true);
+    appendArc(poses, arc_start, rho_, M_PI / 2.0, true, true);
     RCLCPP_INFO(node_->get_logger(),
-      "SwathTurnPlanner seg1: fwd-left 90° from (%.2f,%.2f,%.1f°)",
-      S.x, S.y, s_yaw * 180.0 / M_PI);
+      "SwathTurnPlanner seg1: leadout=%.2fm fwd-left 90° from (%.2f,%.2f,%.1f°)",
+      lead_out_, S.x, S.y, s_yaw * 180.0 / M_PI);
 
   } else if (segment_ == 2) {
     // Reverse right arc 60°
