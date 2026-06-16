@@ -1,0 +1,22 @@
+<library path="tool_line_follower_controller_plugin">
+  <class name="tool_line_follower_controller/ToolLineFollowerController"
+         type="tool_line_follower_controller::ToolLineFollowerController"
+         base_class_type="nav2_core::Controller">
+    <description>
+      Cross-track PID controller using only a configurable TF frame position (gps_link
+      by default, set gps_frame_id to tool_link for implement-point following).
+      No heading used. Steering = -PID(cross_track_error).
+    </description>
+  </class>
+</library>
+
+<library path="tool_line_follower_controller_plugin">
+  <class name="tool_arc_follower_controller/ToolArcFollowerController"
+         type="tool_arc_follower_controller::ToolArcFollowerController"
+         base_class_type="nav2_core::Controller">
+    <description>
+      Extends ToolLineFollowerController with Menger curvature feed-forward
+      for smooth arc following even at zero cross-track error.
+    </description>
+  </class>
+</library>
