@@ -114,7 +114,7 @@ static Opt LpSpLp(double x, double y, double phi)
   t = std::atan2(eta, xi);
   u = rho;
   v = wrap(phi - t);
-  if (t < 0 || v < 0) return {};
+  if (t < -1e-6 || v < -1e-6) return {};
   return RSPath{{Segment{'L', t}, Segment{'S', u}, Segment{'L', v}}};
 }
 
@@ -127,7 +127,7 @@ static Opt LpSpRp(double x, double y, double phi)
   const double u   = std::sqrt(r2 - 4.0);
   const double t   = std::atan2(eta, xi) - std::atan2(2.0, u);
   const double v   = wrap(t - phi);
-  if (t < 0 || v < 0) return {};
+  if (t < -1e-6 || v < -1e-6) return {};
   return RSPath{{Segment{'L', t}, Segment{'S', u}, Segment{'R', v}}};
 }
 
@@ -142,7 +142,7 @@ static Opt LpRmLp(double x, double y, double phi)
   const double A   = std::atan2(eta, xi);
   const double t   = wrap(A + 0.5 * u + M_PI);  // fwd left
   const double v   = wrap(phi - t + u);          // fwd left
-  if (t < 0 || v < 0) return {};
+  if (t < -1e-6 || v < -1e-6) return {};
   return RSPath{{Segment{'L', t}, Segment{'R', -u}, Segment{'L', v}}};
 }
 
@@ -156,7 +156,7 @@ static Opt LpRmLm(double x, double y, double phi)
   const double A   = std::atan2(eta, xi);
   const double t   = wrap(A + 0.5 * u + M_PI);
   const double v   = wrap(t + u - phi);
-  if (t < 0 || v < 0) return {};
+  if (t < -1e-6 || v < -1e-6) return {};
   return RSPath{{Segment{'L', t}, Segment{'R', -u}, Segment{'L', -v}}};
 }
 
@@ -171,7 +171,7 @@ static Opt LpRpLm(double x, double y, double phi)
   const double A   = std::atan2(eta, xi);
   const double t   = wrap(A - 0.5 * u + M_PI);
   const double v   = wrap(t - u - phi);
-  if (t < 0 || v < 0) return {};
+  if (t < -1e-6 || v < -1e-6) return {};
   return RSPath{{Segment{'L', t}, Segment{'R', u}, Segment{'L', -v}}};
 }
 
