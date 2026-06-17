@@ -97,82 +97,196 @@ static Goal2D normalise(
 }
 
 // ─── RS word families ────────────────────────────────────────────────────────
-// Each function tries one path family and returns an RSPath if feasible.
-// Naming follows Reeds & Shepp's notation (t = first segment, u = second, v = third).
-// A '+' suffix means forward, '-' means reverse.
+// All 12 base families from Reeds & Shepp (1990), Table 1.
+// Naming: segment type L/R/S, sign + (forward) / - (reverse).
+// Each function operates in the normalised frame (start=origin, rho=1).
+// The four symmetries (timeflip, reflect, both, none) are applied by collect().
 
 using Opt = std::optional<RSPath>;
 
-// CSC: C = arc (L or R), S = straight, C = arc
+// ── Family 1: CSC  L+S+L+  ──────────────────────────────────────────────────
 static Opt LpSpLp(double x, double y, double phi)
 {
-  double u, t, v;
   const double xi  = x - std::sin(phi);
   const double eta = y - 1.0 + std::cos(phi);
   const double rho = std::hypot(xi, eta);
   if (rho < 1e-9) return {};
-  t = std::atan2(eta, xi);
-  u = rho;
-  v = wrap(phi - t);
+  const double t = std::atan2(eta, xi);
+  const double u = rho;
+  const double v = wrap(phi - t);
   if (t < -1e-6 || v < -1e-6) return {};
-  return RSPath{{Segment{'L', t}, Segment{'S', u}, Segment{'L', v}}};
+  return RSPath{{{'L', t}, {'S', u}, {'L', v}}};
 }
 
+// ── Family 2: CSC  L+S+R+  ──────────────────────────────────────────────────
 static Opt LpSpRp(double x, double y, double phi)
 {
   const double xi  = x + std::sin(phi);
   const double eta = y - 1.0 - std::cos(phi);
   const double r2  = xi * xi + eta * eta;
   if (r2 < 4.0) return {};
-  const double u   = std::sqrt(r2 - 4.0);
-  const double t   = std::atan2(eta, xi) - std::atan2(2.0, u);
-  const double v   = wrap(t - phi);
+  const double u = std::sqrt(r2 - 4.0);
+  const double t = std::atan2(eta, xi) - std::atan2(2.0, u);
+  const double v = wrap(t - phi);
   if (t < -1e-6 || v < -1e-6) return {};
-  return RSPath{{Segment{'L', t}, Segment{'S', u}, Segment{'R', v}}};
+  return RSPath{{{'L', t}, {'S', u}, {'R', v}}};
 }
 
-// CCC: three arcs
+// ── Family 3: CCC  L+R-L+  ──────────────────────────────────────────────────
 static Opt LpRmLp(double x, double y, double phi)
 {
   const double xi  = x - std::sin(phi);
   const double eta = y - 1.0 + std::cos(phi);
   const double rho = std::hypot(xi, eta);
   if (rho > 4.0) return {};
-  const double u   = std::acos(1.0 - rho * rho / 8.0);
-  const double A   = std::atan2(eta, xi);
-  const double t   = wrap(A + 0.5 * u + M_PI);  // fwd left
-  const double v   = wrap(phi - t + u);          // fwd left
+  const double u = std::acos(1.0 - rho * rho / 8.0);
+  const double A = std::atan2(eta, xi);
+  const double t = wrap(A + 0.5 * u + M_PI);
+  const double v = wrap(phi - t + u);
   if (t < -1e-6 || v < -1e-6) return {};
-  return RSPath{{Segment{'L', t}, Segment{'R', -u}, Segment{'L', v}}};
+  return RSPath{{{'L', t}, {'R', -u}, {'L', v}}};
 }
 
+// ── Family 4: CCC  L+R-L-  ──────────────────────────────────────────────────
 static Opt LpRmLm(double x, double y, double phi)
 {
   const double xi  = x - std::sin(phi);
   const double eta = y - 1.0 + std::cos(phi);
   const double rho = std::hypot(xi, eta);
   if (rho > 4.0) return {};
-  const double u   = std::acos(1.0 - rho * rho / 8.0);
-  const double A   = std::atan2(eta, xi);
-  const double t   = wrap(A + 0.5 * u + M_PI);
-  const double v   = wrap(t + u - phi);
+  const double u = std::acos(1.0 - rho * rho / 8.0);
+  const double A = std::atan2(eta, xi);
+  const double t = wrap(A + 0.5 * u + M_PI);
+  const double v = wrap(t + u - phi);
   if (t < -1e-6 || v < -1e-6) return {};
-  return RSPath{{Segment{'L', t}, Segment{'R', -u}, Segment{'L', -v}}};
+  return RSPath{{{'L', t}, {'R', -u}, {'L', -v}}};
 }
 
-// CCC family: L+R+L- (heading reversal in middle arc)
+// ── Family 5: CCC  L+R+L-  ──────────────────────────────────────────────────
 static Opt LpRpLm(double x, double y, double phi)
 {
   const double xi  = x + std::sin(phi);
   const double eta = y - 1.0 - std::cos(phi);
   const double rho = std::hypot(xi, eta);
   if (rho > 4.0) return {};
-  const double u   = std::acos(1.0 - rho * rho / 8.0);
-  const double A   = std::atan2(eta, xi);
-  const double t   = wrap(A - 0.5 * u + M_PI);
-  const double v   = wrap(t - u - phi);
+  const double u = std::acos(1.0 - rho * rho / 8.0);
+  const double A = std::atan2(eta, xi);
+  const double t = wrap(A - 0.5 * u + M_PI);
+  const double v = wrap(t - u - phi);
   if (t < -1e-6 || v < -1e-6) return {};
-  return RSPath{{Segment{'L', t}, Segment{'R', u}, Segment{'L', -v}}};
+  return RSPath{{{'L', t}, {'R', u}, {'L', -v}}};
+}
+
+// ── Family 6: CCSC  L+R-S-L-  ───────────────────────────────────────────────
+static Opt LpRmSmLm(double x, double y, double phi)
+{
+  const double xi  = x + std::sin(phi);
+  const double eta = y - 1.0 - std::cos(phi);
+  const double rho = std::hypot(xi, eta);
+  if (rho < 2.0) return {};
+  const double u = std::sqrt(rho * rho - 4.0) - 2.0;
+  if (u < -1e-6) return {};
+  const double A = std::atan2(eta, xi);
+  const double t = wrap(A + std::atan2(2.0, rho - 2.0) + M_PI / 2.0);
+  const double v = wrap(t - phi + M_PI / 2.0);
+  if (t < -1e-6 || v < -1e-6) return {};
+  return RSPath{{{'L', t}, {'R', -M_PI / 2.0}, {'S', -u}, {'L', -v}}};
+}
+
+// ── Family 7: CCSC  L+R-S-R-  ───────────────────────────────────────────────
+static Opt LpRmSmRm(double x, double y, double phi)
+{
+  const double xi  = x + std::sin(phi);
+  const double eta = y - 1.0 - std::cos(phi);
+  const double rho = std::hypot(xi, eta);
+  if (rho < 2.0) return {};
+  const double u = std::sqrt(rho * rho - 4.0) - 2.0;
+  if (u < -1e-6) return {};
+  const double A = std::atan2(eta, xi);
+  const double t = wrap(A + std::atan2(2.0, rho - 2.0) + M_PI / 2.0);
+  const double v = wrap(t - phi);
+  if (t < -1e-6 || v < -1e-6) return {};
+  return RSPath{{{'L', t}, {'R', -M_PI / 2.0}, {'S', -u}, {'R', -v}}};
+}
+
+// ── Family 8: CCSCC  L+R-S-L-R+  ────────────────────────────────────────────
+static Opt LpRmSmLmRp(double x, double y, double phi)
+{
+  const double xi  = x + std::sin(phi);
+  const double eta = y - 1.0 - std::cos(phi);
+  const double rho = std::hypot(xi, eta);
+  if (rho < 4.0) return {};
+  const double u = std::sqrt(rho * rho - 4.0) - 4.0;
+  if (u < -1e-6) return {};
+  const double A = std::atan2(eta, xi);
+  const double t = wrap(A + std::atan2(2.0, rho - 4.0) + M_PI / 2.0);
+  const double v = wrap(t - phi);
+  if (t < -1e-6 || v < -1e-6) return {};
+  return RSPath{{{'L', t}, {'R', -M_PI / 2.0}, {'S', -u}, {'L', -M_PI / 2.0}, {'R', v}}};
+}
+
+// ── Family 9: CCCC  L+R+L-R-  ────────────────────────────────────────────────
+static Opt LpRpLmRm(double x, double y, double phi)
+{
+  const double xi  = x - std::sin(phi);
+  const double eta = y - 1.0 + std::cos(phi);
+  const double r2  = xi * xi + eta * eta;
+  const double p = (2.0 + r2) / 4.0;
+  if (p < 0.0 || p > 1.0) return {};
+  const double u = std::acos(std::sqrt(p));
+  const double A = std::atan2(eta, xi);
+  const double t = wrap(A - std::atan2(-std::sin(2.0 * u), 1.0 - 2.0 * std::cos(2.0 * u)) + M_PI);
+  const double v = wrap(phi - t + 2.0 * u);
+  if (t < -1e-6 || v < -1e-6) return {};
+  return RSPath{{{'L', t}, {'R', u}, {'L', -u}, {'R', -v}}};
+}
+
+// ── Family 10: CCCC  L+R-L-R+  ────────────────────────────────────────────────
+static Opt LpRmLmRp(double x, double y, double phi)
+{
+  const double xi  = x + std::sin(phi);
+  const double eta = y - 1.0 - std::cos(phi);
+  const double r2  = xi * xi + eta * eta;
+  const double p   = (2.0 + r2) / 4.0;
+  if (p < 0.0 || p > 1.0) return {};
+  const double u = std::acos(std::sqrt(p));
+  const double A = std::atan2(eta, xi);
+  const double t = wrap(A + std::atan2(-std::sin(2.0 * u), -1.0 + 2.0 * std::cos(2.0 * u)));
+  const double v = wrap(t - phi);
+  if (t < -1e-6 || v < -1e-6) return {};
+  return RSPath{{{'L', t}, {'R', -u}, {'L', -u}, {'R', v}}};
+}
+
+// ── Family 11: CSCC  L+S+R+L-  ───────────────────────────────────────────────
+static Opt LpSpRpLm(double x, double y, double phi)
+{
+  const double xi  = x - std::sin(phi);
+  const double eta = y - 1.0 + std::cos(phi);
+  const double rho = std::hypot(xi, eta);
+  if (rho < 2.0) return {};
+  const double u   = std::sqrt(rho * rho - 4.0) - 2.0;
+  if (u < -1e-6) return {};
+  const double A   = std::atan2(eta, xi);
+  const double t   = wrap(A - std::atan2(2.0, rho - 2.0));
+  const double v   = wrap(t - phi - M_PI / 2.0);
+  if (t < -1e-6 || v < -1e-6) return {};
+  return RSPath{{{'L', t}, {'S', u}, {'R', M_PI / 2.0}, {'L', -v}}};
+}
+
+// ── Family 12: CSCC  L+S+L+R-  ───────────────────────────────────────────────
+static Opt LpSpLpRm(double x, double y, double phi)
+{
+  const double xi  = x + std::sin(phi);
+  const double eta = y + 1.0 - std::cos(phi);
+  const double rho = std::hypot(xi, eta);
+  if (rho < 2.0) return {};
+  const double u   = std::sqrt(rho * rho - 4.0) - 2.0;
+  if (u < -1e-6) return {};
+  const double A   = std::atan2(eta, xi);
+  const double t   = wrap(A + std::atan2(2.0, rho - 2.0));
+  const double v   = wrap(phi - t + M_PI / 2.0);
+  if (t < -1e-6 || v < -1e-6) return {};
+  return RSPath{{{'L', t}, {'S', u}, {'L', M_PI / 2.0}, {'R', -v}}};
 }
 
 // ─── Symmetry transforms ─────────────────────────────────────────────────────
@@ -230,14 +344,29 @@ static RSPath bestPath(double x, double y, double phi)
 {
   std::vector<RSPath> cands;
 
-  // CSC families
-  collect(LpSpLp, x, y, phi, cands);
-  collect(LpSpRp, x, y, phi, cands);
+  // CSC (families 1-2)
+  collect(LpSpLp,      x, y, phi, cands);
+  collect(LpSpRp,      x, y, phi, cands);
 
-  // CCC families
-  collect(LpRmLp, x, y, phi, cands);
-  collect(LpRmLm, x, y, phi, cands);
-  collect(LpRpLm, x, y, phi, cands);
+  // CCC (families 3-5)
+  collect(LpRmLp,      x, y, phi, cands);
+  collect(LpRmLm,      x, y, phi, cands);
+  collect(LpRpLm,      x, y, phi, cands);
+
+  // CCSC (families 6-7)
+  collect(LpRmSmLm,    x, y, phi, cands);
+  collect(LpRmSmRm,    x, y, phi, cands);
+
+  // CCSCC (family 8)
+  collect(LpRmSmLmRp,  x, y, phi, cands);
+
+  // CCCC (families 9-10)
+  collect(LpRpLmRm,    x, y, phi, cands);
+  collect(LpRmLmRp,    x, y, phi, cands);
+
+  // CSCC (families 11-12)
+  collect(LpSpRpLm,    x, y, phi, cands);
+  collect(LpSpLpRm,    x, y, phi, cands);
 
   // Pick lowest-cost path (length + small reverse penalty for tie-breaking).
   RSPath best;
