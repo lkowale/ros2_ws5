@@ -1,0 +1,119 @@
+capture_directory: "~"
+fixed_frame: map
+target_frame: map
+fix_orientation: false
+rotate_90: false
+enable_antialiasing: true
+show_displays: true
+show_status_bar: true
+show_capture_tools: true
+window_width: 1400
+window_height: 900
+view_scale: 0.0500000007
+offset_x: 0
+offset_y: 0
+use_latest_transforms: true
+transform_timeout_ms: 500
+background: "#a0a0a4"
+image_transport: raw
+displays:
+  - type: mapviz_plugins/tile_map
+    name: tiles
+    config:
+      visible: true
+      collapsed: false
+      custom_sources:
+        - base_url: "https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMTS/StandardResolution?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTOFOTOMAPA&STYLE=default&FORMAT=image/jpeg&TILEMATRIXSET=EPSG:3857&TILEMATRIX={level}&TILEROW={y}&TILECOL={x}"
+          max_zoom: 19
+          name: Geoportal Ortofoto
+          type: wmts
+        - base_url: https://tile.openstreetmap.org/{level}/{x}/{y}.png
+          max_zoom: 19
+          name: OpenStreetMap
+          type: wmts
+      bing_api_key: ""
+      stadia_api_key: ""
+      source: Geoportal Ortofoto
+  - type: mapviz_plugins/navsat
+    name: gps/fix
+    config:
+      visible: true
+      collapsed: false
+      topic: /gps/fix
+      color: "#00ff00"
+      draw_style: points
+      position_tolerance: 0.20000000000000001
+      buffer_size: 1000
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
+  - type: mapviz_plugins/odometry
+    name: ekf odom
+    config:
+      visible: true
+      collapsed: false
+      topic: /odom
+      color: "#ff0000"
+      draw_style: arrows
+      position_tolerance: 0.10000000000000001
+      buffer_size: 500
+      show_laps: false
+      show_covariance: false
+      show_all_covariances: false
+      static_arrow_sizes: false
+      arrow_size: 20
+      show_timestamps: 0
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
+  - type: mapviz_plugins/path
+    name: plan forward
+    config:
+      visible: true
+      collapsed: false
+      topic: /plan_forward
+      color: "#00ff00"
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
+  - type: mapviz_plugins/path
+    name: plan reverse
+    config:
+      visible: true
+      collapsed: false
+      topic: /plan_reverse
+      color: "#ff4400"
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
+  - type: mapviz_plugins/pose
+    name: robot
+    config:
+      visible: true
+      collapsed: false
+      topic: /robot_pose
+      color: "#ff6600"
+      draw_style: arrow
+      position_tolerance: 0
+      static_arrow_sizes: true
+      arrow_size: 30
+      qos_depth: 1
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
+  - type: mapviz_plugins/tf_frame
+    name: base_footprint
+    config:
+      visible: false
+      collapsed: false
+      frame: base_footprint
+      color: "#ffff00"
+      draw_style: arrows
+      position_tolerance: 0.10000000000000001
+      buffer_size: 1
+      static_arrow_sizes: false
+      arrow_size: 25

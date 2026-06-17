@@ -45,9 +45,15 @@ if [ -z "${MAPVIZ_WAYLAND:-}" ]; then
     export GDK_BACKEND=x11
 fi
 
-# M=2 (default) or M=3 selects which mapviz config to load.
-M="${M:-2}"
-CONFIG="$HOME/ros2_ws5/src/navigation/nav2_bringup/config/mapviz_m${M}.mvc"
+# CONFIG can be set explicitly, else M=2/3 selects mapviz_m<N>.mvc.
+if [ -n "${CONFIG:-}" ]; then
+    : # already set by caller
+elif [ -n "${1:-}" ] && [ -f "$HOME/ros2_ws5/src/navigation/nav2_bringup/config/${1}" ]; then
+    CONFIG="$HOME/ros2_ws5/src/navigation/nav2_bringup/config/${1}"
+else
+    M="${M:-2}"
+    CONFIG="$HOME/ros2_ws5/src/navigation/nav2_bringup/config/mapviz_m${M}.mvc"
+fi
 
 LOG_DIR="$HOME/ros2_ws5/logs/mapviz"
 mkdir -p "$LOG_DIR"
