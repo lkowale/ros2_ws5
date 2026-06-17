@@ -6,7 +6,8 @@
 # /local_xy_origin, published by origin_publisher (started in the M2 sim launch).
 #
 # Usage:
-#   bash run_mapviz.sh
+#   bash run_mapviz.sh                      # M=3 for m3, M=2 for m2 (default)
+#   bash run_mapviz.sh mapviz_rs_test.mvc   # RS planner test suite view
 #
 # Attaches to whatever sim/robot is already running on the default DDS domain.
 

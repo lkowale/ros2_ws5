@@ -84,8 +84,7 @@ fi
 if [[ "${1:-}" == "test" ]]; then
     _set_cli_cyclone
     LOG_FILE="$HOME/ros2_ws5/logs/m3_sim/latest.log"
-    # Launch mapviz with RS test config in background
-    bash "$HOME/ros2_ws5/run_mapviz.sh" mapviz_rs_test.mvc &
+
     {
     echo ""
     echo "═══════════════════════════════════════════════════"
