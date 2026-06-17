@@ -298,11 +298,9 @@ static void sampleSegment(
     p.pose.position.x = cx;
     p.pose.position.y = cy;
     p.pose.position.z = 0.0;
-    // Keep the true heading on all segments. RPP's findVelocitySignChange
-    // detects reverse from position progression (dot product of consecutive
-    // position delta with heading). Flipping yaw on reverse segments cancels
-    // the sign out and makes RPP treat reverse as forward.
-    p.pose.orientation = yawToQuat(cyaw);
+    // Flip yaw by π on reverse segments so RPP drives backward and the goal
+    // checker matches the robot's actual heading at path end.
+    p.pose.orientation = yawToQuat(rev ? wrap(cyaw + M_PI) : cyaw);
     out.push_back(p);
   }
 }
