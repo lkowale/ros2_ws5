@@ -380,7 +380,35 @@ static RSPath bestPath(double x, double y, double phi)
 
 // ─── Path sampling ────────────────────────────────────────────────────────────
 
+// Advance pose by one arc/straight step of ds metres (signed by rev).
+static void stepPose(char type, double ds, bool rev, double rho,
+                     double & cx, double & cy, double & cyaw)
+{
+  const double d = rev ? -ds : ds;
+  switch (type) {
+    case 'S':
+      cx   += d * std::cos(cyaw);
+      cy   += d * std::sin(cyaw);
+      break;
+    case 'L': {
+      const double dphi = d / rho;
+      cx   += rho * (std::sin(cyaw + dphi) - std::sin(cyaw));
+      cy   += rho * (-std::cos(cyaw + dphi) + std::cos(cyaw));
+      cyaw  = wrap(cyaw + dphi);
+      break;
+    }
+    case 'R': {
+      const double dphi = d / rho;
+      cx   += rho * (-std::sin(cyaw - dphi) + std::sin(cyaw));
+      cy   += rho * ( std::cos(cyaw - dphi) - std::cos(cyaw));
+      cyaw  = wrap(cyaw - dphi);
+      break;
+    }
+  }
+}
+
 // Propagate a pose along one segment, emitting waypoints at `step` metre intervals.
+// cx/cy/cyaw are updated to the exact geometric end of the segment.
 static void sampleSegment(
   const Segment & seg,
   double rho,
@@ -392,43 +420,33 @@ static void sampleSegment(
   const double len_m = seg.len * rho;         // signed metres
   const bool   rev   = (len_m < 0.0);
   const double dist  = std::abs(len_m);
-  const int    n     = std::max(1, static_cast<int>(dist / step));
-  const double ds    = dist / n;
 
-  for (int i = 1; i <= n; ++i) {
-    switch (seg.type) {
-      case 'S':
-        cx  += (rev ? -1.0 : 1.0) * ds * std::cos(cyaw);
-        cy  += (rev ? -1.0 : 1.0) * ds * std::sin(cyaw);
-        // yaw unchanged on straight
-        break;
-      case 'L':
-        // Left arc: radius rho, centre at (cx - rho*sin(cyaw), cy + rho*cos(cyaw))
-        {
-          const double dphi = (rev ? -1.0 : 1.0) * (ds / rho);
-          cx  += rho * (std::sin(cyaw + dphi) - std::sin(cyaw));
-          cy  += rho * (-std::cos(cyaw + dphi) + std::cos(cyaw));
-          cyaw = wrap(cyaw + dphi);
-        }
-        break;
-      case 'R':
-        // Right arc: radius rho
-        {
-          const double dphi = (rev ? -1.0 : 1.0) * (ds / rho);
-          cx  += rho * (-std::sin(cyaw - dphi) + std::sin(cyaw));
-          cy  += rho * ( std::cos(cyaw - dphi) - std::cos(cyaw));
-          cyaw = wrap(cyaw - dphi);
-        }
-        break;
-    }
+  // Emit intermediate waypoints at `step` intervals, then one final point at
+  // the exact geometric segment end. This avoids any integer-truncation gap.
+  double travelled = 0.0;
+  while (travelled + step < dist - 1e-9) {
+    stepPose(seg.type, step, rev, rho, cx, cy, cyaw);
+    travelled += step;
 
     geometry_msgs::msg::PoseStamped p;
     p.header = header;
     p.pose.position.x = cx;
     p.pose.position.y = cy;
     p.pose.position.z = 0.0;
-    // Flip yaw by π on reverse segments so RPP drives backward and the goal
-    // checker matches the robot's actual heading at path end.
+    p.pose.orientation = yawToQuat(rev ? wrap(cyaw + M_PI) : cyaw);
+    out.push_back(p);
+  }
+
+  // Final step: advance exactly to the end of the segment.
+  const double remaining = dist - travelled;
+  if (remaining > 1e-9) {
+    stepPose(seg.type, remaining, rev, rho, cx, cy, cyaw);
+
+    geometry_msgs::msg::PoseStamped p;
+    p.header = header;
+    p.pose.position.x = cx;
+    p.pose.position.y = cy;
+    p.pose.position.z = 0.0;
     p.pose.orientation = yawToQuat(rev ? wrap(cyaw + M_PI) : cyaw);
     out.push_back(p);
   }
@@ -552,16 +570,25 @@ nav_msgs::msg::Path ReedsSheppPlanner::createPlan(
     }
   }
 
-  // Snap the last point exactly to the goal pose.
+  // Append exact goal pose if the last sampled point is more than one step away.
+  // Never overwrite (snap) the last point — that creates a teleport discontinuity.
   if (!path.poses.empty()) {
-    path.poses.back().pose.position.x  = gx;
-    path.poses.back().pose.position.y  = gy;
-    path.poses.back().pose.orientation = goal.pose.orientation;
-    // Keep split paths consistent with snap.
-    if (!rev_path.poses.empty() && rs.segs.back().len < 0.0)
-      rev_path.poses.back() = path.poses.back();
-    else if (!fwd_path.poses.empty())
-      fwd_path.poses.back() = path.poses.back();
+    const auto & last = path.poses.back().pose.position;
+    const double gap = std::hypot(gx - last.x, gy - last.y);
+    if (gap > 1e-3) {
+      geometry_msgs::msg::PoseStamped gp;
+      gp.header = path.header;
+      gp.pose.position.x  = gx;
+      gp.pose.position.y  = gy;
+      gp.pose.position.z  = 0.0;
+      const bool last_rev = (rs.segs.back().len < 0.0);
+      gp.pose.orientation = last_rev
+        ? yawToQuat(wrap(gyaw + M_PI))
+        : goal.pose.orientation;
+      path.poses.push_back(gp);
+      if (last_rev) rev_path.poses.push_back(gp);
+      else          fwd_path.poses.push_back(gp);
+    }
   }
 
   fwd_pub_->publish(fwd_path);
