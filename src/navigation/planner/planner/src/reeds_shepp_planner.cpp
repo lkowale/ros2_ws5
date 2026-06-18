@@ -550,19 +550,34 @@ nav_msgs::msg::Path ReedsSheppPlanner::createPlan(
 
   double cx = sx, cy = sy, cyaw = syaw;
 
+  RCLCPP_INFO(node_->get_logger(),
+    "RS sample: start=(%.4f,%.4f,%.4f°) goal=(%.4f,%.4f,%.4f°) rho=%.3f step=%.4f",
+    sx, sy, syaw * 180.0 / M_PI,
+    gx, gy, gyaw * 180.0 / M_PI, rho_, step_);
+
   for (const auto & seg : rs.segs) {
     if (cancel_checker && cancel_checker()) return path;
     if (std::abs(seg.len) < 1e-9) continue;
 
     const bool rev = (seg.len < 0.0);
+    const double seg_m = std::abs(seg.len) * rho_;
+
     seg_str += (rev ? '-' : '+');
     seg_str += seg.type;
     seg_str += '(';
     seg_str += std::to_string(static_cast<int>(std::round(std::abs(seg.len) * rho_ * 10.0) / 10.0));
     seg_str += "dm) ";
 
+    const double pre_x = cx, pre_y = cy, pre_yaw = cyaw;
     std::size_t before = path.poses.size();
     sampleSegment(seg, rho_, step_, cx, cy, cyaw, path.header, path.poses);
+    const std::size_t n_added = path.poses.size() - before;
+
+    RCLCPP_INFO(node_->get_logger(),
+      "  seg %c%c len=%.4fm  in=(%.4f,%.4f,%.3f°)  out=(%.4f,%.4f,%.3f°)  poses=%zu",
+      rev ? '-' : '+', seg.type, seg_m,
+      pre_x, pre_y, pre_yaw * 180.0 / M_PI,
+      cx, cy, cyaw * 180.0 / M_PI, n_added);
 
     for (std::size_t i = before; i < path.poses.size(); ++i) {
       if (rev) rev_path.poses.push_back(path.poses[i]);
@@ -570,12 +585,23 @@ nav_msgs::msg::Path ReedsSheppPlanner::createPlan(
     }
   }
 
+  // After sampling all segments, cx/cy/cyaw should equal gx/gy/gyaw.
+  // Log the residual gap so we can detect RS formula errors.
+  const double end_gap = std::hypot(cx - gx, cy - gy);
+  const double yaw_err = std::abs(wrap(cyaw - gyaw)) * 180.0 / M_PI;
+  RCLCPP_INFO(node_->get_logger(),
+    "RS end: sampled=(%.4f,%.4f,%.3f°) goal=(%.4f,%.4f,%.3f°)  gap=%.4fm  yaw_err=%.3f°",
+    cx, cy, cyaw * 180.0 / M_PI,
+    gx, gy, gyaw * 180.0 / M_PI, end_gap, yaw_err);
+
   // Append exact goal pose if the last sampled point is more than one step away.
   // Never overwrite (snap) the last point — that creates a teleport discontinuity.
   if (!path.poses.empty()) {
     const auto & last = path.poses.back().pose.position;
     const double gap = std::hypot(gx - last.x, gy - last.y);
     if (gap > 1e-3) {
+      RCLCPP_WARN(node_->get_logger(),
+        "RS path end gap %.4fm > 1mm — appending exact goal point", gap);
       geometry_msgs::msg::PoseStamped gp;
       gp.header = path.header;
       gp.pose.position.x  = gx;

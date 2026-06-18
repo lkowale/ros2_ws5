@@ -2,8 +2,8 @@
 """Publish start (green) and goal (red) arrow markers for every NavigateToPose goal.
 
 Listens to:
-  /navigate_to_pose/_action/send_goal  — NavigateToPose SendGoal request (goal pose+yaw)
-  /odom                                — EKF odometry (start pose at goal receipt time)
+  /received_global_plan  — nav_msgs/Path: first pose = path start, last pose = goal
+  /odom                  — EKF odometry: robot pose at goal receipt time
 
 Publishes visualization_msgs/MarkerArray on /goal_markers (transient_local).
 All markers accumulate so the full test suite is visible at once in mapviz.
@@ -12,9 +12,9 @@ import math
 
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, QoSDurabilityPolicy, QoSReliabilityPolicy, QoSHistoryPolicy
-from nav2_msgs.action._navigate_to_pose import NavigateToPose_SendGoal_Request
-from nav_msgs.msg import Odometry
+from rclpy.qos import (QoSProfile, QoSDurabilityPolicy,
+                       QoSReliabilityPolicy, QoSHistoryPolicy)
+from nav_msgs.msg import Odometry, Path
 from visualization_msgs.msg import Marker, MarkerArray
 
 
@@ -30,7 +30,7 @@ def _quat_to_yaw(q):
                       1.0 - 2.0 * (q.y * q.y + q.z * q.z))
 
 
-def _arrow_marker(mid, ns, frame, x, y, yaw, r, g, b):
+def _arrow(mid, ns, frame, x, y, yaw, r, g, b, length=2.5):
     m = Marker()
     m.header.frame_id = frame
     m.ns = ns
@@ -40,13 +40,11 @@ def _arrow_marker(mid, ns, frame, x, y, yaw, r, g, b):
     m.pose.position.x = x
     m.pose.position.y = y
     m.pose.position.z = 0.1
-    m.pose.orientation.x = 0.0
-    m.pose.orientation.y = 0.0
     m.pose.orientation.z = math.sin(yaw / 2.0)
     m.pose.orientation.w = math.cos(yaw / 2.0)
-    m.scale.x = 2.5   # arrow length
-    m.scale.y = 0.5   # shaft diameter
-    m.scale.z = 0.5   # head diameter
+    m.scale.x = length  # shaft length
+    m.scale.y = 0.4     # shaft diameter
+    m.scale.z = 0.4     # head diameter
     m.color.r = r
     m.color.g = g
     m.color.b = b
@@ -61,52 +59,60 @@ class GoalMarkerPublisher(Node):
         self._pub = self.create_publisher(MarkerArray, '/goal_markers', _TL_QOS)
         self._all_markers: list[Marker] = []
         self._marker_id = 0
-
         self._latest_odom: Odometry | None = None
+        self._last_plan_stamp = None
 
         self.create_subscription(Odometry, '/odom', self._cb_odom, 10)
 
-        # NavigateToPose action send_goal carries the full goal PoseStamped
-        self.create_subscription(
-            NavigateToPose_SendGoal_Request,
-            '/navigate_to_pose/_action/send_goal',
-            self._cb_send_goal,
-            10)
+        # /received_global_plan is published by controller_server when a new
+        # plan is accepted — first pose is the plan start, last is the goal.
+        self.create_subscription(Path, '/received_global_plan',
+                                 self._cb_plan, 10)
 
         self.get_logger().info('goal_marker_publisher ready → /goal_markers')
 
     def _cb_odom(self, msg: Odometry):
         self._latest_odom = msg
 
-    def _cb_send_goal(self, msg: NavigateToPose_SendGoal_Request):
-        goal_pose = msg.goal.pose  # geometry_msgs/PoseStamped
-        gx = goal_pose.pose.position.x
-        gy = goal_pose.pose.position.y
-        gyaw = _quat_to_yaw(goal_pose.pose.orientation)
+    def _cb_plan(self, msg: Path):
+        if not msg.poses:
+            return
 
-        # Start = current robot pose from latest EKF odom
+        # Deduplicate: ignore if stamp identical to last (controller republishes)
+        stamp = (msg.header.stamp.sec, msg.header.stamp.nanosec)
+        if stamp == self._last_plan_stamp:
+            return
+        self._last_plan_stamp = stamp
+
+        # Goal = last pose of the plan
+        goal_p = msg.poses[-1].pose
+        gx = goal_p.position.x
+        gy = goal_p.position.y
+        gyaw = _quat_to_yaw(goal_p.orientation)
+
+        # Start = current robot pose from EKF
         if self._latest_odom is not None:
-            sx = self._latest_odom.pose.pose.position.x
-            sy = self._latest_odom.pose.pose.position.y
-            syaw = _quat_to_yaw(self._latest_odom.pose.pose.orientation)
+            sp = self._latest_odom.pose.pose
+            sx = sp.position.x
+            sy = sp.position.y
+            syaw = _quat_to_yaw(sp.orientation)
         else:
-            sx, sy, syaw = gx, gy, gyaw  # fallback: no odom yet
+            # Fallback: use first path pose
+            fp = msg.poses[0].pose
+            sx, sy = fp.position.x, fp.position.y
+            syaw = _quat_to_yaw(fp.orientation)
 
-        frame = goal_pose.header.frame_id or 'map'
+        frame = msg.header.frame_id or 'map'
         now = self.get_clock().now().to_msg()
 
-        start_m = _arrow_marker(
-            self._marker_id,     'start', frame, sx, sy, syaw,
-            r=0.0, g=1.0, b=0.0)   # green
-        goal_m  = _arrow_marker(
-            self._marker_id + 1, 'goal',  frame, gx, gy, gyaw,
-            r=1.0, g=0.15, b=0.0)   # red-orange
-
+        start_m = _arrow(self._marker_id,     'start', frame,
+                         sx, sy, syaw, r=0.0, g=1.0, b=0.0)
+        goal_m  = _arrow(self._marker_id + 1, 'goal',  frame,
+                         gx, gy, gyaw, r=1.0, g=0.15, b=0.0)
         start_m.header.stamp = now
         goal_m.header.stamp  = now
 
-        self._all_markers.append(start_m)
-        self._all_markers.append(goal_m)
+        self._all_markers += [start_m, goal_m]
         self._marker_id += 2
 
         ma = MarkerArray()
