@@ -46,14 +46,23 @@ if [ -z "${MAPVIZ_WAYLAND:-}" ]; then
     export GDK_BACKEND=x11
 fi
 
-# CONFIG can be set explicitly, else M=2/3 selects mapviz_m<N>.mvc.
+# CONFIG selection:
+#   bash run_mapviz.sh <file.mvc>   — explicit config file in nav2_bringup/config/
+#   bash run_mapviz.sh line         — one-line navigator view (mapviz_line.mvc)
+#   bash run_mapviz.sh rs           — RS planner test view  (mapviz_rs_test.mvc)
+#   M=3 bash run_mapviz.sh          — mapviz_m3.mvc
+CONFIG_DIR="$HOME/ros2_ws5/src/navigation/nav2_bringup/config"
 if [ -n "${CONFIG:-}" ]; then
     : # already set by caller
-elif [ -n "${1:-}" ] && [ -f "$HOME/ros2_ws5/src/navigation/nav2_bringup/config/${1}" ]; then
-    CONFIG="$HOME/ros2_ws5/src/navigation/nav2_bringup/config/${1}"
+elif [ "${1:-}" = "line" ]; then
+    CONFIG="$CONFIG_DIR/mapviz_line.mvc"
+elif [ "${1:-}" = "rs" ]; then
+    CONFIG="$CONFIG_DIR/mapviz_rs_test.mvc"
+elif [ -n "${1:-}" ] && [ -f "$CONFIG_DIR/${1}" ]; then
+    CONFIG="$CONFIG_DIR/${1}"
 else
     M="${M:-2}"
-    CONFIG="$HOME/ros2_ws5/src/navigation/nav2_bringup/config/mapviz_m${M}.mvc"
+    CONFIG="$CONFIG_DIR/mapviz_m${M}.mvc"
 fi
 
 LOG_DIR="$HOME/ros2_ws5/logs/mapviz"

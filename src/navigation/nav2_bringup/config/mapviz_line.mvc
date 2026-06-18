@@ -1,0 +1,149 @@
+capture_directory: "~"
+fixed_frame: map
+target_frame: map
+fix_orientation: false
+rotate_90: false
+enable_antialiasing: true
+show_displays: true
+show_status_bar: true
+show_capture_tools: true
+window_width: 1400
+window_height: 900
+view_scale: 0.0500000007
+offset_x: 0
+offset_y: 0
+use_latest_transforms: true
+background: "#a0a0a4"
+image_transport: raw
+displays:
+  - type: mapviz_plugins/tile_map
+    name: tiles
+    config:
+      visible: true
+      collapsed: false
+      custom_sources:
+        - base_url: "https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMTS/StandardResolution?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTOFOTOMAPA&STYLE=default&FORMAT=image/jpeg&TILEMATRIXSET=EPSG:3857&TILEMATRIX={level}&TILEROW={y}&TILECOL={x}"
+          max_zoom: 19
+          name: Geoportal Ortofoto
+          type: wmts
+        - base_url: https://tile.openstreetmap.org/{level}/{x}/{y}.png
+          max_zoom: 19
+          name: OpenStreetMap
+          type: wmts
+      bing_api_key: ""
+      stadia_api_key: ""
+      source: Geoportal Ortofoto
+  - type: mapviz_plugins/navsat
+    name: gps/fix (yellow trail)
+    config:
+      visible: true
+      collapsed: false
+      topic: /gps/fix
+      color: "#ffff00"
+      draw_style: points
+      position_tolerance: 0.05
+      buffer_size: 2000
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 2
+      qos_durability: 2
+  - type: mapviz_plugins/odometry
+    name: ekf odom (white trail)
+    config:
+      visible: true
+      collapsed: false
+      topic: /odom
+      color: "#ffffff"
+      draw_style: points
+      position_tolerance: 0.05
+      buffer_size: 2000
+      show_laps: false
+      show_covariance: false
+      show_all_covariances: false
+      static_arrow_sizes: false
+      arrow_size: 10
+      show_timestamps: 0
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
+  - type: mapviz_plugins/pose
+    name: robot pose (orange arrow)
+    config:
+      visible: true
+      collapsed: false
+      topic: /robot_pose
+      color: "#ff6600"
+      draw_style: arrow
+      position_tolerance: 0
+      static_arrow_sizes: true
+      arrow_size: 30
+      qos_depth: 1
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
+  - type: mapviz_plugins/path
+    name: approach fwd (white)
+    config:
+      visible: true
+      collapsed: false
+      topic: /plan_forward
+      color: "#ffffff"
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
+  - type: mapviz_plugins/path
+    name: approach rev (orange)
+    config:
+      visible: true
+      collapsed: false
+      topic: /plan_reverse
+      color: "#ff6600"
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
+  - type: mapviz_plugins/path
+    name: swath path (cyan)
+    config:
+      visible: true
+      collapsed: false
+      topic: /plan_swath
+      color: "#00ffff"
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
+  - type: mapviz_plugins/path
+    name: turn path (yellow)
+    config:
+      visible: true
+      collapsed: false
+      topic: /plan_turn
+      color: "#ffff00"
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
+  - type: mapviz_plugins/path
+    name: active plan (green)
+    config:
+      visible: true
+      collapsed: false
+      topic: /received_global_plan
+      color: "#00ff00"
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
+  - type: mapviz_plugins/marker
+    name: start+goal arrows
+    config:
+      visible: true
+      collapsed: false
+      topic: /goal_markers
+      qos_depth: 100
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
