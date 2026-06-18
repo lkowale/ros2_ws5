@@ -18,6 +18,7 @@ install(DIRECTORY
 install(PROGRAMS
   scripts/origin_publisher.py
   scripts/tf_pose_publisher.py
+  scripts/goal_marker_publisher.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

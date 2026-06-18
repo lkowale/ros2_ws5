@@ -13,7 +13,6 @@ view_scale: 0.0500000007
 offset_x: 0
 offset_y: 0
 use_latest_transforms: true
-transform_timeout_ms: 500
 background: "#a0a0a4"
 image_transport: raw
 displays:
@@ -57,7 +56,7 @@ displays:
       color: "#ff0000"
       draw_style: arrows
       position_tolerance: 0.10000000000000001
-      buffer_size: 500
+      buffer_size: 1
       show_laps: false
       show_covariance: false
       show_all_covariances: false
@@ -90,30 +89,13 @@ displays:
       qos_history: 1
       qos_reliability: 1
       qos_durability: 2
-  - type: mapviz_plugins/pose
-    name: robot
+  - type: mapviz_plugins/marker
+    name: start+goal arrows
     config:
       visible: true
       collapsed: false
-      topic: /robot_pose
-      color: "#ff6600"
-      draw_style: arrow
-      position_tolerance: 0
-      static_arrow_sizes: true
-      arrow_size: 30
-      qos_depth: 1
+      topic: /goal_markers
+      qos_depth: 100
       qos_history: 1
       qos_reliability: 1
       qos_durability: 2
-  - type: mapviz_plugins/tf_frame
-    name: base_footprint
-    config:
-      visible: false
-      collapsed: false
-      frame: base_footprint
-      color: "#ffff00"
-      draw_style: arrows
-      position_tolerance: 0.10000000000000001
-      buffer_size: 1
-      static_arrow_sizes: false
-      arrow_size: 25
