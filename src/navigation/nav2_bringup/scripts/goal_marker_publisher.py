@@ -60,12 +60,12 @@ class GoalMarkerPublisher(Node):
         self._all_markers: list[Marker] = []
         self._marker_id = 0
         self._latest_odom: Odometry | None = None
-        self._last_plan_stamp = None
+        self._last_goal_xy: tuple | None = None  # (gx, gy) of last published goal
 
         self.create_subscription(Odometry, '/odom', self._cb_odom, 10)
 
-        # /received_global_plan is published by controller_server when a new
-        # plan is accepted — first pose is the plan start, last is the goal.
+        # /received_global_plan is republished every controller cycle — deduplicate
+        # by goal position (last pose) so we only emit markers on a genuinely new goal.
         self.create_subscription(Path, '/received_global_plan',
                                  self._cb_plan, 10)
 
@@ -78,11 +78,13 @@ class GoalMarkerPublisher(Node):
         if not msg.poses:
             return
 
-        # Deduplicate: ignore if stamp identical to last (controller republishes)
-        stamp = (msg.header.stamp.sec, msg.header.stamp.nanosec)
-        if stamp == self._last_plan_stamp:
+        # Deduplicate by goal position — controller republishes the same plan every
+        # cycle with a fresh stamp, so stamp-based dedup doesn't work.
+        gx_r = round(gx, 2)
+        gy_r = round(gy, 2)
+        if self._last_goal_xy == (gx_r, gy_r):
             return
-        self._last_plan_stamp = stamp
+        self._last_goal_xy = (gx_r, gy_r)
 
         # Goal = last pose of the plan
         goal_p = msg.poses[-1].pose
