@@ -94,6 +94,11 @@ if [[ "${1:-}" == "test" ]]; then
     echo ""
     } | tee -a "$LOG_FILE"
 
+    # Start the thorough logger in the background; let it connect before goals.
+    python3 "$HOME/ros2_ws5/m3_sim_logger.py" --hz 2 &
+    LOGGER_PID=$!
+    sleep 2
+
     _goal() {
         local label="$1" x="$2" y="$3" yaw="${4:-90}"
         read QZ QW < <(_deg2quat_z "$yaw")
@@ -137,6 +142,9 @@ orientation: {x: 0.0, y: 0.0, z: $QZ, w: $QW}}}}" \
     echo "  Test suite complete."
     echo "═══════════════════════════════════════════════════"
     } | tee -a "$LOG_FILE"
+
+    kill "$LOGGER_PID" 2>/dev/null || true
+    wait "$LOGGER_PID" 2>/dev/null || true
     exit 0
 fi
 
