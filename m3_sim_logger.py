@@ -132,15 +132,16 @@ class M3Logger(Node):
         self.create_subscription(Twist, '/cmd_vel',
                                  self._cb_cmd_vel_plain, 10)
 
-        # RS planner paths — transient_local so we get them even after publish
+        # RS planner paths — transient_local so we get them even after publish.
+        # /plan_swath (straight_line_planner) uses volatile QoS depth-1.
         self.create_subscription(Path, '/plan_forward',
                                  self._cb_plan_forward, _TRANSIENT_LOCAL)
         self.create_subscription(Path, '/plan_reverse',
                                  self._cb_plan_reverse, _TRANSIENT_LOCAL)
         self.create_subscription(Path, '/plan_swath',
-                                 self._cb_plan_swath, _TRANSIENT_LOCAL)
+                                 self._cb_plan_swath, 1)
         self.create_subscription(Path, '/plan_turn',
-                                 self._cb_plan_turn, _TRANSIENT_LOCAL)
+                                 self._cb_plan_turn, 1)
 
         # NavigateToPose action status
         self.create_subscription(GoalStatusArray,
@@ -300,12 +301,9 @@ class M3Logger(Node):
             tr = t_map.transform.translation
             ro = t_map.transform.rotation
             yaw = _quat_to_yaw(ro)
-            age_s = (self.get_clock().now() -
-                     RosTime.from_msg(t_map.header.stamp)).nanoseconds * 1e-9
             if self._should_log('tf_map'):
                 self._log('ODOM',
-                    f'map→base  x={tr.x:8.3f}  y={tr.y:8.3f}  yaw={yaw:7.2f}°  '
-                    f'tf_age={age_s*1000:.1f}ms')
+                    f'map→base  x={tr.x:8.3f}  y={tr.y:8.3f}  yaw={yaw:7.2f}°')
 
             # odom → base_footprint (raw odometry pose)
             t_odom = self._tf_buf.lookup_transform(
