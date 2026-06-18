@@ -80,7 +80,7 @@ def generate_launch_description():
     )
 
     nav2_cmd = TimerAction(
-        period=20.0,
+        period=8.0,
         actions=[IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
                 os.path.join(nav2_dir, 'launch', 'navigation.launch.py')),
