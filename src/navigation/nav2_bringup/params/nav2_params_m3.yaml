@@ -41,6 +41,7 @@ controller_server:
     min_y_velocity_threshold: 0.5
     min_theta_velocity_threshold: 0.001
     failure_tolerance: 0.3
+    robot_base_frame: tool_link
     progress_checker_plugins: ["progress_checker"]
     goal_checker_plugins: ["general_goal_checker", "arc_goal_checker", "swath_goal_checker"]
     controller_plugins: ["FollowPath", "SwathFollow"]
@@ -229,7 +230,7 @@ global_costmap:
       update_frequency: 5.0
       publish_frequency: 2.0
       global_frame: map
-      robot_base_frame: base_footprint
+      robot_base_frame: tool_link
       robot_radius: 0.5
       resolution: 0.1
       rolling_window: true
