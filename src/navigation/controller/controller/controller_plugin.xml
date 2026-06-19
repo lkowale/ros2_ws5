@@ -32,3 +32,15 @@
     </description>
   </class>
 </library>
+
+<library path="tool_line_follower_controller_plugin">
+  <class name="rs_path_controller/RsPathController"
+         type="rs_path_controller::RsPathController"
+         base_class_type="nav2_core::Controller">
+    <description>
+      Stanley-style path-tracking controller for Ackermann robots on Reeds-Shepp paths.
+      Uses heading error + cross-track error from the path tangent at the closest waypoint.
+      Handles reverse segments (waypoint yaw flipped π) by negating linear velocity.
+    </description>
+  </class>
+</library>

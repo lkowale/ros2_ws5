@@ -42,6 +42,7 @@ add_library(${library_name} SHARED
   src/tool_line_follower_controller.cpp
   src/tool_arc_follower_controller.cpp
   src/tool_rpp_controller.cpp
+  src/rs_path_controller.cpp
 )
 
 target_include_directories(${library_name} PUBLIC
