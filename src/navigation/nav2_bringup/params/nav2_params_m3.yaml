@@ -98,6 +98,8 @@ controller_server:
       k_cross_gain: 1.0   # gain on CTE correction term (independent of k_heading)
       approach_dist: 3.0
       min_approach_vel: 0.3
+      align_heading_thresh: 0.52  # rad (30°): enter align-phase above this
+      align_exit_thresh: 0.17     # rad (10°): exit align-phase below this
       transform_tolerance: 0.1
 
 planner_server:

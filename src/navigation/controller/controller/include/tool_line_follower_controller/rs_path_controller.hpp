@@ -80,12 +80,16 @@ private:
   // Parameters
   double desired_linear_vel_{1.0};
   double max_angular_vel_{1.0};
-  double k_heading_{1.5};    // gain on heading error term (rad/rad)
-  double k_cross_{1.0};      // Stanley cross-track gain (1/s)
-  double k_cross_gain_{1.0}; // gain on CTE correction term (rad/rad) — independent of k_heading
+  double k_heading_{1.5};
+  double k_cross_{1.0};
+  double k_cross_gain_{1.0};
   double approach_dist_{3.0};
   double min_approach_vel_{0.3};
+  double align_heading_thresh_{0.52};  // rad (~30°): enter align phase above this
+  double align_exit_thresh_{0.17};     // rad (~10°): exit align phase below this
   double transform_tolerance_{0.1};
+
+  bool aligning_{false};  // true while in heading-alignment pre-phase
 
   double speed_limit_{1.0};
   bool speed_limit_is_percentage_{false};
