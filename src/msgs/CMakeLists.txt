@@ -10,6 +10,7 @@ find_package(geographic_msgs REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/RunOneLine.action"
   "action/DriveArc.action"
+  "action/RunRsTest.action"
   DEPENDENCIES std_msgs geometry_msgs geographic_msgs builtin_interfaces
 )
 

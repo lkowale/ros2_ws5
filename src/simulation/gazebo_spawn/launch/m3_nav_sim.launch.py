@@ -79,14 +79,6 @@ def generate_launch_description():
         parameters=[{'use_sim_time': use_sim_time}],
     )
 
-    goal_marker_publisher = Node(
-        package='solbot5_nav2_bringup',
-        executable='goal_marker_publisher.py',
-        name='goal_marker_publisher',
-        output='both',
-        parameters=[{'use_sim_time': use_sim_time}],
-    )
-
     nav2_cmd = TimerAction(
         period=8.0,
         actions=[IncludeLaunchDescription(
@@ -111,6 +103,5 @@ def generate_launch_description():
         origin_publisher,
         tf_pose_publisher,
         static_tf_map_origin,
-        goal_marker_publisher,
         nav2_cmd,
     ])

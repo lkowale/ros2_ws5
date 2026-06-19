@@ -33,13 +33,68 @@ displays:
       bing_api_key: ""
       stadia_api_key: ""
       source: Geoportal Ortofoto
+  - type: mapviz_plugins/path
+    name: approach fwd (light grey)
+    config:
+      visible: true
+      collapsed: false
+      topic: /plan_forward
+      color: "#c0bfbc"
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
+  - type: mapviz_plugins/path
+    name: approach rev (light grey)
+    config:
+      visible: true
+      collapsed: false
+      topic: /plan_reverse
+      color: "#c0bfbc"
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
+  - type: mapviz_plugins/path
+    name: swath path (grey)
+    config:
+      visible: true
+      collapsed: false
+      topic: /plan_swath
+      color: "#77767b"
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
+  - type: mapviz_plugins/path
+    name: turn path (tan)
+    config:
+      visible: true
+      collapsed: false
+      topic: /plan_turn
+      color: "#cdab8f"
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
+  - type: mapviz_plugins/path
+    name: active plan (dark)
+    config:
+      visible: true
+      collapsed: false
+      topic: /received_global_plan
+      color: "#241f31"
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
   - type: mapviz_plugins/navsat
-    name: gps/fix (yellow trail)
+    name: gps/fix (green)
     config:
       visible: true
       collapsed: false
       topic: /gps/fix
-      color: "#ffff00"
+      color: "#00ff00"
       draw_style: points
       position_tolerance: 0.05
       buffer_size: 2000
@@ -48,12 +103,12 @@ displays:
       qos_reliability: 2
       qos_durability: 2
   - type: mapviz_plugins/odometry
-    name: ekf odom (white trail)
+    name: ekf odom trail (red)
     config:
       visible: true
       collapsed: false
       topic: /odom
-      color: "#ffffff"
+      color: "#f66151"
       draw_style: points
       position_tolerance: 0.05
       buffer_size: 2000
@@ -68,82 +123,17 @@ displays:
       qos_reliability: 1
       qos_durability: 2
   - type: mapviz_plugins/pose
-    name: robot pose (orange arrow)
+    name: robot pose (red arrow)
     config:
       visible: true
       collapsed: false
       topic: /robot_pose
-      color: "#ff6600"
+      color: "#f66151"
       draw_style: arrow
       position_tolerance: 0
       static_arrow_sizes: true
       arrow_size: 30
       qos_depth: 1
-      qos_history: 1
-      qos_reliability: 1
-      qos_durability: 2
-  - type: mapviz_plugins/path
-    name: approach fwd (white)
-    config:
-      visible: true
-      collapsed: false
-      topic: /plan_forward
-      color: "#ffffff"
-      qos_depth: 10
-      qos_history: 1
-      qos_reliability: 1
-      qos_durability: 2
-  - type: mapviz_plugins/path
-    name: approach rev (orange)
-    config:
-      visible: true
-      collapsed: false
-      topic: /plan_reverse
-      color: "#ff6600"
-      qos_depth: 10
-      qos_history: 1
-      qos_reliability: 1
-      qos_durability: 2
-  - type: mapviz_plugins/path
-    name: swath path (cyan)
-    config:
-      visible: true
-      collapsed: false
-      topic: /plan_swath
-      color: "#00ffff"
-      qos_depth: 10
-      qos_history: 1
-      qos_reliability: 1
-      qos_durability: 2
-  - type: mapviz_plugins/path
-    name: turn path (yellow)
-    config:
-      visible: true
-      collapsed: false
-      topic: /plan_turn
-      color: "#ffff00"
-      qos_depth: 10
-      qos_history: 1
-      qos_reliability: 1
-      qos_durability: 2
-  - type: mapviz_plugins/path
-    name: active plan (green)
-    config:
-      visible: true
-      collapsed: false
-      topic: /received_global_plan
-      color: "#00ff00"
-      qos_depth: 10
-      qos_history: 1
-      qos_reliability: 1
-      qos_durability: 2
-  - type: mapviz_plugins/marker
-    name: start+goal arrows
-    config:
-      visible: true
-      collapsed: false
-      topic: /goal_markers
-      qos_depth: 100
       qos_history: 1
       qos_reliability: 1
       qos_durability: 2

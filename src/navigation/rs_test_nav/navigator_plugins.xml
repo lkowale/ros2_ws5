@@ -1,0 +1,14 @@
+<class_libraries>
+  <library path="rs_test_navigator">
+    <class
+      name="rs_test_nav/RsTestNavigator"
+      type="rs_test_nav::RsTestNavigator"
+      base_class_type="nav2_core::NavigatorBase">
+      <description>
+        RS planner test suite navigator. Accepts a list of PoseStamped goals
+        and navigates to each in sequence using the GridBased (RS) planner.
+        Publishes fixed start+goal arrow markers per sub-goal.
+      </description>
+    </class>
+  </library>
+</class_libraries>

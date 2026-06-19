@@ -1,0 +1,15 @@
+# Goal — run the RS planner test suite.
+# goals: ordered list of PoseStamped targets (frame_id = map).
+# labels: human-readable name for each goal (same length as goals).
+geometry_msgs/PoseStamped[] goals
+string[] labels
+string behavior_tree
+---
+uint16 error_code
+uint16 NONE=0
+uint16 CANCELLED=1
+uint16 FAILED=2
+---
+uint32 current_goal_index
+string current_label
+float32 distance_remaining

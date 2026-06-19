@@ -33,13 +33,46 @@ displays:
       bing_api_key: ""
       stadia_api_key: ""
       source: Geoportal Ortofoto
+  - type: mapviz_plugins/path
+    name: plan forward (light grey)
+    config:
+      visible: true
+      collapsed: false
+      topic: /plan_forward
+      color: "#c0bfbc"
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
+  - type: mapviz_plugins/path
+    name: plan reverse (tan)
+    config:
+      visible: true
+      collapsed: false
+      topic: /plan_reverse
+      color: "#cdab8f"
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
+  - type: mapviz_plugins/path
+    name: received plan (dark)
+    config:
+      visible: true
+      collapsed: false
+      topic: /received_global_plan
+      color: "#241f31"
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
   - type: mapviz_plugins/navsat
-    name: gps/fix
+    name: gps/fix (green)
     config:
       visible: true
       collapsed: false
       topic: /gps/fix
-      color: "#ffff00"
+      color: "#00ff00"
       draw_style: points
       position_tolerance: 0.10000000000000001
       buffer_size: 500
@@ -48,12 +81,12 @@ displays:
       qos_reliability: 2
       qos_durability: 2
   - type: mapviz_plugins/odometry
-    name: ekf odom (trail)
+    name: ekf odom trail (red)
     config:
       visible: true
       collapsed: false
       topic: /odom
-      color: "#ffffff"
+      color: "#f66151"
       draw_style: points
       position_tolerance: 0.05
       buffer_size: 2000
@@ -68,12 +101,12 @@ displays:
       qos_reliability: 1
       qos_durability: 2
   - type: mapviz_plugins/odometry
-    name: robot pose (arrow)
+    name: robot pose (red arrow)
     config:
       visible: true
       collapsed: false
       topic: /odom
-      color: "#00aaff"
+      color: "#f66151"
       draw_style: arrows
       position_tolerance: 0.0
       buffer_size: 1
@@ -84,49 +117,6 @@ displays:
       arrow_size: 30
       show_timestamps: 0
       qos_depth: 10
-      qos_history: 1
-      qos_reliability: 1
-      qos_durability: 2
-  - type: mapviz_plugins/path
-    name: plan forward (green)
-    config:
-      visible: true
-      collapsed: false
-      topic: /plan_forward
-      color: "#00ff00"
-      qos_depth: 10
-      qos_history: 1
-      qos_reliability: 1
-      qos_durability: 2
-  - type: mapviz_plugins/path
-    name: plan reverse (orange)
-    config:
-      visible: true
-      collapsed: false
-      topic: /plan_reverse
-      color: "#ff6600"
-      qos_depth: 10
-      qos_history: 1
-      qos_reliability: 1
-      qos_durability: 2
-  - type: mapviz_plugins/path
-    name: received plan (white)
-    config:
-      visible: true
-      collapsed: false
-      topic: /received_global_plan
-      color: "#ffffff"
-      qos_depth: 10
-      qos_history: 1
-      qos_reliability: 1
-      qos_durability: 2
-  - type: mapviz_plugins/marker
-    name: start+goal arrows
-    config:
-      visible: true
-      collapsed: false
-      topic: /goal_markers
-      qos_depth: 100
       qos_history: 1
       qos_reliability: 1
       qos_durability: 2

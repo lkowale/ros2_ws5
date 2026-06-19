@@ -16,7 +16,7 @@ bt_navigator:
     action_server_result_timeout: 900.0
     default_nav_to_pose_bt_xml: "/home/aa/ros2_ws5/src/navigation/nav2_bringup/behavior_trees/navigate_plan_once.xml"
     always_reload_bt_xml: true
-    navigators: ["navigate_to_pose", "navigate_through_poses", "run_one_line"]
+    navigators: ["navigate_to_pose", "navigate_through_poses", "run_one_line", "run_rs_test"]
     navigate_to_pose:
       plugin: "nav2_bt_navigator::NavigateToPoseNavigator"
     navigate_through_poses:
@@ -24,9 +24,12 @@ bt_navigator:
     run_one_line:
       plugin: "one_line_nav/OneLineNavigator"
       fields_directory: "/home/aa/ros2_ws5/src/fields"
+    run_rs_test:
+      plugin: "rs_test_nav/RsTestNavigator"
     plugin_lib_names:
       - one_line_bt_nodes
       - drive_arc_bt_node
+      - rs_test_bt_nodes
     error_code_names:
       - compute_path_error_code
       - follow_path_error_code

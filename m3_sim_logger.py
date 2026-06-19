@@ -355,11 +355,14 @@ def main():
     node = M3Logger(sample_hz=args.hz, log_all=args.log_all, log_file=log_file)
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, rclpy.executors.ExternalShutdownException):
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        try:
+            rclpy.shutdown()
+        except Exception:
+            pass
         log_file.close()
         print(f'\nLog saved to {log_path}')
 

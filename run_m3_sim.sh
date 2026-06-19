@@ -89,7 +89,7 @@ if [[ "${1:-}" == "test" ]]; then
     echo ""
     echo "═══════════════════════════════════════════════════"
     echo "  solbot5 M3 — Reeds-Shepp planner test suite"
-    echo "  Robot starts at map (0,0), heading=90° (North)"
+    echo "  Robot starts at map (0,0), heading=0° (East)"
     echo "═══════════════════════════════════════════════════"
     echo ""
     } | tee -a "$LOG_FILE"
@@ -99,42 +99,29 @@ if [[ "${1:-}" == "test" ]]; then
     LOGGER_PID=$!
     sleep 2
 
-    _goal() {
-        local label="$1" x="$2" y="$3" yaw="${4:-90}"
+    # Build goal list as YAML for RunRsTest action.
+    # Each entry: {header: {frame_id: map}, pose: {position: {x,y,z}, orientation: {x,y,z,w}}}
+    _pose() {
+        local x="$1" y="$2" yaw="${3:-90}"
         read QZ QW < <(_deg2quat_z "$yaw")
-        {
-        echo ""
-        echo "────────────────────────────────────────────"
-        echo "  GOAL: $label"
-        echo "  x=$x  y=$y  yaw=${yaw}° → qz=$QZ qw=$QW"
-        echo "────────────────────────────────────────────"
-        } | tee -a "$LOG_FILE"
-        ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
-            "{pose: {header: {frame_id: map}, pose: {position: {x: $x, y: $y, z: 0.0}, \
-orientation: {x: 0.0, y: 0.0, z: $QZ, w: $QW}}}}" \
-            --feedback 2>&1 | tee -a "$LOG_FILE" || true
+        echo "{header: {frame_id: map}, pose: {position: {x: $x, y: $y, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: $QZ, w: $QW}}}"
     }
 
-    # Test 1: straight ahead (should be a short straight RS path)
-    _goal "1: straight ahead (North, 15m)" 0 15 90
+    G1=$(_pose  0  15  90)   # straight ahead North
+    G2=$(_pose 10  10   0)   # forward + right, heading East
+    G3=$(_pose  0  -8  90)   # behind robot, same heading
+    G4=$(_pose -15 10 180)   # far left, heading West
+    G5=$(_pose  0   3 270)   # close, 180° flip
+    G6=$(_pose 20  -5   0)   # far diagonal SE, heading East
+    G7=$(_pose  0   0  90)   # back to origin, heading North
 
-    # Test 2: forward + turn right (CSC path expected)
-    _goal "2: forward + 45° right, 10m diagonal" 10 10 0
+    GOALS="[$G1, $G2, $G3, $G4, $G5, $G6, $G7]"
+    LABELS='["1:North 15m", "2:SE diagonal", "3:behind", "4:far left", "5:180flip", "6:far SE", "7:origin"]'
 
-    # Test 3: goal behind robot (reverse required, CCC or reverse-CSC)
-    _goal "3: directly behind, same heading" 0 -8 90
-
-    # Test 4: sharp left turn, large distance (CSC left arc + straight)
-    _goal "4: far left, 90° left turn" -15 10 180
-
-    # Test 5: goal close + rotated 180° (tight CCC path)
-    _goal "5: close (3m), 180° flip" 0 3 270
-
-    # Test 6: diagonal far, arbitrary heading
-    _goal "6: far diagonal SE, heading East" 20 -5 0
-
-    # Test 7: return to origin heading North
-    _goal "7: back to origin, heading North" 0 0 90
+    echo "Sending RunRsTest (7 goals)..." | tee -a "$LOG_FILE"
+    ros2 action send_goal /run_rs_test solbot5_msgs/action/RunRsTest \
+        "{goals: $GOALS, labels: $LABELS}" \
+        --feedback 2>&1 | tee -a "$LOG_FILE" || true
 
     {
     echo ""

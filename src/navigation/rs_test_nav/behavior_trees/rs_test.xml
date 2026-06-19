@@ -1,0 +1,40 @@
+<!--
+  RS planner test suite behavior tree.
+
+  Loops over rs_test_goals on the blackboard.  For each sub-goal:
+    1. PopNextGoal         — pops next pose, publishes markers, sets {goal}
+                             returns FAILURE when list exhausted → loop ends
+    2. ComputePathToPose   — RS planner
+    3. FollowPath          — controller; ForceSuccess so a failed/aborted
+                             navigation still advances to the next goal
+
+  ForceSuccess wraps [ComputePathToPose + FollowPath] so any failure there
+  is swallowed and the Sequence continues with the next PopNextGoal tick.
+  The outer KeepRunningUntilFailure stops only when PopNextGoal returns FAILURE.
+  The outermost ForceSuccess converts that terminal FAILURE → SUCCEEDED.
+-->
+<root BTCPP_format="4" main_tree_to_execute="RsTestTree">
+  <BehaviorTree ID="RsTestTree">
+    <ForceSuccess>
+      <KeepRunningUntilFailure>
+        <Sequence>
+          <PopNextGoal goal="{goal}" rs_test_label="{rs_test_label}"/>
+          <ForceSuccess>
+            <Sequence>
+              <ComputePathToPose
+                goal="{goal}"
+                path="{path}"
+                planner_id="GridBased"
+                error_code_id="{compute_path_error_code}"/>
+              <FollowPath
+                path="{path}"
+                controller_id="FollowPath"
+                goal_checker_id="arc_goal_checker"
+                error_code_id="{follow_path_error_code}"/>
+            </Sequence>
+          </ForceSuccess>
+        </Sequence>
+      </KeepRunningUntilFailure>
+    </ForceSuccess>
+  </BehaviorTree>
+</root>
