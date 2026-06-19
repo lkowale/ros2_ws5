@@ -5,13 +5,14 @@ rs_controller_logger.py — CSV logger for RsPathController tuning.
 Writes to ~/ros2_ws5/logs/m3_sim/rs_ctrl_<timestamp>.csv at 20 Hz.
 
 Columns:
-  time_sec
+  time_sec, wall_time
+  -- current job --
+  job_path_index, job_path_label, job_dist_remaining
   -- robot pose (map frame via TF) --
   robot_x, robot_y, robot_yaw_deg
   tool_x, tool_y, tool_yaw_deg       (tool_link / rear axle)
   -- odometry --
-  odom_x, odom_y, odom_yaw_deg
-  odom_vx, odom_wz
+  odom_x, odom_y, odom_yaw_deg, odom_vx, odom_wz
   -- GPS --
   gps_lat, gps_lon, gps_fix, gps_cov_x
   -- commands --
@@ -31,9 +32,7 @@ Run:
 import csv
 import math
 import os
-import sys
 import threading
-import time
 from datetime import datetime
 
 import rclpy
@@ -43,17 +42,14 @@ from rclpy.qos import (QoSDurabilityPolicy, QoSHistoryPolicy,
 from rclpy.time import Time as RosTime
 
 from action_msgs.msg import GoalStatusArray
+from geometry_msgs.msg import Twist as TwistPlain
 from geometry_msgs.msg import TwistStamped
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import NavSatFix
 from std_msgs.msg import String
 from tf2_ros import Buffer, TransformListener, TransformException
 
-try:
-    from geometry_msgs.msg import Twist as TwistPlain
-    _HAS_PLAIN_TWIST = True
-except ImportError:
-    _HAS_PLAIN_TWIST = False
+from solbot5_msgs.action import RunRsTest
 
 _BEST_EFFORT = QoSProfile(
     history=QoSHistoryPolicy.KEEP_LAST,
@@ -95,20 +91,25 @@ class RsCtrlLogger(Node):
         self._odom_vx = _nan(); self._odom_wz = _nan()
 
         self._gps_lat = _nan(); self._gps_lon = _nan()
-        self._gps_fix = -1; self._gps_cov_x = _nan()
+        self._gps_fix = -1;     self._gps_cov_x = _nan()
 
         self._cmd_vx = 0.0; self._cmd_wz = 0.0
 
-        # controller debug fields (published on /rs_ctrl_debug as std_msgs/String CSV)
-        self._ctrl_idx   = -1
-        self._ctrl_n     = -1
-        self._ctrl_rev   = 0
-        self._ctrl_cte   = _nan()
-        self._ctrl_h_err = _nan()
-        self._ctrl_stanley = _nan()
-        self._ctrl_v_cmd = _nan()
-        self._ctrl_w_cmd = _nan()
-        self._ctrl_dist  = _nan()
+        # current job (from RunRsTest action feedback)
+        self._job_path_index   = -1
+        self._job_path_label   = ''
+        self._job_dist_remaining = _nan()
+
+        # controller debug fields
+        self._ctrl_idx     = -1
+        self._ctrl_n       = -1
+        self._ctrl_rev     = 0
+        self._ctrl_cte     = _nan()
+        self._ctrl_h_err   = _nan()
+        self._ctrl_stanley  = _nan()
+        self._ctrl_v_cmd   = _nan()
+        self._ctrl_w_cmd   = _nan()
+        self._ctrl_dist    = _nan()
 
         self._nav_status = ''
 
@@ -116,18 +117,24 @@ class RsCtrlLogger(Node):
         self.create_subscription(Odometry, '/odom', self._cb_odom, 10)
         self.create_subscription(NavSatFix, '/gps/fix', self._cb_gps, _BEST_EFFORT)
         self.create_subscription(TwistStamped, '/cmd_vel', self._cb_cmd_stamped, 10)
-        if _HAS_PLAIN_TWIST:
-            self.create_subscription(TwistPlain, '/cmd_vel', self._cb_cmd_plain, 10)
+        self.create_subscription(TwistPlain,   '/cmd_vel', self._cb_cmd_plain,   10)
         self.create_subscription(String, '/rs_ctrl_debug', self._cb_debug, 10)
-        self.create_subscription(GoalStatusArray,
-                                 '/navigate_to_pose/_action/status',
-                                 self._cb_nav_status, 10)
+        self.create_subscription(
+            GoalStatusArray,
+            '/navigate_to_pose/_action/status',
+            self._cb_nav_status, 10)
+        # RS test suite feedback — gives path index and label
+        self.create_subscription(
+            RunRsTest.Impl.FeedbackMessage,
+            '/run_rs_test/_action/feedback',
+            self._cb_rs_feedback, 10)
 
         # CSV
         self._csv_file = open(csv_path, 'w', newline='')
         self._writer = csv.writer(self._csv_file)
         self._writer.writerow([
-            'time_sec',
+            'time_sec', 'wall_time',
+            'job_path_index', 'job_path_label', 'job_dist_remaining',
             'robot_x', 'robot_y', 'robot_yaw_deg',
             'tool_x',  'tool_y',  'tool_yaw_deg',
             'odom_x',  'odom_y',  'odom_yaw_deg',
@@ -148,11 +155,11 @@ class RsCtrlLogger(Node):
     def _cb_odom(self, msg: Odometry):
         with self._lock:
             p = msg.pose.pose.position
-            self._odom_x = p.x
-            self._odom_y = p.y
-            self._odom_yaw_deg = _quat_to_yaw_deg(msg.pose.pose.orientation)
-            self._odom_vx = msg.twist.twist.linear.x
-            self._odom_wz = msg.twist.twist.angular.z
+            self._odom_x         = p.x
+            self._odom_y         = p.y
+            self._odom_yaw_deg   = _quat_to_yaw_deg(msg.pose.pose.orientation)
+            self._odom_vx        = msg.twist.twist.linear.x
+            self._odom_wz        = msg.twist.twist.angular.z
 
     def _cb_gps(self, msg: NavSatFix):
         with self._lock:
@@ -166,22 +173,22 @@ class RsCtrlLogger(Node):
             self._cmd_vx = msg.twist.linear.x
             self._cmd_wz = msg.twist.angular.z
 
-    def _cb_cmd_plain(self, msg):
+    def _cb_cmd_plain(self, msg: TwistPlain):
         with self._lock:
             self._cmd_vx = msg.linear.x
             self._cmd_wz = msg.angular.z
 
     def _cb_debug(self, msg: String):
-        # format: "idx,n,rev,cte,heading_err,stanley,v_cmd,w_cmd,dist"
+        # format: "idx,n,rev,cte,heading_err_rad,stanley_rad,v_cmd,w_cmd,dist"
         try:
-            parts = [p.strip() for p in msg.data.split(',')]
+            parts = msg.data.split(',')
             with self._lock:
                 self._ctrl_idx     = int(parts[0])
                 self._ctrl_n       = int(parts[1])
                 self._ctrl_rev     = int(parts[2])
                 self._ctrl_cte     = float(parts[3])
                 self._ctrl_h_err   = math.degrees(float(parts[4]))
-                self._ctrl_stanley = math.degrees(float(parts[5]))
+                self._ctrl_stanley  = math.degrees(float(parts[5]))
                 self._ctrl_v_cmd   = float(parts[6])
                 self._ctrl_w_cmd   = float(parts[7])
                 self._ctrl_dist    = float(parts[8])
@@ -194,6 +201,13 @@ class RsCtrlLogger(Node):
         last = msg.status_list[-1]
         with self._lock:
             self._nav_status = _STATUS_STRS.get(last.status, str(last.status))
+
+    def _cb_rs_feedback(self, msg: RunRsTest.Impl.FeedbackMessage):
+        fb = msg.feedback
+        with self._lock:
+            self._job_path_index    = int(fb.current_goal_index)
+            self._job_path_label    = fb.current_label
+            self._job_dist_remaining = float(fb.distance_remaining)
 
     # ── TF lookups ─────────────────────────────────────────────────────────────
 
@@ -222,10 +236,15 @@ class RsCtrlLogger(Node):
 
     def _tick(self):
         self._update_tf()
-        now = self.get_clock().now().nanoseconds / 1e9
+        ros_sec = self.get_clock().now().nanoseconds / 1e9
+        wall_time = datetime.now().strftime('%H:%M:%S.%f')[:-3]
         with self._lock:
             self._writer.writerow([
-                f'{now:.4f}',
+                f'{ros_sec:.4f}',
+                wall_time,
+                self._job_path_index,
+                self._job_path_label,
+                f'{self._job_dist_remaining:.3f}',
                 f'{self._robot_x:.4f}',   f'{self._robot_y:.4f}',
                 f'{self._robot_yaw_deg:.3f}',
                 f'{self._tool_x:.4f}',    f'{self._tool_y:.4f}',
@@ -267,7 +286,6 @@ def main():
     print(f'RS controller logger')
     print(f'CSV : {csv_path}')
     print(f'Link: {latest}')
-    print(f'Ctrl-C to stop.')
     print()
 
     rclpy.init()
