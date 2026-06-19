@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Republish base_footprint TF as PoseStamped on /robot_pose.
+"""Republish TF frames as PoseStamped topics for lag-free Mapviz display.
 
-Mapviz's robot_image plugin calls GetTransform(now()) which fails under
-sim time during clock hiccups. This node uses tf2's lookup_transform with
-Time(0) (latest available) and publishes a PoseStamped topic that the
-mapviz odometry plugin can display stably instead.
+Mapviz's TF plugin calls GetTransform(now()) which fails under sim time
+during clock hiccups. This node uses lookup_transform with Time(0) (latest
+available) and publishes stable PoseStamped topics instead.
+
+Topics published (20 Hz):
+  /robot_pose      — map → base_footprint  (front GPS / planning origin)
+  /tool_link_pose  — map → tool_link       (rear axle / RS planner frame)
 """
 import rclpy
 from rclpy.node import Node
@@ -18,21 +21,27 @@ class TfPosePublisher(Node):
         super().__init__('tf_pose_publisher')
         self._tf_buf = Buffer()
         self._tf_listener = TransformListener(self._tf_buf, self)
-        self._pub = self.create_publisher(PoseStamped, '/robot_pose', 1)
+
+        self._pubs = {
+            'base_footprint': self.create_publisher(PoseStamped, '/robot_pose', 1),
+            'tool_link':      self.create_publisher(PoseStamped, '/tool_link_pose', 1),
+        }
+
         self.create_timer(0.05, self._cb)  # 20 Hz
 
     def _cb(self):
-        try:
-            t = self._tf_buf.lookup_transform('map', 'base_footprint', Time())
-            pose = PoseStamped()
-            pose.header = t.header
-            pose.pose.position.x = t.transform.translation.x
-            pose.pose.position.y = t.transform.translation.y
-            pose.pose.position.z = t.transform.translation.z
-            pose.pose.orientation = t.transform.rotation
-            self._pub.publish(pose)
-        except Exception:
-            pass
+        for frame, pub in self._pubs.items():
+            try:
+                t = self._tf_buf.lookup_transform('map', frame, Time())
+                pose = PoseStamped()
+                pose.header = t.header
+                pose.pose.position.x = t.transform.translation.x
+                pose.pose.position.y = t.transform.translation.y
+                pose.pose.position.z = t.transform.translation.z
+                pose.pose.orientation = t.transform.rotation
+                pub.publish(pose)
+            except Exception:
+                pass
 
 
 def main():
