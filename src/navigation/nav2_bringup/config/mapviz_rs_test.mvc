@@ -121,22 +121,6 @@ displays:
       qos_reliability: 1
       qos_durability: 2
   - type: mapviz_plugins/pose
-    name: base_footprint (blue dot)
-    config:
-      visible: true
-      collapsed: false
-      topic: /robot_pose
-      color: "#3584e4"
-      draw_style: points
-      position_tolerance: 0.0
-      buffer_size: 1
-      static_arrow_sizes: true
-      arrow_size: 20
-      qos_depth: 1
-      qos_history: 1
-      qos_reliability: 1
-      qos_durability: 2
-  - type: mapviz_plugins/pose
     name: tool_link / rear axle (orange arrow)
     config:
       visible: true
