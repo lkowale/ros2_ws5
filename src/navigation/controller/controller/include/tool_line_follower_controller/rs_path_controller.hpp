@@ -12,6 +12,7 @@
 #include "nav_msgs/msg/path.hpp"
 #include "nav2_core/controller.hpp"
 #include "nav2_costmap_2d/costmap_2d_ros.hpp"
+#include "std_msgs/msg/string.hpp"
 #include "tf2_ros/buffer.h"
 
 namespace rs_path_controller
@@ -87,6 +88,8 @@ private:
 
   double speed_limit_{1.0};
   bool speed_limit_is_percentage_{false};
+
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr debug_pub_;
 };
 
 }  // namespace rs_path_controller

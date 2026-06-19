@@ -15,6 +15,7 @@
 #include <string>
 
 #include "nav2_util/node_utils.hpp"
+#include "std_msgs/msg/string.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "tf2/utils.h"
 
@@ -69,6 +70,8 @@ void RsPathController::configure(
   node->get_parameter(name + ".approach_dist",       approach_dist_);
   node->get_parameter(name + ".min_approach_vel",    min_approach_vel_);
   node->get_parameter(name + ".transform_tolerance", transform_tolerance_);
+
+  debug_pub_ = node->create_publisher<std_msgs::msg::String>("/rs_ctrl_debug", 10);
 
   RCLCPP_INFO(logger_,
     "RsPathController: v=%.2f max_w=%.2f k_h=%.2f k_c=%.2f approach=%.1fm",
@@ -246,11 +249,19 @@ geometry_msgs::msg::TwistStamped RsPathController::computeVelocityCommands(
   cmd.twist.linear.x  = v_cmd;
   cmd.twist.angular.z = w_cmd;
 
-  RCLCPP_DEBUG(logger_,
-    "idx=%zu/%zu rev=%d cte=%.3f h_err=%.2f° stanley=%.2f° v=%.2f w=%.2f dist=%.1f",
-    current_idx_, N, (int)rev,
-    cte, heading_err * 180.0 / M_PI, stanley * 180.0 / M_PI,
-    v_cmd, w_cmd, dist_to_end);
+  // Publish debug CSV for rs_controller_logger.py
+  // format: idx,n,rev,cte,heading_err_rad,stanley_rad,v_cmd,w_cmd,dist_to_end
+  {
+    char buf[128];
+    std::snprintf(buf, sizeof(buf),
+      "%zu,%zu,%d,%.5f,%.5f,%.5f,%.4f,%.4f,%.3f",
+      current_idx_, N, (int)rev,
+      cte, heading_err, stanley,
+      v_cmd, w_cmd, dist_to_end);
+    std_msgs::msg::String dbg;
+    dbg.data = buf;
+    debug_pub_->publish(dbg);
+  }
 
   return cmd;
 }
