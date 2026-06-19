@@ -188,7 +188,10 @@ nav_msgs::msg::Path ReedsSheppPlanner::createPlan(
       geometry_msgs::msg::PoseStamped p;
       p.header = path.header;
       p.pose.position.x = cx; p.pose.position.y = cy2; p.pose.position.z = 0.0;
-      p.pose.orientation = yawToQuat(rev ? wrap(cyaw + M_PI) : cyaw);
+      // Always store vehicle heading (cyaw), not travel direction.
+      // isReverse() in the controller detects reverse by comparing wp_yaw
+      // against the geometric tangent (travel direction = cyaw+π on reverse).
+      p.pose.orientation = yawToQuat(cyaw);
       path.poses.push_back(p);
     }
     // Final sub-step: advance exactly to segment end
@@ -199,7 +202,7 @@ nav_msgs::msg::Path ReedsSheppPlanner::createPlan(
       geometry_msgs::msg::PoseStamped p;
       p.header = path.header;
       p.pose.position.x = cx; p.pose.position.y = cy2; p.pose.position.z = 0.0;
-      p.pose.orientation = yawToQuat(rev ? wrap(cyaw + M_PI) : cyaw);
+      p.pose.orientation = yawToQuat(cyaw);
       path.poses.push_back(p);
     }
 
@@ -233,9 +236,7 @@ nav_msgs::msg::Path ReedsSheppPlanner::createPlan(
         break;
       }
     }
-    gp.pose.orientation = last_rev
-      ? yawToQuat(wrap(gyaw + M_PI))
-      : goal.pose.orientation;
+    gp.pose.orientation = goal.pose.orientation;  // always vehicle heading at goal
     path.poses.push_back(gp);
     if (last_rev) rev_path.poses.push_back(gp);
     else          fwd_path.poses.push_back(gp);

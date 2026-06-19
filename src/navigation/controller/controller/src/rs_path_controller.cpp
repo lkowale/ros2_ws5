@@ -92,7 +92,7 @@ void RsPathController::setPlan(const nav_msgs::msg::Path & path)
 {
   global_plan_ = path;
   current_idx_ = 0;
-  aligning_ = true;  // always start with alignment check on a new path
+  aligning_ = false;  // let first cycle evaluate — don't pre-set to avoid deadband trap
 }
 
 void RsPathController::setSpeedLimit(const double & speed_limit, const bool & percentage)
