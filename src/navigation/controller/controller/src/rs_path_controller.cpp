@@ -62,26 +62,23 @@ void RsPathController::configure(
   d("k_cross_gain", 1.0);
   d("approach_dist", 3.0);
   d("min_approach_vel", 0.3);
-  d("align_heading_thresh", 0.52);
-  d("align_exit_thresh",    0.17);
   d("transform_tolerance", 0.1);
 
-  node->get_parameter(name + ".desired_linear_vel",    desired_linear_vel_);
-  node->get_parameter(name + ".max_angular_vel",       max_angular_vel_);
-  node->get_parameter(name + ".k_heading",             k_heading_);
-  node->get_parameter(name + ".k_cross",               k_cross_);
-  node->get_parameter(name + ".k_cross_gain",          k_cross_gain_);
-  node->get_parameter(name + ".approach_dist",         approach_dist_);
-  node->get_parameter(name + ".min_approach_vel",      min_approach_vel_);
-  node->get_parameter(name + ".align_heading_thresh",  align_heading_thresh_);
-  node->get_parameter(name + ".align_exit_thresh",     align_exit_thresh_);
-  node->get_parameter(name + ".transform_tolerance",   transform_tolerance_);
+  node->get_parameter(name + ".desired_linear_vel",  desired_linear_vel_);
+  node->get_parameter(name + ".max_angular_vel",     max_angular_vel_);
+  node->get_parameter(name + ".k_heading",           k_heading_);
+  node->get_parameter(name + ".k_cross",             k_cross_);
+  node->get_parameter(name + ".k_cross_gain",        k_cross_gain_);
+  node->get_parameter(name + ".approach_dist",       approach_dist_);
+  node->get_parameter(name + ".min_approach_vel",    min_approach_vel_);
+  node->get_parameter(name + ".transform_tolerance", transform_tolerance_);
 
   debug_pub_ = node->create_publisher<std_msgs::msg::String>("/rs_ctrl_debug", 10);
 
   RCLCPP_INFO(logger_,
-    "RsPathController: v=%.2f max_w=%.2f k_h=%.2f k_c=%.2f k_cg=%.2f approach=%.1fm",
-    desired_linear_vel_, max_angular_vel_, k_heading_, k_cross_, k_cross_gain_, approach_dist_);
+    "RsPathController: v=%.2f max_w=%.2f k_h=%.2f k_c=%.2f k_cg=%.2f approach=%.1fm min_v=%.2f",
+    desired_linear_vel_, max_angular_vel_, k_heading_, k_cross_, k_cross_gain_,
+    approach_dist_, min_approach_vel_);
 }
 
 void RsPathController::cleanup() {}
@@ -92,7 +89,6 @@ void RsPathController::setPlan(const nav_msgs::msg::Path & path)
 {
   global_plan_ = path;
   current_idx_ = 0;
-  aligning_ = false;
   prev_rev_ = false;
 }
 
@@ -212,43 +208,9 @@ geometry_msgs::msg::TwistStamped RsPathController::computeVelocityCommands(
   const auto & last = global_plan_.poses.back().pose.position;
   const double dist_to_end = std::hypot(rx - last.x, ry - last.y);
 
-  // ── Heading alignment pre-phase ───────────────────────────────────────────
-  // Enter align when: (a) h_err exceeds threshold, OR (b) segment direction
-  // flips (rev↔fwd) — the new tangent may be 180° away, needing re-alignment.
-  // Exit when h_err drops below the exit threshold (hysteresis).
-  const double abs_herr = std::abs(heading_err);
-  if (rev != prev_rev_) {
-    // Segment direction changed — force re-evaluation
-    aligning_ = (abs_herr > align_exit_thresh_);
-  } else if (abs_herr > align_heading_thresh_) {
-    aligning_ = true;
-  } else if (abs_herr < align_exit_thresh_) {
-    aligning_ = false;
-  }
+  // Ackermann robots cannot rotate in place — align phase removed.
+  // Stanley heading + CTE terms handle all correction while driving.
   prev_rev_ = rev;
-
-  const double stanley_w = std::copysign(max_angular_vel_, heading_err);
-
-  if (aligning_) {
-    // Spin in place: no forward motion, full angular toward path tangent.
-    cmd.twist.linear.x  = 0.0;
-    cmd.twist.angular.z = stanley_w;
-
-    RCLCPP_DEBUG(logger_, "ALIGNING  h_err=%.1f°  w=%.2f",
-      heading_err * 180.0 / M_PI, stanley_w);
-
-    // Publish debug and return early — no Stanley computation needed.
-    char buf[128];
-    std::snprintf(buf, sizeof(buf),
-      "%zu,%zu,%d,%.5f,%.5f,%.5f,%.4f,%.4f,%.3f",
-      current_idx_, N, (int)rev,
-      cte, heading_err, heading_err,
-      0.0, stanley_w, dist_to_end);
-    std_msgs::msg::String dbg;
-    dbg.data = buf;
-    debug_pub_->publish(dbg);
-    return cmd;
-  }
 
   // ── Speed ─────────────────────────────────────────────────────────────────
   double v_cmd = desired_linear_vel_;

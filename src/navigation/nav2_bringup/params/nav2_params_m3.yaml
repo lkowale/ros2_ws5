@@ -95,11 +95,9 @@ controller_server:
       max_angular_vel: 1.0
       k_heading: 1.5      # gain on heading_err term only
       k_cross: 1.0        # Stanley CTE normalisation (1/s)
-      k_cross_gain: 1.0   # gain on CTE correction term (independent of k_heading)
+      k_cross_gain: 3.0   # gain on CTE correction term (independent of k_heading)
       approach_dist: 3.0
       min_approach_vel: 0.3
-      align_heading_thresh: 0.52  # rad (30°): enter align-phase above this
-      align_exit_thresh: 0.17     # rad (10°): exit align-phase below this
       transform_tolerance: 0.1
 
 planner_server:

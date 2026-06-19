@@ -85,12 +85,9 @@ private:
   double k_cross_gain_{1.0};
   double approach_dist_{3.0};
   double min_approach_vel_{0.3};
-  double align_heading_thresh_{0.52};  // rad (~30°): enter align phase above this
-  double align_exit_thresh_{0.17};     // rad (~10°): exit align phase below this
   double transform_tolerance_{0.1};
 
-  bool aligning_{false};   // true while in heading-alignment pre-phase
-  bool prev_rev_{false};   // reverse state of last cycle — triggers re-align on flip
+  bool prev_rev_{false};
 
   double speed_limit_{1.0};
   bool speed_limit_is_percentage_{false};
