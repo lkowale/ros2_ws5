@@ -207,8 +207,6 @@ geometry_msgs::msg::TwistStamped RsPathController::computeVelocityCommands(
 
   // ── Cross-track error ─────────────────────────────────────────────────────
   double cte = crossTrackError(rx, ry, current_idx_);
-  // For reverse: sign convention flips (we're tracking the same path backward)
-  if (rev) cte = -cte;
 
   // ── Distance to end of path ───────────────────────────────────────────────
   const auto & last = global_plan_.poses.back().pose.position;
@@ -268,10 +266,11 @@ geometry_msgs::msg::TwistStamped RsPathController::computeVelocityCommands(
   if (rev) v_cmd = -v_cmd;
 
   // ── Stanley steering ──────────────────────────────────────────────────────
-  // Two independent terms with separate gains:
-  //   w = k_heading * heading_err + k_cross_gain * atan2(k_cross * cte, v)
+  // cte > 0 = robot left of path → steer right (negative w) to correct.
+  // cte < 0 = robot right of path → steer left (positive w) to correct.
+  // So CTE correction = -atan2(k_cross * cte, v).
   const double v_denom = std::max(std::abs(v_cmd), 0.3);
-  const double cte_term = std::atan2(k_cross_ * cte, v_denom);
+  const double cte_term = -std::atan2(k_cross_ * cte, v_denom);
   const double stanley  = heading_err + cte_term;
   double w_cmd = k_heading_ * heading_err + k_cross_gain_ * cte_term;
   w_cmd = std::clamp(w_cmd, -max_angular_vel_, max_angular_vel_);
