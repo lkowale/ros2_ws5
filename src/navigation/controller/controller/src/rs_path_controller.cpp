@@ -92,7 +92,8 @@ void RsPathController::setPlan(const nav_msgs::msg::Path & path)
 {
   global_plan_ = path;
   current_idx_ = 0;
-  aligning_ = false;  // let first cycle evaluate — don't pre-set to avoid deadband trap
+  aligning_ = false;
+  prev_rev_ = false;
 }
 
 void RsPathController::setSpeedLimit(const double & speed_limit, const bool & percentage)
@@ -107,19 +108,19 @@ size_t RsPathController::closestIndex(double px, double py) const
 {
   if (global_plan_.poses.empty()) return 0;
 
-  // Search from current_idx_ forward — also allow stepping back a few points
-  // in case of localization noise, but never regress more than 5 waypoints.
-  const size_t search_start = current_idx_ > 5 ? current_idx_ - 5 : 0;
+  // Search strictly forward from current_idx_ — never regress.
+  // This prevents oscillation at segment boundaries where the robot is
+  // equidistant from the last reverse waypoint and first forward waypoint.
   double best_d2 = std::numeric_limits<double>::max();
   size_t best_i = current_idx_;
 
-  for (size_t i = search_start; i < global_plan_.poses.size(); ++i) {
+  for (size_t i = current_idx_; i < global_plan_.poses.size(); ++i) {
     const auto & p = global_plan_.poses[i].pose.position;
     double dx = px - p.x, dy = py - p.y;
     double d2 = dx * dx + dy * dy;
     if (d2 < best_d2) { best_d2 = d2; best_i = i; }
-    // Stop searching once distance starts growing past a threshold (past closest)
-    if (d2 > best_d2 + 25.0) break;
+    // Stop once distance grows beyond a lookahead window — we've passed the closest
+    else if (d2 > best_d2 + 1.0) break;
   }
   return best_i;
 }
@@ -214,14 +215,19 @@ geometry_msgs::msg::TwistStamped RsPathController::computeVelocityCommands(
   const double dist_to_end = std::hypot(rx - last.x, ry - last.y);
 
   // ── Heading alignment pre-phase ───────────────────────────────────────────
-  // If heading error is large, stop and turn in place until aligned.
-  // Uses hysteresis: enter above align_heading_thresh_, exit below align_exit_thresh_.
+  // Enter align when: (a) h_err exceeds threshold, OR (b) segment direction
+  // flips (rev↔fwd) — the new tangent may be 180° away, needing re-alignment.
+  // Exit when h_err drops below the exit threshold (hysteresis).
   const double abs_herr = std::abs(heading_err);
-  if (abs_herr > align_heading_thresh_) {
+  if (rev != prev_rev_) {
+    // Segment direction changed — force re-evaluation
+    aligning_ = (abs_herr > align_exit_thresh_);
+  } else if (abs_herr > align_heading_thresh_) {
     aligning_ = true;
   } else if (abs_herr < align_exit_thresh_) {
     aligning_ = false;
   }
+  prev_rev_ = rev;
 
   const double stanley_w = std::copysign(max_angular_vel_, heading_err);
 
