@@ -1,32 +1,19 @@
 // Reeds-Shepp planner plugin for Nav2.
 //
-// Implements all 48 Reeds-Shepp words from the original 1990 paper
-// (Reeds & Shepp, "Optimal paths for a car that goes both forwards and backwards").
-// The minimum-length path is found by checking all word families and picking the
-// shortest feasible path that fits within the robot's turning radius.
-//
-// Segment encoding
-// ----------------
-//   Each Reeds-Shepp segment is (type, length, direction):
-//     type:      'S' = straight, 'L' = left arc, 'R' = right arc
-//     length:    path length in normalised units (multiply by rho for metres)
-//     direction: +1 = forward, -1 = reverse
-//
-// Path output
-// -----------
-//   Each segment is sampled at `step_` metre intervals into PoseStamped points.
-//   On reverse segments the yaw is rotated by π so that RPP drives backward.
+// Uses OMPL's ReedsSheppStateSpace to find the shortest valid RS path (all 48
+// word families checked, correct turning-radius constraint enforced).
+// The path is sampled at `step_` metre intervals into PoseStamped waypoints.
+// On reverse segments the yaw is rotated by π so that RPP drives backward.
 
 #include "planner/reeds_shepp_planner.hpp"
 
-#include <algorithm>
 #include <cmath>
-#include <limits>
-#include <optional>
 #include <string>
 #include <vector>
 
 #include "nav2_util/node_utils.hpp"
+#include "ompl/base/spaces/ReedsSheppStateSpace.h"
+#include "ompl/base/spaces/SE2StateSpace.h"
 
 namespace planner
 {
@@ -55,400 +42,37 @@ static double quatToYaw(const geometry_msgs::msg::Quaternion & q)
                     1.0 - 2.0 * (q.y * q.y + q.z * q.z));
 }
 
-// ─── Reeds-Shepp internals ────────────────────────────────────────────────────
-
-struct Segment
+// ─── Pose propagation ────────────────────────────────────────────────────────
+// Advance pose by one arc/straight step of ds metres (positive = forward).
+// Uses the same geometry as OMPL's interpolate(): L-turn center left of heading,
+// R-turn center right of heading.
+static void stepPose(
+  ompl::base::ReedsSheppStateSpace::ReedsSheppPathSegmentType type,
+  double ds,    // metres, signed (positive forward, negative backward)
+  double rho,
+  double & cx, double & cy, double & cyaw)
 {
-  char  type;    // 'S', 'L', 'R'
-  double len;   // normalised length (can be negative for reverse)
-  // direction is encoded in the sign of len:
-  //   len > 0  → forward   (drive in the arc / straight direction)
-  //   len < 0  → reverse   (drive opposite direction)
-};
-
-struct RSPath
-{
-  std::vector<Segment> segs;
-  double total_length() const
-  {
-    double s = 0.0;
-    for (auto & sg : segs) s += std::abs(sg.len);
-    return s;
-  }
-};
-
-// Normalise goal into Reeds-Shepp frame (start = origin, heading = 0).
-// Returns (x, y, phi) all normalised by rho.
-struct Goal2D { double x, y, phi; };
-
-static Goal2D normalise(
-  double sx, double sy, double syaw,
-  double gx, double gy, double gyaw,
-  double rho)
-{
-  const double dx  = gx - sx;
-  const double dy  = gy - sy;
-  const double c   = std::cos(syaw);
-  const double s   = std::sin(syaw);
-  const double lx  = ( c * dx + s * dy) / rho;
-  const double ly  = (-s * dx + c * dy) / rho;
-  const double phi = wrap(gyaw - syaw);
-  return {lx, ly, phi};
-}
-
-// ─── RS word families ────────────────────────────────────────────────────────
-// All 12 base families from Reeds & Shepp (1990), Table 1.
-// Naming: segment type L/R/S, sign + (forward) / - (reverse).
-// Each function operates in the normalised frame (start=origin, rho=1).
-// The four symmetries (timeflip, reflect, both, none) are applied by collect().
-
-using Opt = std::optional<RSPath>;
-
-// ── Family 1: CSC  L+S+L+  ──────────────────────────────────────────────────
-static Opt LpSpLp(double x, double y, double phi)
-{
-  const double xi  = x - std::sin(phi);
-  const double eta = y - 1.0 + std::cos(phi);
-  const double rho = std::hypot(xi, eta);
-  if (rho < 1e-9) return {};
-  const double t = std::atan2(eta, xi);
-  const double u = rho;
-  const double v = wrap(phi - t);
-  if (t < -1e-6 || v < -1e-6) return {};
-  return RSPath{{{'L', t}, {'S', u}, {'L', v}}};
-}
-
-// ── Family 2: CSC  L+S+R+  ──────────────────────────────────────────────────
-static Opt LpSpRp(double x, double y, double phi)
-{
-  const double xi  = x + std::sin(phi);
-  const double eta = y - 1.0 - std::cos(phi);
-  const double r2  = xi * xi + eta * eta;
-  if (r2 < 4.0) return {};
-  const double u = std::sqrt(r2 - 4.0);
-  const double t = std::atan2(eta, xi) - std::atan2(2.0, u);
-  const double v = wrap(t - phi);
-  if (t < -1e-6 || v < -1e-6) return {};
-  return RSPath{{{'L', t}, {'S', u}, {'R', v}}};
-}
-
-// ── Family 3: CCC  L+R-L+  ──────────────────────────────────────────────────
-static Opt LpRmLp(double x, double y, double phi)
-{
-  const double xi  = x - std::sin(phi);
-  const double eta = y - 1.0 + std::cos(phi);
-  const double rho = std::hypot(xi, eta);
-  if (rho > 4.0) return {};
-  const double u = std::acos(1.0 - rho * rho / 8.0);
-  const double A = std::atan2(eta, xi);
-  const double t = wrap(A + 0.5 * u + M_PI);
-  const double v = wrap(phi - t + u);
-  if (t < -1e-6 || v < -1e-6) return {};
-  return RSPath{{{'L', t}, {'R', -u}, {'L', v}}};
-}
-
-// ── Family 4: CCC  L+R-L-  ──────────────────────────────────────────────────
-static Opt LpRmLm(double x, double y, double phi)
-{
-  const double xi  = x - std::sin(phi);
-  const double eta = y - 1.0 + std::cos(phi);
-  const double rho = std::hypot(xi, eta);
-  if (rho > 4.0) return {};
-  const double u = std::acos(1.0 - rho * rho / 8.0);
-  const double A = std::atan2(eta, xi);
-  const double t = wrap(A + 0.5 * u + M_PI);
-  const double v = wrap(t + u - phi);
-  if (t < -1e-6 || v < -1e-6) return {};
-  return RSPath{{{'L', t}, {'R', -u}, {'L', -v}}};
-}
-
-// ── Family 5: CCC  L+R+L-  ──────────────────────────────────────────────────
-static Opt LpRpLm(double x, double y, double phi)
-{
-  const double xi  = x + std::sin(phi);
-  const double eta = y - 1.0 - std::cos(phi);
-  const double rho = std::hypot(xi, eta);
-  if (rho > 4.0) return {};
-  const double u = std::acos(1.0 - rho * rho / 8.0);
-  const double A = std::atan2(eta, xi);
-  const double t = wrap(A - 0.5 * u + M_PI);
-  const double v = wrap(t - u - phi);
-  if (t < -1e-6 || v < -1e-6) return {};
-  return RSPath{{{'L', t}, {'R', u}, {'L', -v}}};
-}
-
-// ── Family 6: CCSC  L+R-S-L-  ───────────────────────────────────────────────
-static Opt LpRmSmLm(double x, double y, double phi)
-{
-  const double xi  = x + std::sin(phi);
-  const double eta = y - 1.0 - std::cos(phi);
-  const double rho = std::hypot(xi, eta);
-  if (rho < 2.0) return {};
-  const double u = std::sqrt(rho * rho - 4.0) - 2.0;
-  if (u < -1e-6) return {};
-  const double A = std::atan2(eta, xi);
-  const double t = wrap(A + std::atan2(2.0, rho - 2.0) + M_PI / 2.0);
-  const double v = wrap(t - phi + M_PI / 2.0);
-  if (t < -1e-6 || v < -1e-6) return {};
-  return RSPath{{{'L', t}, {'R', -M_PI / 2.0}, {'S', -u}, {'L', -v}}};
-}
-
-// ── Family 7: CCSC  L+R-S-R-  ───────────────────────────────────────────────
-static Opt LpRmSmRm(double x, double y, double phi)
-{
-  const double xi  = x + std::sin(phi);
-  const double eta = y - 1.0 - std::cos(phi);
-  const double rho = std::hypot(xi, eta);
-  if (rho < 2.0) return {};
-  const double u = std::sqrt(rho * rho - 4.0) - 2.0;
-  if (u < -1e-6) return {};
-  const double A = std::atan2(eta, xi);
-  const double t = wrap(A + std::atan2(2.0, rho - 2.0) + M_PI / 2.0);
-  const double v = wrap(t - phi);
-  if (t < -1e-6 || v < -1e-6) return {};
-  return RSPath{{{'L', t}, {'R', -M_PI / 2.0}, {'S', -u}, {'R', -v}}};
-}
-
-// ── Family 8: CCSCC  L+R-S-L-R+  ────────────────────────────────────────────
-static Opt LpRmSmLmRp(double x, double y, double phi)
-{
-  const double xi  = x + std::sin(phi);
-  const double eta = y - 1.0 - std::cos(phi);
-  const double rho = std::hypot(xi, eta);
-  if (rho < 4.0) return {};
-  const double u = std::sqrt(rho * rho - 4.0) - 4.0;
-  if (u < -1e-6) return {};
-  const double A = std::atan2(eta, xi);
-  const double t = wrap(A + std::atan2(2.0, rho - 4.0) + M_PI / 2.0);
-  const double v = wrap(t - phi);
-  if (t < -1e-6 || v < -1e-6) return {};
-  return RSPath{{{'L', t}, {'R', -M_PI / 2.0}, {'S', -u}, {'L', -M_PI / 2.0}, {'R', v}}};
-}
-
-// ── Family 9: CCCC  L+R+L-R-  ────────────────────────────────────────────────
-static Opt LpRpLmRm(double x, double y, double phi)
-{
-  const double xi  = x - std::sin(phi);
-  const double eta = y - 1.0 + std::cos(phi);
-  const double r2  = xi * xi + eta * eta;
-  const double p = (2.0 + r2) / 4.0;
-  if (p < 0.0 || p > 1.0) return {};
-  const double u = std::acos(std::sqrt(p));
-  const double A = std::atan2(eta, xi);
-  const double t = wrap(A - std::atan2(-std::sin(2.0 * u), 1.0 - 2.0 * std::cos(2.0 * u)) + M_PI);
-  const double v = wrap(phi - t + 2.0 * u);
-  if (t < -1e-6 || v < -1e-6) return {};
-  return RSPath{{{'L', t}, {'R', u}, {'L', -u}, {'R', -v}}};
-}
-
-// ── Family 10: CCCC  L+R-L-R+  ────────────────────────────────────────────────
-static Opt LpRmLmRp(double x, double y, double phi)
-{
-  const double xi  = x + std::sin(phi);
-  const double eta = y - 1.0 - std::cos(phi);
-  const double r2  = xi * xi + eta * eta;
-  const double p   = (2.0 + r2) / 4.0;
-  if (p < 0.0 || p > 1.0) return {};
-  const double u = std::acos(std::sqrt(p));
-  const double A = std::atan2(eta, xi);
-  const double t = wrap(A + std::atan2(-std::sin(2.0 * u), -1.0 + 2.0 * std::cos(2.0 * u)));
-  const double v = wrap(t - phi);
-  if (t < -1e-6 || v < -1e-6) return {};
-  return RSPath{{{'L', t}, {'R', -u}, {'L', -u}, {'R', v}}};
-}
-
-// ── Family 11: CSCC  L+S+R+L-  ───────────────────────────────────────────────
-static Opt LpSpRpLm(double x, double y, double phi)
-{
-  const double xi  = x - std::sin(phi);
-  const double eta = y - 1.0 + std::cos(phi);
-  const double rho = std::hypot(xi, eta);
-  if (rho < 2.0) return {};
-  const double u   = std::sqrt(rho * rho - 4.0) - 2.0;
-  if (u < -1e-6) return {};
-  const double A   = std::atan2(eta, xi);
-  const double t   = wrap(A - std::atan2(2.0, rho - 2.0));
-  const double v   = wrap(t - phi - M_PI / 2.0);
-  if (t < -1e-6 || v < -1e-6) return {};
-  return RSPath{{{'L', t}, {'S', u}, {'R', M_PI / 2.0}, {'L', -v}}};
-}
-
-// ── Family 12: CSCC  L+S+L+R-  ───────────────────────────────────────────────
-static Opt LpSpLpRm(double x, double y, double phi)
-{
-  const double xi  = x + std::sin(phi);
-  const double eta = y + 1.0 - std::cos(phi);
-  const double rho = std::hypot(xi, eta);
-  if (rho < 2.0) return {};
-  const double u   = std::sqrt(rho * rho - 4.0) - 2.0;
-  if (u < -1e-6) return {};
-  const double A   = std::atan2(eta, xi);
-  const double t   = wrap(A + std::atan2(2.0, rho - 2.0));
-  const double v   = wrap(phi - t + M_PI / 2.0);
-  if (t < -1e-6 || v < -1e-6) return {};
-  return RSPath{{{'L', t}, {'S', u}, {'L', M_PI / 2.0}, {'R', -v}}};
-}
-
-// ─── Symmetry transforms ─────────────────────────────────────────────────────
-// Reeds & Shepp exploit four symmetries to reduce to a minimal set of formulas:
-//   time-flip:   (x, y, phi) → (-x, y, -phi)   (reverse all directions)
-//   reflection:  (x, y, phi) → (x, -y, -phi)    (left ↔ right)
-
-static RSPath timeflip(RSPath p)
-{
-  for (auto & s : p.segs) s.len = -s.len;
-  return p;
-}
-
-static RSPath reflect(RSPath p)
-{
-  for (auto & s : p.segs) {
-    if (s.type == 'L') s.type = 'R';
-    else if (s.type == 'R') s.type = 'L';
-  }
-  return p;
-}
-
-// Collect all symmetry variants of a path formula applied to (x,y,phi).
-static void collect(
-  std::function<Opt(double, double, double)> fn,
-  double x, double y, double phi,
-  std::vector<RSPath> & candidates)
-{
-  double xf = -x, yf =  y, pf = -phi;  // time-flip coords
-  double xr =  x, yr = -y, pr = -phi;  // reflect coords
-  double xfr = -x, yfr = -y, pfr = phi; // both
-
-  if (auto p = fn( x,  y,  phi)) candidates.push_back(*p);
-  if (auto p = fn(xf, yf, pf))   candidates.push_back(timeflip(*p));
-  if (auto p = fn(xr, yr, pr))   candidates.push_back(reflect(*p));
-  if (auto p = fn(xfr, yfr, pfr)) candidates.push_back(reflect(timeflip(*p)));
-}
-
-// Cost of a path: total length plus a penalty per reverse segment so that
-// forward-only paths always beat equal-length all-reverse alternatives.
-// The penalty (5% of length per reverse segment) only affects tie-breaking;
-// it does not prevent genuinely shorter reverse paths from winning.
-static double pathCost(const RSPath & p)
-{
-  double total = 0.0;
-  double rev_len = 0.0;
-  for (auto & s : p.segs) {
-    total += std::abs(s.len);
-    if (s.len < 0.0) rev_len += std::abs(s.len);
-  }
-  return total + 0.05 * rev_len;
-}
-
-static RSPath bestPath(double x, double y, double phi)
-{
-  std::vector<RSPath> cands;
-
-  // CSC (families 1-2)
-  collect(LpSpLp,      x, y, phi, cands);
-  collect(LpSpRp,      x, y, phi, cands);
-
-  // CCC (families 3-5)
-  collect(LpRmLp,      x, y, phi, cands);
-  collect(LpRmLm,      x, y, phi, cands);
-  collect(LpRpLm,      x, y, phi, cands);
-
-  // CCSC (families 6-7)
-  collect(LpRmSmLm,    x, y, phi, cands);
-  collect(LpRmSmRm,    x, y, phi, cands);
-
-  // CCSCC (family 8)
-  collect(LpRmSmLmRp,  x, y, phi, cands);
-
-  // CCCC (families 9-10)
-  collect(LpRpLmRm,    x, y, phi, cands);
-  collect(LpRmLmRp,    x, y, phi, cands);
-
-  // CSCC (families 11-12)
-  collect(LpSpRpLm,    x, y, phi, cands);
-  collect(LpSpLpRm,    x, y, phi, cands);
-
-  // Pick lowest-cost path (length + small reverse penalty for tie-breaking).
-  RSPath best;
-  double bestCost = std::numeric_limits<double>::infinity();
-  for (auto & c : cands) {
-    double cost = pathCost(c);
-    if (cost < bestCost) { bestCost = cost; best = c; }
-  }
-  return best;
-}
-
-// ─── Path sampling ────────────────────────────────────────────────────────────
-
-// Advance pose by one arc/straight step of ds metres (signed by rev).
-static void stepPose(char type, double ds, bool rev, double rho,
-                     double & cx, double & cy, double & cyaw)
-{
-  const double d = rev ? -ds : ds;
+  using T = ompl::base::ReedsSheppStateSpace::ReedsSheppPathSegmentType;
   switch (type) {
-    case 'S':
-      cx   += d * std::cos(cyaw);
-      cy   += d * std::sin(cyaw);
+    case T::RS_STRAIGHT:
+      cx   += ds * std::cos(cyaw);
+      cy   += ds * std::sin(cyaw);
       break;
-    case 'L': {
-      const double dphi = d / rho;
+    case T::RS_LEFT: {
+      const double dphi = ds / rho;
       cx   += rho * (std::sin(cyaw + dphi) - std::sin(cyaw));
       cy   += rho * (-std::cos(cyaw + dphi) + std::cos(cyaw));
       cyaw  = wrap(cyaw + dphi);
       break;
     }
-    case 'R': {
-      const double dphi = d / rho;
+    case T::RS_RIGHT: {
+      const double dphi = ds / rho;
       cx   += rho * (-std::sin(cyaw - dphi) + std::sin(cyaw));
       cy   += rho * ( std::cos(cyaw - dphi) - std::cos(cyaw));
       cyaw  = wrap(cyaw - dphi);
       break;
     }
-  }
-}
-
-// Propagate a pose along one segment, emitting waypoints at `step` metre intervals.
-// cx/cy/cyaw are updated to the exact geometric end of the segment.
-static void sampleSegment(
-  const Segment & seg,
-  double rho,
-  double step,
-  double & cx, double & cy, double & cyaw,
-  const std_msgs::msg::Header & header,
-  std::vector<geometry_msgs::msg::PoseStamped> & out)
-{
-  const double len_m = seg.len * rho;         // signed metres
-  const bool   rev   = (len_m < 0.0);
-  const double dist  = std::abs(len_m);
-
-  // Emit intermediate waypoints at `step` intervals, then one final point at
-  // the exact geometric segment end. This avoids any integer-truncation gap.
-  double travelled = 0.0;
-  while (travelled + step < dist - 1e-9) {
-    stepPose(seg.type, step, rev, rho, cx, cy, cyaw);
-    travelled += step;
-
-    geometry_msgs::msg::PoseStamped p;
-    p.header = header;
-    p.pose.position.x = cx;
-    p.pose.position.y = cy;
-    p.pose.position.z = 0.0;
-    p.pose.orientation = yawToQuat(rev ? wrap(cyaw + M_PI) : cyaw);
-    out.push_back(p);
-  }
-
-  // Final step: advance exactly to the end of the segment.
-  const double remaining = dist - travelled;
-  if (remaining > 1e-9) {
-    stepPose(seg.type, remaining, rev, rho, cx, cy, cyaw);
-
-    geometry_msgs::msg::PoseStamped p;
-    p.header = header;
-    p.pose.position.x = cx;
-    p.pose.position.y = cy;
-    p.pose.position.z = 0.0;
-    p.pose.orientation = yawToQuat(rev ? wrap(cyaw + M_PI) : cyaw);
-    out.push_back(p);
+    default: break;
   }
 }
 
@@ -479,7 +103,7 @@ void ReedsSheppPlanner::configure(
   rev_pub_ = node_->create_publisher<nav_msgs::msg::Path>("/plan_reverse", qos);
 
   RCLCPP_INFO(node_->get_logger(),
-    "ReedsSheppPlanner configured: rho=%.2f m  step=%.3f m", rho_, step_);
+    "ReedsSheppPlanner configured (OMPL backend): rho=%.2f m  step=%.3f m", rho_, step_);
 }
 
 void ReedsSheppPlanner::cleanup() {}
@@ -510,121 +134,115 @@ nav_msgs::msg::Path ReedsSheppPlanner::createPlan(
   const double gy   = goal.pose.position.y;
   const double gyaw = quatToYaw(goal.pose.orientation);
 
-  // Trivially at goal?
   if (std::hypot(gx - sx, gy - sy) < 1e-4 && std::abs(wrap(gyaw - syaw)) < 1e-3) {
     return path;
   }
 
-  // Transform goal into robot's start frame, normalised by rho
-  const Goal2D g = normalise(sx, sy, syaw, gx, gy, gyaw, rho_);
+  // ── Use OMPL to find the shortest Reeds-Shepp path ────────────────────────
+  ompl::base::ReedsSheppStateSpace rs(rho_);
+  auto * s_from = rs.allocState()->as<ompl::base::SE2StateSpace::StateType>();
+  auto * s_to   = rs.allocState()->as<ompl::base::SE2StateSpace::StateType>();
+  s_from->setX(sx); s_from->setY(sy); s_from->setYaw(syaw);
+  s_to->setX(gx);   s_to->setY(gy);   s_to->setYaw(gyaw);
 
-  // Find the best Reeds-Shepp path
-  const RSPath rs = bestPath(g.x, g.y, g.phi);
+  const auto rs_path = rs.reedsShepp(s_from, s_to);
+  rs.freeState(s_from);
+  rs.freeState(s_to);
 
-  if (rs.segs.empty()) {
-    // RS word families returned no valid path (can happen for near-collinear
-    // start/goal where all t/v sign checks fail). Fall back to a straight-line
-    // path so the controller can at least make progress.
-    RCLCPP_WARN(node_->get_logger(),
-      "ReedsSheppPlanner: no RS path found (%.2f,%.2f → %.2f,%.2f), using straight line",
-      sx, sy, gx, gy);
-    const double dist = std::hypot(gx - sx, gy - sy);
-    const int n = std::max(2, static_cast<int>(dist / step_));
-    for (int i = 0; i <= n; ++i) {
-      const double t = static_cast<double>(i) / n;
-      geometry_msgs::msg::PoseStamped p;
-      p.header = path.header;
-      p.pose.position.x = sx + t * (gx - sx);
-      p.pose.position.y = sy + t * (gy - sy);
-      p.pose.position.z = 0.0;
-      p.pose.orientation = (i == n) ? goal.pose.orientation : yawToQuat(syaw);
-      path.poses.push_back(p);
-    }
-    return path;
-  }
+  using T = ompl::base::ReedsSheppStateSpace::ReedsSheppPathSegmentType;
 
-  // Build segment description string and split fwd/rev paths for visualisation.
-  std::string seg_str;
+  // ── Sample the path ────────────────────────────────────────────────────────
   nav_msgs::msg::Path fwd_path, rev_path;
   fwd_path.header = rev_path.header = path.header;
 
-  double cx = sx, cy = sy, cyaw = syaw;
+  double cx = sx, cy2 = sy, cyaw = syaw;
 
-  RCLCPP_INFO(node_->get_logger(),
-    "RS sample: start=(%.4f,%.4f,%.4f°) goal=(%.4f,%.4f,%.4f°) rho=%.3f step=%.4f",
-    sx, sy, syaw * 180.0 / M_PI,
-    gx, gy, gyaw * 180.0 / M_PI, rho_, step_);
+  std::string seg_str;
+  for (int i = 0; i < 5; ++i) {
+    const T   type = rs_path.type_[i];
+    const double seg_len = rs_path.length_[i];  // signed, in normalised units (×rho = metres)
 
-  for (const auto & seg : rs.segs) {
+    if (type == T::RS_NOP || std::abs(seg_len) < 1e-9) continue;
     if (cancel_checker && cancel_checker()) return path;
-    if (std::abs(seg.len) < 1e-9) continue;
 
-    const bool rev = (seg.len < 0.0);
-    const double seg_m = std::abs(seg.len) * rho_;
+    const double seg_m = seg_len * rho_;  // signed metres
+    const bool   rev   = (seg_m < 0.0);
+    const double dist  = std::abs(seg_m);
 
+    // Build segment description for logging
     seg_str += (rev ? '-' : '+');
-    seg_str += seg.type;
-    seg_str += '(';
-    seg_str += std::to_string(static_cast<int>(std::round(std::abs(seg.len) * rho_ * 10.0) / 10.0));
-    seg_str += "dm) ";
+    switch (type) {
+      case T::RS_LEFT:     seg_str += 'L'; break;
+      case T::RS_RIGHT:    seg_str += 'R'; break;
+      case T::RS_STRAIGHT: seg_str += 'S'; break;
+      default: break;
+    }
+    seg_str += '(' + std::to_string(static_cast<int>(std::round(dist * 10.0) / 10.0)) + "dm) ";
 
-    const double pre_x = cx, pre_y = cy, pre_yaw = cyaw;
-    std::size_t before = path.poses.size();
-    sampleSegment(seg, rho_, step_, cx, cy, cyaw, path.header, path.poses);
-    const std::size_t n_added = path.poses.size() - before;
+    const std::size_t before = path.poses.size();
+    double travelled = 0.0;
+    while (travelled + step_ < dist - 1e-9) {
+      stepPose(type, rev ? -step_ : step_, rho_, cx, cy2, cyaw);
+      travelled += step_;
 
-    RCLCPP_INFO(node_->get_logger(),
-      "  seg %c%c len=%.4fm  in=(%.4f,%.4f,%.3f°)  out=(%.4f,%.4f,%.3f°)  poses=%zu",
-      rev ? '-' : '+', seg.type, seg_m,
-      pre_x, pre_y, pre_yaw * 180.0 / M_PI,
-      cx, cy, cyaw * 180.0 / M_PI, n_added);
+      geometry_msgs::msg::PoseStamped p;
+      p.header = path.header;
+      p.pose.position.x = cx; p.pose.position.y = cy2; p.pose.position.z = 0.0;
+      p.pose.orientation = yawToQuat(rev ? wrap(cyaw + M_PI) : cyaw);
+      path.poses.push_back(p);
+    }
+    // Final sub-step: advance exactly to segment end
+    const double remaining = dist - travelled;
+    if (remaining > 1e-9) {
+      stepPose(type, rev ? -remaining : remaining, rho_, cx, cy2, cyaw);
 
-    for (std::size_t i = before; i < path.poses.size(); ++i) {
-      if (rev) rev_path.poses.push_back(path.poses[i]);
-      else     fwd_path.poses.push_back(path.poses[i]);
+      geometry_msgs::msg::PoseStamped p;
+      p.header = path.header;
+      p.pose.position.x = cx; p.pose.position.y = cy2; p.pose.position.z = 0.0;
+      p.pose.orientation = yawToQuat(rev ? wrap(cyaw + M_PI) : cyaw);
+      path.poses.push_back(p);
+    }
+
+    // Split forward/reverse for Mapviz visualisation
+    for (std::size_t k = before; k < path.poses.size(); ++k) {
+      if (rev) rev_path.poses.push_back(path.poses[k]);
+      else     fwd_path.poses.push_back(path.poses[k]);
     }
   }
 
-  // After sampling all segments, cx/cy/cyaw should equal gx/gy/gyaw.
-  // Log the residual gap so we can detect RS formula errors.
-  const double end_gap = std::hypot(cx - gx, cy - gy);
+  // Verify end-point accuracy and close any sub-step gap
+  const double end_gap = std::hypot(cx - gx, cy2 - gy);
   const double yaw_err = std::abs(wrap(cyaw - gyaw)) * 180.0 / M_PI;
   RCLCPP_INFO(node_->get_logger(),
-    "RS end: sampled=(%.4f,%.4f,%.3f°) goal=(%.4f,%.4f,%.3f°)  gap=%.4fm  yaw_err=%.3f°",
-    cx, cy, cyaw * 180.0 / M_PI,
-    gx, gy, gyaw * 180.0 / M_PI, end_gap, yaw_err);
+    "RS: (%.2f,%.2f,%.1f°)→(%.2f,%.2f,%.1f°) %s pts=%zu gap=%.4fm yaw_err=%.2f°",
+    sx, sy, syaw * 180.0 / M_PI,
+    gx, gy, gyaw * 180.0 / M_PI,
+    seg_str.c_str(), path.poses.size(), end_gap, yaw_err);
 
-  // Append exact goal pose if the last sampled point is more than one step away.
-  // Never overwrite (snap) the last point — that creates a teleport discontinuity.
-  if (!path.poses.empty()) {
-    const auto & last = path.poses.back().pose.position;
-    const double gap = std::hypot(gx - last.x, gy - last.y);
-    if (gap > 1e-3) {
-      RCLCPP_WARN(node_->get_logger(),
-        "RS path end gap %.4fm > 1mm — appending exact goal point", gap);
-      geometry_msgs::msg::PoseStamped gp;
-      gp.header = path.header;
-      gp.pose.position.x  = gx;
-      gp.pose.position.y  = gy;
-      gp.pose.position.z  = 0.0;
-      const bool last_rev = (rs.segs.back().len < 0.0);
-      gp.pose.orientation = last_rev
-        ? yawToQuat(wrap(gyaw + M_PI))
-        : goal.pose.orientation;
-      path.poses.push_back(gp);
-      if (last_rev) rev_path.poses.push_back(gp);
-      else          fwd_path.poses.push_back(gp);
+  if (!path.poses.empty() && end_gap > 1e-3) {
+    RCLCPP_WARN(node_->get_logger(),
+      "RS path end gap %.4fm > 1mm — appending exact goal point", end_gap);
+    geometry_msgs::msg::PoseStamped gp;
+    gp.header = path.header;
+    gp.pose.position.x = gx; gp.pose.position.y = gy; gp.pose.position.z = 0.0;
+    // Use actual last segment direction for reverse flag
+    bool last_rev = false;
+    for (int i = 4; i >= 0; --i) {
+      if (rs_path.type_[i] != T::RS_NOP && std::abs(rs_path.length_[i]) > 1e-9) {
+        last_rev = rs_path.length_[i] < 0.0;
+        break;
+      }
     }
+    gp.pose.orientation = last_rev
+      ? yawToQuat(wrap(gyaw + M_PI))
+      : goal.pose.orientation;
+    path.poses.push_back(gp);
+    if (last_rev) rev_path.poses.push_back(gp);
+    else          fwd_path.poses.push_back(gp);
   }
 
   fwd_pub_->publish(fwd_path);
   rev_pub_->publish(rev_path);
-
-  RCLCPP_INFO(node_->get_logger(),
-    "ReedsSheppPlanner: (%.2f,%.2f,%.1f°) → (%.2f,%.2f,%.1f°)  %s waypts=%zu",
-    sx, sy, syaw * 180.0 / M_PI,
-    gx, gy, gyaw * 180.0 / M_PI,
-    seg_str.c_str(), path.poses.size());
 
   return path;
 }

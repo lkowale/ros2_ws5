@@ -14,6 +14,14 @@ find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(pluginlib REQUIRED)
+find_package(ompl REQUIRED)
+# ompl cmake exports the target as ompl::ompl
+if(NOT TARGET ompl::ompl)
+  add_library(ompl::ompl SHARED IMPORTED)
+  set_target_properties(ompl::ompl PROPERTIES
+    IMPORTED_LOCATION "/opt/ros/jazzy/lib/x86_64-linux-gnu/libompl.so"
+    INTERFACE_INCLUDE_DIRECTORIES "${OMPL_INCLUDE_DIRS}")
+endif()
 
 set(library_name ${PROJECT_NAME}_plugin)
 
@@ -42,6 +50,8 @@ target_include_directories(${library_name} PUBLIC
 )
 
 ament_target_dependencies(${library_name} ${dependencies})
+target_link_libraries(${library_name} ompl::ompl)
+target_include_directories(${library_name} PRIVATE ${OMPL_INCLUDE_DIRS})
 target_compile_definitions(${library_name} PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
 
 pluginlib_export_plugin_description_file(nav2_core global_planner_plugin.xml)

@@ -18,11 +18,9 @@ namespace planner
 
 // Nav2 global planner plugin: Reeds-Shepp path from start pose to goal pose.
 //
-// Produces a dense waypoint sequence (nav_msgs/Path) that:
-//  - respects the robot's minimum turning radius (Ackermann constraint)
-//  - allows forward and reverse motion (Reeds-Shepp, not Dubins)
-//  - is deterministic: identical inputs → identical output
-//  - uses yaw flipped by π on reverse segments so RPP drives backward
+// Uses OMPL's ReedsSheppStateSpace (all 48 word families) for correct path
+// selection, then samples waypoints at `interpolation_resolution` metre spacing.
+// Reverse segments have yaw flipped by π so RPP drives backward.
 //
 // Parameters (set under the plugin name in nav2_params.yaml):
 //   min_turning_radius   [m]   default 1.5  — Ackermann minimum radius
@@ -54,7 +52,6 @@ private:
   std::string name_;
   double rho_;    // min turning radius
   double step_;   // interpolation resolution
-  // Separate publishers for forward and reverse path segments (Mapviz visualisation).
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr fwd_pub_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr rev_pub_;
 };
