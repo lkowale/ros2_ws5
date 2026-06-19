@@ -57,8 +57,9 @@ void RsPathController::configure(
   };
   d("desired_linear_vel", 1.0);
   d("max_angular_vel", 1.0);
-  d("k_heading", 2.0);
-  d("k_cross", 1.0);
+  d("k_heading",    1.5);
+  d("k_cross",      1.0);
+  d("k_cross_gain", 1.0);
   d("approach_dist", 3.0);
   d("min_approach_vel", 0.3);
   d("transform_tolerance", 0.1);
@@ -67,6 +68,7 @@ void RsPathController::configure(
   node->get_parameter(name + ".max_angular_vel",     max_angular_vel_);
   node->get_parameter(name + ".k_heading",           k_heading_);
   node->get_parameter(name + ".k_cross",             k_cross_);
+  node->get_parameter(name + ".k_cross_gain",        k_cross_gain_);
   node->get_parameter(name + ".approach_dist",       approach_dist_);
   node->get_parameter(name + ".min_approach_vel",    min_approach_vel_);
   node->get_parameter(name + ".transform_tolerance", transform_tolerance_);
@@ -74,8 +76,8 @@ void RsPathController::configure(
   debug_pub_ = node->create_publisher<std_msgs::msg::String>("/rs_ctrl_debug", 10);
 
   RCLCPP_INFO(logger_,
-    "RsPathController: v=%.2f max_w=%.2f k_h=%.2f k_c=%.2f approach=%.1fm",
-    desired_linear_vel_, max_angular_vel_, k_heading_, k_cross_, approach_dist_);
+    "RsPathController: v=%.2f max_w=%.2f k_h=%.2f k_c=%.2f k_cg=%.2f approach=%.1fm",
+    desired_linear_vel_, max_angular_vel_, k_heading_, k_cross_, k_cross_gain_, approach_dist_);
 }
 
 void RsPathController::cleanup() {}
@@ -221,29 +223,14 @@ geometry_msgs::msg::TwistStamped RsPathController::computeVelocityCommands(
   }
   if (rev) v_cmd = -v_cmd;
 
-  // Advance current_idx_ to stay ahead of the robot (don't re-track old points)
-  // Move index forward while the remaining segment is behind the robot.
-  while (current_idx_ + 1 < N) {
-    const auto & np = global_plan_.poses[current_idx_ + 1].pose.position;
-    const double dx = np.x - rx;
-    const double dy = np.y - ry;
-    // If next point is behind the robot's forward direction, advance
-    const double ahead = std::cos(eff_yaw) * dx + std::sin(eff_yaw) * dy;
-    if (ahead < 0.0) {
-      ++current_idx_;
-    } else {
-      break;
-    }
-  }
-
   // ── Stanley steering ──────────────────────────────────────────────────────
-  // Stanley: delta = heading_err + atan2(k * cte, v)
-  // k_cross_ has units [1/s] (gain on cte/v which is dimensionless angle)
+  // Two independent terms with separate gains:
+  //   w = k_heading * heading_err + k_cross_gain * atan2(k_cross * cte, v)
+  // This avoids the coupling bug where k_heading scaled both terms together.
   const double v_denom = std::max(std::abs(v_cmd), 0.3);
-  const double stanley = heading_err + std::atan2(k_cross_ * cte, v_denom);
-
-  // k_heading blends in a proportional heading correction
-  double w_cmd = k_heading_ * stanley;
+  const double cte_term = std::atan2(k_cross_ * cte, v_denom);
+  const double stanley  = heading_err + cte_term;  // logged as combined angle
+  double w_cmd = k_heading_ * heading_err + k_cross_gain_ * cte_term;
   w_cmd = std::clamp(w_cmd, -max_angular_vel_, max_angular_vel_);
 
   cmd.twist.linear.x  = v_cmd;

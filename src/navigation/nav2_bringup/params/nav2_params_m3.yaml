@@ -93,8 +93,9 @@ controller_server:
       plugin: "rs_path_controller/RsPathController"
       desired_linear_vel: 1.0
       max_angular_vel: 1.0
-      k_heading: 2.0
-      k_cross: 1.0
+      k_heading: 1.5      # gain on heading_err term only
+      k_cross: 1.0        # Stanley CTE normalisation (1/s)
+      k_cross_gain: 1.0   # gain on CTE correction term (independent of k_heading)
       approach_dist: 3.0
       min_approach_vel: 0.3
       transform_tolerance: 0.1

@@ -80,9 +80,10 @@ private:
   // Parameters
   double desired_linear_vel_{1.0};
   double max_angular_vel_{1.0};
-  double k_heading_{2.0};    // heading error gain (rad/rad)
-  double k_cross_{1.0};      // Stanley cross-track gain (m/s normalised)
-  double approach_dist_{3.0};  // distance from goal to start slowing down
+  double k_heading_{1.5};    // gain on heading error term (rad/rad)
+  double k_cross_{1.0};      // Stanley cross-track gain (1/s)
+  double k_cross_gain_{1.0}; // gain on CTE correction term (rad/rad) — independent of k_heading
+  double approach_dist_{3.0};
   double min_approach_vel_{0.3};
   double transform_tolerance_{0.1};
 
