@@ -72,11 +72,12 @@
     <xacro:box_inertia m="15" w="${base_width}" d="${base_length}" h="${base_height}"/>
   </link>
 
-  <!-- base_footprint coincides with the front GPS antenna for zero lever-arm; base_link shifted back by the antenna offset -->
+  <!-- base_footprint is at the rear axle centre (Ackermann pivot, RS planning reference).
+       base_link (chassis box) is wheelbase/2 - wheel_radius = 0.40m ahead of the rear axle. -->
   <joint name="base_joint" type="fixed">
     <parent link="base_footprint"/>
     <child link="base_link"/>
-    <origin xyz="${-(wheelbase/2 + 0.35)} 0.0 ${(wheel_radius+wheel_zoff)}" rpy="0 0 0"/>
+    <origin xyz="${wheelbase/2 - wheel_radius} 0.0 ${(wheel_radius+wheel_zoff)}" rpy="0 0 0"/>
   </joint>
 
   <xacro:limo_left_steering_hinge parent_prefix="base_link" wheel_prefix="front_left">
@@ -266,18 +267,14 @@
 </gazebo>
 
 <!--              tool_link                  -->
-<!-- On the robot symmetry line, same plane as base_footprint (z=0),
-     80 cm behind the front axle.
-     base_footprint = front GPS antenna.
-     Front axle in base_footprint frame = -(wheelbase/2 + 0.35) + (wheelbase/2 - wheel_radius)
-                                        = -(0.35 + wheel_radius) = -0.55 m.
-     tool_link x = -0.55 - 0.80 = -1.35 m. -->
+<!-- tool_link coincides with base_footprint (both at the rear axle centre).
+     Kept as an alias so RS planner / controller configs using tool_link still work. -->
 <link name="tool_link"/>
 
 <joint name="tool_joint" type="fixed">
   <parent link="base_footprint"/>
   <child link="tool_link"/>
-  <origin xyz="-1.35 0.0 0.0" rpy="0 0 0"/>
+  <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
 </joint>
 
     <!--              ackermann plugin                 -->

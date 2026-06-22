@@ -68,9 +68,9 @@ def generate_launch_description():
             'datum_lat': 53.5204991,
             'datum_lon': 17.8258532,
             'datum_alt': 100.0,
-            # base_footprint now coincides with the front antenna (gps_link), so
-            # the GPS is AT base_footprint — zero lever-arm.
-            'antenna_x': 0.0,
+            # base_footprint is now at the rear axle; front GPS (gps_link) is
+            # wheelbase/2 + 0.35 + (wheel_radius offset) = 1.35m ahead.
+            'antenna_x': 1.35,
             'antenna_y': 0.0,
             'rate_hz': 10.0,
         }],

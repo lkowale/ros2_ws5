@@ -101,15 +101,17 @@ class RsCtrlLogger(Node):
         self._job_dist_remaining = _nan()
 
         # controller debug fields
-        self._ctrl_idx     = -1
-        self._ctrl_n       = -1
-        self._ctrl_rev     = 0
-        self._ctrl_cte     = _nan()
-        self._ctrl_h_err   = _nan()
-        self._ctrl_stanley  = _nan()
-        self._ctrl_v_cmd   = _nan()
-        self._ctrl_w_cmd   = _nan()
-        self._ctrl_dist    = _nan()
+        self._ctrl_idx       = -1
+        self._ctrl_n         = -1
+        self._ctrl_rev       = 0
+        self._ctrl_cte       = _nan()
+        self._ctrl_h_err     = _nan()
+        self._ctrl_lookahead = _nan()
+        self._ctrl_stanley   = _nan()
+        self._ctrl_v_cmd     = _nan()
+        self._ctrl_w_cmd     = _nan()
+        self._ctrl_dist      = _nan()
+        self._ctrl_dist_path = _nan()
 
         self._nav_status = ''
 
@@ -142,8 +144,9 @@ class RsCtrlLogger(Node):
             'gps_lat', 'gps_lon', 'gps_fix', 'gps_cov_x',
             'cmd_vx',  'cmd_wz',
             'ctrl_idx', 'ctrl_n', 'ctrl_rev',
-            'ctrl_cte', 'ctrl_heading_err_deg', 'ctrl_stanley_deg',
-            'ctrl_v_cmd', 'ctrl_w_cmd', 'ctrl_dist_to_end',
+            'ctrl_cte', 'ctrl_heading_err_deg', 'ctrl_lookahead',
+            'ctrl_delta_deg', 'ctrl_v_cmd', 'ctrl_w_cmd',
+            'ctrl_dist_to_end', 'ctrl_dist_to_path',
             'nav_status',
         ])
 
@@ -179,7 +182,7 @@ class RsCtrlLogger(Node):
             self._cmd_wz = msg.angular.z
 
     def _cb_debug(self, msg: String):
-        # format: "idx,n,rev,cte,heading_err_rad,stanley_rad,v_cmd,w_cmd,dist"
+        # format: "idx,n,rev,cte,heading_err_deg,lookahead,delta_deg,v_cmd,w_cmd,dist_to_end,dist_to_path"
         try:
             parts = msg.data.split(',')
             with self._lock:
@@ -187,11 +190,13 @@ class RsCtrlLogger(Node):
                 self._ctrl_n       = int(parts[1])
                 self._ctrl_rev     = int(parts[2])
                 self._ctrl_cte     = float(parts[3])
-                self._ctrl_h_err   = math.degrees(float(parts[4]))
-                self._ctrl_stanley  = math.degrees(float(parts[5]))
-                self._ctrl_v_cmd   = float(parts[6])
-                self._ctrl_w_cmd   = float(parts[7])
-                self._ctrl_dist    = float(parts[8])
+                self._ctrl_h_err     = float(parts[4])   # already degrees
+                self._ctrl_lookahead = float(parts[5])
+                self._ctrl_stanley   = float(parts[6])   # delta_deg
+                self._ctrl_v_cmd     = float(parts[7])
+                self._ctrl_w_cmd     = float(parts[8])
+                self._ctrl_dist      = float(parts[9])
+                self._ctrl_dist_path = float(parts[10])
         except Exception:
             pass
 
@@ -259,9 +264,10 @@ class RsCtrlLogger(Node):
                 self._ctrl_rev,
                 f'{self._ctrl_cte:.5f}',
                 f'{self._ctrl_h_err:.3f}',
+                f'{self._ctrl_lookahead:.3f}',
                 f'{self._ctrl_stanley:.3f}',
                 f'{self._ctrl_v_cmd:.4f}', f'{self._ctrl_w_cmd:.4f}',
-                f'{self._ctrl_dist:.3f}',
+                f'{self._ctrl_dist:.3f}',  f'{self._ctrl_dist_path:.3f}',
                 self._nav_status,
             ])
             self._csv_file.flush()

@@ -41,7 +41,7 @@ controller_server:
     min_y_velocity_threshold: 0.5
     min_theta_velocity_threshold: 0.001
     failure_tolerance: 0.3
-    robot_base_frame: tool_link
+    robot_base_frame: base_footprint
     progress_checker_plugins: ["progress_checker"]
     goal_checker_plugins: ["general_goal_checker", "arc_goal_checker", "swath_goal_checker"]
     controller_plugins: ["FollowPath", "SwathFollow"]
@@ -59,8 +59,9 @@ controller_server:
 
     arc_goal_checker:
       stateful: True
-      plugin: "nav2_controller::PositionGoalChecker"
-      xy_goal_tolerance: 0.5
+      plugin: "nav2_controller::SimpleGoalChecker"
+      xy_goal_tolerance: 0.3
+      yaw_goal_tolerance: 0.3
 
     swath_goal_checker:
       stateful: True
@@ -91,11 +92,14 @@ controller_server:
 
     FollowPath:
       plugin: "rs_path_controller/RsPathController"
-      desired_linear_vel: 1.0
-      max_angular_vel: 1.0
-      k_heading: 1.5      # gain on heading_err term only
-      k_cross: 1.0        # Stanley CTE normalisation (1/s)
-      k_cross_gain: 3.0   # gain on CTE correction term (independent of k_heading)
+      desired_linear_vel: 0.5
+      max_angular_vel: 0.7       # v*tan(0.7)/1.2 at v=1 m/s
+      min_lookahead_dist: 2.0
+      max_lookahead_dist: 4.0
+      wheelbase: 1.2
+      max_steering_angle: 0.7    # rad (~40 deg), matches steering_limit in URDF
+      sim_steps: 40              # steps in predicted arc
+      sim_step_len: 0.1          # metres per step → 4m total arc
       approach_dist: 3.0
       min_approach_vel: 0.3
       transform_tolerance: 0.1
@@ -114,7 +118,7 @@ planner_server:
       min_turning_radius: 3.0
       interpolation_resolution: 0.05
     StraightLine:
-      plugin: "nav2_straightline_planner::StraightLine"
+      plugin: "nav2_straightline_planner/StraightLine"
       interpolation_resolution: 0.05
     SwathTurn1:
       plugin: "planner/SwathTurnPlanner"
@@ -219,7 +223,7 @@ global_costmap:
       update_frequency: 5.0
       publish_frequency: 2.0
       global_frame: map
-      robot_base_frame: tool_link
+      robot_base_frame: base_footprint
       robot_radius: 0.5
       resolution: 0.1
       rolling_window: true

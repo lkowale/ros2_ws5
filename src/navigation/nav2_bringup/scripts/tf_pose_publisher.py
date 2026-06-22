@@ -6,8 +6,8 @@ during clock hiccups. This node uses lookup_transform with Time(0) (latest
 available) and publishes stable PoseStamped topics instead.
 
 Topics published (20 Hz):
-  /robot_pose      — map → base_footprint  (front GPS / planning origin)
-  /tool_link_pose  — map → tool_link       (rear axle / RS planner frame)
+  /robot_pose      — map → base_footprint  (rear axle / Ackermann pivot / RS planner reference)
+  /tool_link_pose  — map → tool_link       (alias for base_footprint; same position)
 """
 import rclpy
 from rclpy.node import Node

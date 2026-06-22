@@ -1,6 +1,7 @@
 #ifndef TOOL_LINE_FOLLOWER_CONTROLLER__RS_PATH_CONTROLLER_HPP_
 #define TOOL_LINE_FOLLOWER_CONTROLLER__RS_PATH_CONTROLLER_HPP_
 
+#include <array>
 #include <string>
 #include <memory>
 #include <vector>
@@ -18,17 +19,18 @@
 namespace rs_path_controller
 {
 
-// Stanley-style path-tracking controller for Ackermann robots on RS paths.
+// MPC-style path controller for Ackermann robots on RS paths.
 //
-// steering = heading_err + atan2(k_cross * cross_track_err, v)
-//
-// - heading_err: angle between robot yaw and path tangent at closest point.
-// - cross_track_err: signed lateral distance from closest path point.
-// - Speed is constant (desired_linear_vel) scaled near the goal and for
-//   high-curvature segments.
-// - Reverse segments are detected from waypoint yaw (flipped by π in RS paths)
-//   and handled by negating linear velocity and adjusting error signs.
-// - Tracks tool_link (rear axle) position to match the RS planner frame.
+// Each cycle:
+//   1. Find closest path waypoint to rear axle (forward-only scan).
+//   2. Compute adaptive lookahead L in [min_look, max_look], proportional
+//      to distance from robot to current_idx_.
+//   3. Simulate robot arc at candidate steering angles; find where it
+//      intersects the path near the lookahead point (cross point).
+//   4. Binary-search the steering angle that places the cross point at L:
+//        cross < L  → less steering   (arc converges too fast)
+//        cross > L or no cross → more steering  (arc misses path)
+//   5. Output: w = v * tan(delta) / wheelbase.
 class RsPathController : public nav2_core::Controller
 {
 public:
@@ -54,17 +56,31 @@ public:
   void setSpeedLimit(const double & speed_limit, const bool & percentage) override;
 
 private:
-  // Find index of closest waypoint to position, searching forward from current_idx_.
+  // Closest path waypoint to (px,py), scanning forward from current_idx_.
   size_t closestIndex(double px, double py) const;
 
-  // Signed cross-track error at waypoint idx: positive = robot is left of path.
-  double crossTrackError(double px, double py, size_t idx) const;
+  // First waypoint >= dist of path arc ahead of from_idx.
+  size_t lookaheadIndex(size_t from_idx, double dist) const;
 
-  // Path tangent yaw at index idx (from idx→idx+1 segment direction).
+  // Last waypoint index in the same forward/reverse segment as from_idx.
+  size_t segmentEndIndex(size_t from_idx) const;
+
+  // Path tangent yaw at idx (from idx→idx+1 direction).
   double tangentYaw(size_t idx) const;
 
-  // True if path segment at idx is a reverse segment (waypoint yaw ≈ tangent+π).
+  // True if path segment at idx is a reverse segment.
   bool isReverse(size_t idx) const;
+
+  // Simulate Ackermann bicycle model: returns arc as (x,y) points.
+  std::vector<std::array<double, 2>> simulateArc(
+    double x, double y, double yaw, double delta, bool reverse) const;
+
+  // Distance from robot to first intersection of arc with path segments
+  // [from_idx, to_idx]. Returns -1 if no intersection.
+  double arcPathIntersection(
+    const std::vector<std::array<double, 2>> & arc,
+    double robot_x, double robot_y,
+    size_t from_idx, size_t to_idx) const;
 
   rclcpp_lifecycle::LifecycleNode::WeakPtr node_;
   std::shared_ptr<tf2_ros::Buffer> tf_;
@@ -76,18 +92,21 @@ private:
 
   nav_msgs::msg::Path global_plan_;
   size_t current_idx_{0};
+  bool prev_rev_{false};
+  double current_steering_angle_{0.0};
 
   // Parameters
   double desired_linear_vel_{1.0};
   double max_angular_vel_{1.0};
-  double k_heading_{1.5};
-  double k_cross_{1.0};
-  double k_cross_gain_{1.0};
+  double min_lookahead_dist_{0.5};
+  double max_lookahead_dist_{2.0};
+  double wheelbase_{1.2};
+  double max_steering_angle_{0.7};
+  int    sim_steps_{20};
+  double sim_step_len_{0.1};
   double approach_dist_{3.0};
   double min_approach_vel_{0.3};
   double transform_tolerance_{0.1};
-
-  bool prev_rev_{false};
 
   double speed_limit_{1.0};
   bool speed_limit_is_percentage_{false};

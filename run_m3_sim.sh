@@ -94,26 +94,27 @@ if [[ "${1:-}" == "test" ]]; then
     echo ""
     } | tee -a "$LOG_FILE"
 
-    # Start the thorough logger in the background; let it connect before goals.
-    python3 "$HOME/ros2_ws5/m3_sim_logger.py" --hz 2 &
+    # Start the CSV controller logger in the background; let it connect before goals.
+    python3 "$HOME/ros2_ws5/rs_controller_logger.py" &
     LOGGER_PID=$!
     sleep 2
 
     # Build goal list as YAML for RunRsTest action.
     # Each entry: {header: {frame_id: map}, pose: {position: {x,y,z}, orientation: {x,y,z,w}}}
+    # Goals specify where the rear axle (base_footprint) should arrive.
     _pose() {
         local x="$1" y="$2" yaw="${3:-90}"
         read QZ QW < <(_deg2quat_z "$yaw")
         echo "{header: {frame_id: map}, pose: {position: {x: $x, y: $y, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: $QZ, w: $QW}}}"
     }
 
-    G1=$(_pose  0  15  90)   # straight ahead North
-    G2=$(_pose 10  10   0)   # forward + right, heading East
-    G3=$(_pose  0  -8  90)   # behind robot, same heading
-    G4=$(_pose -15 10 180)   # far left, heading West
-    G5=$(_pose  0   3 270)   # close, 180° flip
-    G6=$(_pose 20  -5   0)   # far diagonal SE, heading East
-    G7=$(_pose  0   0  90)   # back to origin, heading North
+    G1=$(_pose  0  15  90)   # rear axle North 15m
+    G2=$(_pose 10  10   0)   # rear axle East+right
+    G3=$(_pose  0  -8  90)   # rear axle behind
+    G4=$(_pose -15 10 180)   # rear axle far left W
+    G5=$(_pose  0   3 270)   # rear axle 180° flip
+    G6=$(_pose 20  -5   0)   # rear axle far SE E
+    G7=$(_pose  0   0  90)   # rear axle origin
 
     GOALS="[$G1, $G2, $G3, $G4, $G5, $G6, $G7]"
     LABELS='["1:North 15m", "2:SE diagonal", "3:behind", "4:far left", "5:180flip", "6:far SE", "7:origin"]'
