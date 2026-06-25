@@ -39,7 +39,7 @@ displays:
       visible: true
       collapsed: false
       topic: /plan_forward
-      color: "#c0bfbc"
+      color: "#77767b"
       qos_depth: 10
       qos_history: 1
       qos_reliability: 1
@@ -50,7 +50,7 @@ displays:
       visible: true
       collapsed: false
       topic: /plan_reverse
-      color: "#c0bfbc"
+      color: "#cdab8f"
       qos_depth: 10
       qos_history: 1
       qos_reliability: 1
@@ -61,7 +61,7 @@ displays:
       visible: true
       collapsed: false
       topic: /plan_swath
-      color: "#77767b"
+      color: "#5e5c64"
       qos_depth: 10
       qos_history: 1
       qos_reliability: 1
@@ -96,8 +96,8 @@ displays:
       topic: /gps/fix
       color: "#00ff00"
       draw_style: points
-      position_tolerance: 0.05
-      buffer_size: 2000
+      position_tolerance: 0.050000000000000003
+      buffer_size: 200
       qos_depth: 10
       qos_history: 1
       qos_reliability: 2
@@ -110,8 +110,8 @@ displays:
       topic: /odom
       color: "#f66151"
       draw_style: points
-      position_tolerance: 0.05
-      buffer_size: 2000
+      position_tolerance: 0.050000000000000003
+      buffer_size: 200
       show_laps: false
       show_covariance: false
       show_all_covariances: false
@@ -129,8 +129,10 @@ displays:
       collapsed: false
       topic: /robot_pose
       color: "#f66151"
-      draw_style: arrow
+      draw_style: arrows
       position_tolerance: 0
+      buffer_size: 1
+      show_laps: false
       static_arrow_sizes: true
       arrow_size: 30
       qos_depth: 1

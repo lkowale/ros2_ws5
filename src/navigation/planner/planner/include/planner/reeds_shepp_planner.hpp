@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
@@ -11,6 +12,7 @@
 #include "nav2_util/lifecycle_node.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/string.hpp"
 #include "tf2_ros/buffer.h"
 
 namespace planner
@@ -50,10 +52,16 @@ private:
   nav2_util::LifecycleNode::SharedPtr node_;
   std::string global_frame_;
   std::string name_;
-  double rho_;    // min turning radius
-  double step_;   // interpolation resolution
+  double rho_;   // min turning radius
+  double step_;  // interpolation resolution
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr fwd_pub_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr rev_pub_;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr constraint_sub_;
+  std::mutex constraint_mutex_;
+  std::string constraint_raw_;
+  std::string turn_side_constraint_;  // "left", "right", or ""
+  double      swath_yaw_constraint_{0.0};
+  bool        force_forward_first_{false};
 };
 
 }  // namespace planner

@@ -1,5 +1,6 @@
 {
   "description": "Test swath — 6m east, starting 2m ahead of robot spawn (East direction)",
   "start": { "latitude": 53.5204991, "longitude": 17.8258834 },
-  "end":   { "latitude": 53.5204991, "longitude": 17.8259738 }
+  "end":   { "latitude": 53.5204991, "longitude": 17.8259738 },
+  "turn_side": "left"
 }

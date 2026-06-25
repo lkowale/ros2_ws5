@@ -1,14 +1,12 @@
 <!--
-  Turn Swath SubTree — 3-segment headland turn, each segment planned then followed.
+  Turn Swath SubTree — RS planner plans optimal fwd/rev path to next swath start.
 
-  geo_points are reversed first so map_points[0] = next swath start (the turn goal).
+  geo_points are reversed so map_points[0] = next swath start (the turn goal).
+  GridBased (ReedsSheppPlanner) plans a single multi-segment path from current
+  robot pose to the swath start heading, FollowPath (RsPathController) executes it.
 
-  Seg 1: SwathTurn1 — forward left arc 120°    (RPP, forward)
-  Seg 2: SwathTurn2 — reverse right arc 60°    (RPP, reverse; Gazebo angular.z sign fixed in preprocessor)
-  Seg 3: SwathTurn3 — connecting arc + lead-in (RPP, forward, from current robot pose)
-
-  Nav2 passes the robot's live pose as `start` to each ComputePathToPose call,
-  so seg3 connects from wherever seg2 ends.
+  turn_side (from field file via blackboard) constrains the RS planner to only
+  curve toward the headland side — never into the crop.
 -->
 <root BTCPP_format="4" main_tree_to_execute="TurnSwath">
   <BehaviorTree ID="TurnSwath">
@@ -19,29 +17,16 @@
       <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
       <GetPoseFromPoses poses="{map_points}" pose="{turn_goal_pose}" index="0"/>
 
-      <!-- Seg 1: forward left arc 120° -->
+      <!-- Constrain RS planner to headland side, plan, then clear constraint -->
+      <SetRsPlannerConstraints turn_side="{turn_side}" map_points="{map_points}"/>
       <ComputePathToPose goal="{turn_goal_pose}" path="{turn_path}"
-                         planner_id="SwathTurn1"
-                         error_code_id="{turn1_compute_error}"/>
-      <FollowPath path="{turn_path}" controller_id="FollowPath"
-                  goal_checker_id="general_goal_checker"
-                  error_code_id="{turn1_follow_error}"/>
+                         planner_id="GridBased"
+                         error_code_id="{turn_compute_error}"/>
+      <ClearRsPlannerConstraints/>
 
-      <!-- Seg 2: reverse right arc 60° — position-only goal checker (end pose yaw is π-flipped) -->
-      <ComputePathToPose goal="{turn_goal_pose}" path="{turn_path}"
-                         planner_id="SwathTurn2"
-                         error_code_id="{turn2_compute_error}"/>
       <FollowPath path="{turn_path}" controller_id="FollowPath"
                   goal_checker_id="arc_goal_checker"
-                  error_code_id="{turn2_follow_error}"/>
-
-      <!-- Seg 3: connecting arc + lead-in to swath start (planned from current pose) -->
-      <ComputePathToPose goal="{turn_goal_pose}" path="{turn_path}"
-                         planner_id="SwathTurn3"
-                         error_code_id="{turn3_compute_error}"/>
-      <FollowPath path="{turn_path}" controller_id="FollowPath"
-                  goal_checker_id="general_goal_checker"
-                  error_code_id="{turn3_follow_error}"/>
+                  error_code_id="{turn_follow_error}"/>
 
     </Sequence>
   </BehaviorTree>

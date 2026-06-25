@@ -1,9 +1,11 @@
 // BT nodes for one_line_nav:
-//   ConvertGeoPoints      — calls fromLL to convert geo_points → map_points (PoseStamped)
-//   ReverseGeoPoints      — reverses geo_points in place on the blackboard
-//   GetGeoPointFromVector — extracts one GeoPoint from geo_points by index
-//   ReversePoses          — reverses map_points vector, flipping each orientation 180°
-//   GetPoseFromPoses      — extracts one PoseStamped from map_points by index
+//   ConvertGeoPoints            — calls fromLL to convert geo_points → map_points (PoseStamped)
+//   ReverseGeoPoints            — reverses geo_points in place on the blackboard
+//   GetGeoPointFromVector       — extracts one GeoPoint from geo_points by index
+//   ReversePoses                — reverses map_points vector, flipping each orientation 180°
+//   GetPoseFromPoses            — extracts one PoseStamped from map_points by index
+//   SetRsPlannerConstraints     — publishes turn_side to /rs_planner_constraints (latched)
+//   ClearRsPlannerConstraints   — clears the constraint (publishes empty string)
 
 #include <cmath>
 #include <algorithm>
@@ -16,6 +18,7 @@
 #include "robot_localization/srv/from_ll.hpp"
 #include "geographic_msgs/msg/geo_point.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
+#include "std_msgs/msg/string.hpp"
 
 // ── ConvertGeoPoints ──────────────────────────────────────────────────────────
 
@@ -219,6 +222,109 @@ public:
   }
 };
 
+// ── SetRsPlannerConstraints ───────────────────────────────────────────────────
+// Reads turn_side and map_points from the blackboard. Publishes a constraint
+// message to /rs_planner_constraints (latched) containing:
+//   "<turn_side>,<swath_yaw_rad>,forward"
+// The planner uses swath_yaw (world-frame) as the lateral reference axis so
+// the constraint is consistent regardless of the robot's current heading.
+// "forward" enforces that the first path segment is always driven forward.
+
+class SetRsPlannerConstraints : public BT::SyncActionNode
+{
+public:
+  SetRsPlannerConstraints(const std::string & name, const BT::NodeConfiguration & config)
+  : BT::SyncActionNode(name, config)
+  {
+    node_ = rclcpp::Node::make_shared("set_rs_constraints_bt_node");
+    auto qos = rclcpp::QoS(1).transient_local();
+    pub_ = node_->create_publisher<std_msgs::msg::String>("/rs_planner_constraints", qos);
+  }
+
+  static BT::PortsList providedPorts()
+  {
+    return {
+      BT::InputPort<std::string>("turn_side", "{turn_side}", "left or right"),
+      BT::InputPort<std::vector<geometry_msgs::msg::PoseStamped>>("map_points", "{map_points}",
+        "swath start/end poses to derive swath heading"),
+    };
+  }
+
+  BT::NodeStatus tick() override
+  {
+    std::string turn_side;
+    getInput("turn_side", turn_side);
+    if (turn_side != "left" && turn_side != "right") {
+      RCLCPP_WARN(node_->get_logger(),
+        "SetRsPlannerConstraints: invalid turn_side '%s'", turn_side.c_str());
+      return BT::NodeStatus::SUCCESS;
+    }
+
+    // Derive swath axis from map_points (start→end direction), then normalize
+    // to [0, π) so the axis is direction-independent. The headland side is a
+    // fixed world-frame concept — it doesn't flip when the robot traverses the
+    // return swath in the opposite direction.
+    double swath_yaw = 0.0;
+    std::vector<geometry_msgs::msg::PoseStamped> map_points;
+    if (getInput("map_points", map_points) && map_points.size() >= 2) {
+      const auto & p0 = map_points[0].pose.position;
+      const auto & p1 = map_points[1].pose.position;
+      double yaw = std::atan2(p1.y - p0.y, p1.x - p0.x);
+      // Normalize to [0, π): swath axis is undirected
+      if (yaw < 0.0) yaw += M_PI;
+      if (yaw >= M_PI) yaw -= M_PI;
+      swath_yaw = yaw;
+    } else {
+      RCLCPP_WARN(node_->get_logger(),
+        "SetRsPlannerConstraints: map_points unavailable, using swath_yaw=0");
+    }
+
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), "%s,%.6f,forward", turn_side.c_str(), swath_yaw);
+    std_msgs::msg::String msg;
+    msg.data = buf;
+    pub_->publish(msg);
+    RCLCPP_INFO(node_->get_logger(),
+      "RS constraint: turn_side=%s swath_yaw=%.1f°",
+      turn_side.c_str(), swath_yaw * 180.0 / M_PI);
+    return BT::NodeStatus::SUCCESS;
+  }
+
+private:
+  rclcpp::Node::SharedPtr node_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_;
+};
+
+// ── ClearRsPlannerConstraints ─────────────────────────────────────────────────
+// Publishes empty string — RS planner reverts to unconstrained OMPL path.
+
+class ClearRsPlannerConstraints : public BT::SyncActionNode
+{
+public:
+  ClearRsPlannerConstraints(const std::string & name, const BT::NodeConfiguration & config)
+  : BT::SyncActionNode(name, config)
+  {
+    node_ = rclcpp::Node::make_shared("clear_rs_constraints_bt_node");
+    auto qos = rclcpp::QoS(1).transient_local();
+    pub_ = node_->create_publisher<std_msgs::msg::String>("/rs_planner_constraints", qos);
+  }
+
+  static BT::PortsList providedPorts() { return {}; }
+
+  BT::NodeStatus tick() override
+  {
+    std_msgs::msg::String msg;
+    msg.data = "";
+    pub_->publish(msg);
+    RCLCPP_INFO(node_->get_logger(), "RS constraints cleared");
+    return BT::NodeStatus::SUCCESS;
+  }
+
+private:
+  rclcpp::Node::SharedPtr node_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_;
+};
+
 // ── Registration ─────────────────────────────────────────────────────────────
 
 BT_REGISTER_NODES(factory)
@@ -228,4 +334,6 @@ BT_REGISTER_NODES(factory)
   factory.registerNodeType<GetGeoPointFromVector>("GetGeoPointFromVector");
   factory.registerNodeType<ReversePoses>("ReversePoses");
   factory.registerNodeType<GetPoseFromPoses>("GetPoseFromPoses");
+  factory.registerNodeType<SetRsPlannerConstraints>("SetRsPlannerConstraints");
+  factory.registerNodeType<ClearRsPlannerConstraints>("ClearRsPlannerConstraints");
 }

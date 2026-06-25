@@ -42,7 +42,8 @@ protected:
   bool loadLineFromFile(
     const std::string & field_name,
     geographic_msgs::msg::GeoPoint & start_point,
-    geographic_msgs::msg::GeoPoint & end_point);
+    geographic_msgs::msg::GeoPoint & end_point,
+    std::string & turn_side);
 
   std::string fields_directory_;
 };

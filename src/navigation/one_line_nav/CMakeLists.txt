@@ -20,6 +20,7 @@ find_package(behaviortree_cpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(geographic_msgs REQUIRED)
 find_package(robot_localization REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(nlohmann_json REQUIRED)
 
 include_directories(include)
@@ -54,6 +55,7 @@ ament_target_dependencies(one_line_bt_nodes
   behaviortree_cpp
   geometry_msgs
   geographic_msgs
+  std_msgs
   robot_localization
   rclcpp
 )

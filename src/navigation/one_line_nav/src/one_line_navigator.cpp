@@ -49,7 +49,8 @@ std::string OneLineNavigator::getDefaultBTFilepath(
 bool OneLineNavigator::loadLineFromFile(
   const std::string & field_name,
   geographic_msgs::msg::GeoPoint & start_point,
-  geographic_msgs::msg::GeoPoint & end_point)
+  geographic_msgs::msg::GeoPoint & end_point,
+  std::string & turn_side)
 {
   std::string file_path = fields_directory_ + "/" + field_name + "/line.json";
   std::ifstream file(file_path);
@@ -67,7 +68,8 @@ bool OneLineNavigator::loadLineFromFile(
     end_point.latitude    = j["end"]["latitude"].get<double>();
     end_point.longitude   = j["end"]["longitude"].get<double>();
     end_point.altitude    = 0.0;
-    RCLCPP_INFO(logger_, "Loaded line from %s", file_path.c_str());
+    turn_side = j.value("turn_side", "");
+    RCLCPP_INFO(logger_, "Loaded line from %s (turn_side=%s)", file_path.c_str(), turn_side.c_str());
     return true;
   } catch (const std::exception & e) {
     RCLCPP_ERROR(logger_, "Failed to parse %s: %s", file_path.c_str(), e.what());
@@ -87,13 +89,14 @@ bool OneLineNavigator::goalReceived(ActionT::Goal::ConstSharedPtr goal)
 
   geographic_msgs::msg::GeoPoint start_point = goal->start_point;
   geographic_msgs::msg::GeoPoint end_point   = goal->end_point;
+  std::string turn_side;
 
   bool coords_provided =
     (start_point.latitude != 0.0 || start_point.longitude != 0.0) &&
     (end_point.latitude   != 0.0 || end_point.longitude   != 0.0);
 
   if (!coords_provided && !goal->field_name.empty()) {
-    if (!loadLineFromFile(goal->field_name, start_point, end_point)) {
+    if (!loadLineFromFile(goal->field_name, start_point, end_point, turn_side)) {
       RCLCPP_ERROR(logger_, "Failed to load line from field: %s", goal->field_name.c_str());
       return false;
     }
@@ -107,10 +110,12 @@ bool OneLineNavigator::goalReceived(ActionT::Goal::ConstSharedPtr goal)
   blackboard->set<std::vector<geographic_msgs::msg::GeoPoint>>("geo_points", geo_points);
   blackboard->set<std::string>("field_name", goal->field_name);
   blackboard->set<std::string>("fields_directory", fields_directory_);
+  blackboard->set<std::string>("turn_side", turn_side);
 
-  RCLCPP_INFO(logger_, "OneLineNavigator: start=(%.6f, %.6f) end=(%.6f, %.6f)",
+  RCLCPP_INFO(logger_, "OneLineNavigator: start=(%.6f, %.6f) end=(%.6f, %.6f) turn_side=%s",
     start_point.latitude, start_point.longitude,
-    end_point.latitude,   end_point.longitude);
+    end_point.latitude,   end_point.longitude,
+    turn_side.c_str());
 
   return true;
 }
@@ -133,18 +138,22 @@ void OneLineNavigator::onPreempt(ActionT::Goal::ConstSharedPtr goal)
 
   geographic_msgs::msg::GeoPoint start_point = goal->start_point;
   geographic_msgs::msg::GeoPoint end_point   = goal->end_point;
+  std::string turn_side;
 
   bool coords_provided =
     (start_point.latitude != 0.0 || start_point.longitude != 0.0) &&
     (end_point.latitude   != 0.0 || end_point.longitude   != 0.0);
 
   if (!coords_provided && !goal->field_name.empty()) {
-    loadLineFromFile(goal->field_name, start_point, end_point);
+    loadLineFromFile(goal->field_name, start_point, end_point, turn_side);
   }
 
+  auto blackboard = bt_action_server_->getBlackboard();
   std::vector<geographic_msgs::msg::GeoPoint> geo_points = {start_point, end_point};
-  bt_action_server_->getBlackboard()->set<
-    std::vector<geographic_msgs::msg::GeoPoint>>("geo_points", geo_points);
+  blackboard->set<std::vector<geographic_msgs::msg::GeoPoint>>("geo_points", geo_points);
+  if (!turn_side.empty()) {
+    blackboard->set<std::string>("turn_side", turn_side);
+  }
 }
 
 void OneLineNavigator::goalCompleted(
