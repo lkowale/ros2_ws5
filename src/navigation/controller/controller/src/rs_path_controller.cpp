@@ -366,30 +366,30 @@ geometry_msgs::msg::TwistStamped RsPathController::computeVelocityCommands(
   const double delta_pp_cte = delta_pp;  // after CTE, before bisect
 
 
-  auto crossDist = [&](double delta) -> double {
-    auto arc = simulateArc(rx, ry, eff_yaw, delta, rev);
-    return arcPathIntersection(arc, rx, ry, current_idx_, arc_end_idx);
-  };
+  // auto crossDist = [&](double delta) -> double {
+  //   auto arc = simulateArc(rx, ry, eff_yaw, delta, rev);
+  //   return arcPathIntersection(arc, rx, ry, current_idx_, arc_end_idx);
+  // };
 
   double best_delta = delta_pp;
-  const double cd_pp = crossDist(delta_pp);
+  // const double cd_pp = crossDist(delta_pp);
 
-  if (cd_pp > 0.0 && cd_pp < lookahead) {
-    // Arc overshoots: cross point closer than target → reduce |delta|.
-    // Binary search between 0 and |delta_pp|, keeping the sign of delta_pp.
-    const double sign = (delta_pp >= 0.0) ? 1.0 : -1.0;
-    double dlo = 0.0, dhi = std::abs(delta_pp);
-    for (int iter = 0; iter < 8; ++iter) {
-      double dmid = 0.5 * (dlo + dhi);
-      double cd   = crossDist(dmid * sign);
-      if (cd > 0.0 && cd < lookahead) {
-        dhi = dmid;   // still too curved → less steer
-      } else {
-        dlo = dmid;   // misses or lands past lookahead → more steer
-      }
-    }
-    best_delta = 0.5 * (dlo + dhi) * sign;
-  }
+  // if (cd_pp > 0.0 && cd_pp < lookahead) {
+  //   // Arc overshoots: cross point closer than target → reduce |delta|.
+  //   // Binary search between 0 and |delta_pp|, keeping the sign of delta_pp.
+  //   const double sign = (delta_pp >= 0.0) ? 1.0 : -1.0;
+  //   double dlo = 0.0, dhi = std::abs(delta_pp);
+  //   for (int iter = 0; iter < 8; ++iter) {
+  //     double dmid = 0.5 * (dlo + dhi);
+  //     double cd   = crossDist(dmid * sign);
+  //     if (cd > 0.0 && cd < lookahead) {
+  //       dhi = dmid;   // still too curved → less steer
+  //     } else {
+  //       dlo = dmid;   // misses or lands past lookahead → more steer
+  //     }
+  //   }
+  //   best_delta = 0.5 * (dlo + dhi) * sign;
+  // }
   // If cd_pp <= 0 (no intersection) or cd_pp >= lookahead: keep delta_pp.
 
   best_delta = std::clamp(best_delta, -max_steering_angle_, max_steering_angle_);
