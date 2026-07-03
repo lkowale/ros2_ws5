@@ -8,6 +8,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
+#include "geometry_msgs/msg/point_stamped.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
 #include "nav_msgs/msg/path.hpp"
@@ -112,6 +113,7 @@ private:
   bool speed_limit_is_percentage_{false};
 
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr debug_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr lookahead_pub_;
 };
 
 }  // namespace rs_path_controller

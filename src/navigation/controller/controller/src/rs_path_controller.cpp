@@ -21,6 +21,7 @@
 #include <limits>
 #include <string>
 
+#include "geometry_msgs/msg/point_stamped.hpp"
 #include "nav2_util/node_utils.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "tf2/utils.h"
@@ -85,7 +86,8 @@ void RsPathController::configure(
   node->get_parameter(name + ".min_approach_vel",    min_approach_vel_);
   node->get_parameter(name + ".transform_tolerance", transform_tolerance_);
 
-  debug_pub_ = node->create_publisher<std_msgs::msg::String>("/rs_ctrl_debug", 10);
+  debug_pub_      = node->create_publisher<std_msgs::msg::String>("/rs_ctrl_debug", 10);
+  lookahead_pub_  = node->create_publisher<geometry_msgs::msg::PointStamped>("/rs_ctrl_lookahead", 10);
 
   RCLCPP_INFO(logger_,
     "RsPathController (MPC): v=%.2f max_w=%.2f L=[%.1f,%.1f]m wb=%.2f delta_max=%.2frad "
@@ -305,6 +307,15 @@ geometry_msgs::msg::TwistStamped RsPathController::computeVelocityCommands(
 
   // look_idx: path waypoint at lookahead arc distance, capped at segment end.
   const size_t look_idx = std::min(lookaheadIndex(current_idx_, lookahead), seg_end);
+
+  {
+    const auto & lpos = global_plan_.poses[look_idx].pose.position;
+    geometry_msgs::msg::PointStamped lpt;
+    lpt.header.stamp = clock_->now();
+    lpt.header.frame_id = global_frame_;
+    lpt.point.x = lpos.x; lpt.point.y = lpos.y; lpt.point.z = 0.0;
+    lookahead_pub_->publish(lpt);
+  }
 
   // arc_end_idx: path waypoint covering the full simulated arc length,
   // so the intersection search spans the entire predicted trajectory.
