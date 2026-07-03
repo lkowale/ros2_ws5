@@ -139,10 +139,14 @@ void ReedsSheppPlanner::configure(
   nav2_util::declare_parameter_if_not_declared(
     node_, name_ + ".reversal_lead_length",
     rclcpp::ParameterValue(0.5));
+  nav2_util::declare_parameter_if_not_declared(
+    node_, name_ + ".goal_overshoot_length",
+    rclcpp::ParameterValue(4.0));
 
   node_->get_parameter(name_ + ".min_turning_radius", rho_);
   node_->get_parameter(name_ + ".interpolation_resolution", step_);
   node_->get_parameter(name_ + ".reversal_lead_length", lead_len_);
+  node_->get_parameter(name_ + ".goal_overshoot_length", overshoot_len_);
 
   auto pub_qos = rclcpp::QoS(1).transient_local();
   fwd_pub_ = node_->create_publisher<nav_msgs::msg::Path>("/plan_forward", pub_qos);
@@ -175,8 +179,8 @@ void ReedsSheppPlanner::configure(
     });
 
   RCLCPP_INFO(node_->get_logger(),
-    "ReedsSheppPlanner configured (OMPL backend): rho=%.2f m  step=%.3f m  lead=%.2f m",
-    rho_, step_, lead_len_);
+    "ReedsSheppPlanner configured (OMPL backend): rho=%.2f m  step=%.3f m  lead=%.2f m  overshoot=%.2f m",
+    rho_, step_, lead_len_, overshoot_len_);
 }
 
 void ReedsSheppPlanner::cleanup() {}
@@ -503,6 +507,34 @@ nav_msgs::msg::Path ReedsSheppPlanner::createPlan(
       std::abs(rev_path.poses.back().pose.position.y - last.pose.position.y) < 1e-6;
     if (last_in_rev) rev_path.poses.push_back(gp);
     else             fwd_path.poses.push_back(gp);
+  }
+
+  // Extend path past the goal along the final arc type so the MPC lookahead
+  // always has waypoints ahead while converging onto the goal pose.
+  if (!path.poses.empty() && overshoot_len_ > 1e-9) {
+    // Determine the last segment type and direction from the RS path.
+    T last_type = T::RS_STRAIGHT;
+    bool last_rev = false;
+    for (int i = 4; i >= 0; --i) {
+      if (rs_path.type_[i] == T::RS_NOP || std::abs(rs_path.length_[i]) < 1e-9) continue;
+      last_type = rs_path.type_[i];
+      last_rev  = (rs_path.length_[i] < 0.0);
+      break;
+    }
+    // Propagate from goal pose along the same curve.
+    double ex = gx, ey = gy, eyaw = gyaw;
+    double travelled = 0.0;
+    const bool ov_rev = last_rev;
+    while (travelled + step_ < overshoot_len_ - 1e-9) {
+      stepPose(last_type, ov_rev ? -step_ : step_, rho_, ex, ey, eyaw);
+      travelled += step_;
+      geometry_msgs::msg::PoseStamped p; p.header = path.header;
+      p.pose.position.x = ex; p.pose.position.y = ey; p.pose.position.z = 0.0;
+      p.pose.orientation = yawToQuat(eyaw);
+      path.poses.push_back(p);
+      if (ov_rev) rev_path.poses.push_back(p);
+      else        fwd_path.poses.push_back(p);
+    }
   }
 
   fwd_pub_->publish(fwd_path);
