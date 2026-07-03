@@ -112,6 +112,9 @@ class RsCtrlLogger(Node):
         self._ctrl_w_cmd     = _nan()
         self._ctrl_dist      = _nan()
         self._ctrl_dist_path = _nan()
+        self._ctrl_delta_pp      = _nan()
+        self._ctrl_delta_cte     = _nan()
+        self._ctrl_delta_pp_cte  = _nan()
 
         self._nav_status = ''
 
@@ -147,6 +150,7 @@ class RsCtrlLogger(Node):
             'ctrl_cte', 'ctrl_heading_err_deg', 'ctrl_lookahead',
             'ctrl_delta_deg', 'ctrl_v_cmd', 'ctrl_w_cmd',
             'ctrl_dist_to_end', 'ctrl_dist_to_path',
+            'ctrl_delta_pp_deg', 'ctrl_delta_cte_deg', 'ctrl_delta_pp_cte_deg',
             'nav_status',
         ])
 
@@ -182,21 +186,25 @@ class RsCtrlLogger(Node):
             self._cmd_wz = msg.angular.z
 
     def _cb_debug(self, msg: String):
-        # format: "idx,n,rev,cte,heading_err_deg,lookahead,delta_deg,v_cmd,w_cmd,dist_to_end,dist_to_path"
+        # format: "idx,n,rev,cte,heading_err_deg,lookahead,delta_deg,v_cmd,w_cmd,dist_to_end,dist_to_path,delta_pp_deg,delta_cte_deg,delta_pp_cte_deg"
         try:
             parts = msg.data.split(',')
             with self._lock:
-                self._ctrl_idx     = int(parts[0])
-                self._ctrl_n       = int(parts[1])
-                self._ctrl_rev     = int(parts[2])
-                self._ctrl_cte     = float(parts[3])
-                self._ctrl_h_err     = float(parts[4])   # already degrees
+                self._ctrl_idx       = int(parts[0])
+                self._ctrl_n         = int(parts[1])
+                self._ctrl_rev       = int(parts[2])
+                self._ctrl_cte       = float(parts[3])
+                self._ctrl_h_err     = float(parts[4])
                 self._ctrl_lookahead = float(parts[5])
-                self._ctrl_stanley   = float(parts[6])   # delta_deg
+                self._ctrl_stanley   = float(parts[6])   # best_delta (final)
                 self._ctrl_v_cmd     = float(parts[7])
                 self._ctrl_w_cmd     = float(parts[8])
                 self._ctrl_dist      = float(parts[9])
                 self._ctrl_dist_path = float(parts[10])
+                if len(parts) > 11:
+                    self._ctrl_delta_pp     = float(parts[11])  # pure PP only
+                    self._ctrl_delta_cte    = float(parts[12])  # CTE term only
+                    self._ctrl_delta_pp_cte = float(parts[13])  # PP+CTE before bisect
         except Exception:
             pass
 
@@ -268,6 +276,9 @@ class RsCtrlLogger(Node):
                 f'{self._ctrl_stanley:.3f}',
                 f'{self._ctrl_v_cmd:.4f}', f'{self._ctrl_w_cmd:.4f}',
                 f'{self._ctrl_dist:.3f}',  f'{self._ctrl_dist_path:.3f}',
+                f'{self._ctrl_delta_pp:.3f}',
+                f'{self._ctrl_delta_cte:.3f}',
+                f'{self._ctrl_delta_pp_cte:.3f}',
                 self._nav_status,
             ])
             self._csv_file.flush()

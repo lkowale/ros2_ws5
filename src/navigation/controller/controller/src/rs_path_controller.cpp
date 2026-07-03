@@ -356,13 +356,14 @@ geometry_msgs::msg::TwistStamped RsPathController::computeVelocityCommands(
   const auto & lp = global_plan_.poses[look_idx].pose.position;
   const double angle_to_look = wrap(std::atan2(lp.y - ry, lp.x - rx) - eff_yaw);
   const double chord = std::hypot(lp.x - rx, lp.y - ry);
-  double delta_pp = (chord > 0.01)
+  const double delta_pp_only = (chord > 0.01)
     ? std::atan2(2.0 * wheelbase_ * std::sin(angle_to_look), chord)
     : 0.0;
 
   // CTE correction: proportional to lateral error, normalised by lookahead.
   const double delta_cte = -std::atan(cte / lookahead);
-  delta_pp = std::clamp(delta_pp + delta_cte, -max_steering_angle_, max_steering_angle_);
+  double delta_pp = std::clamp(delta_pp_only + delta_cte, -max_steering_angle_, max_steering_angle_);
+  const double delta_pp_cte = delta_pp;  // after CTE, before bisect
 
 
   auto crossDist = [&](double delta) -> double {
@@ -402,15 +403,18 @@ geometry_msgs::msg::TwistStamped RsPathController::computeVelocityCommands(
   cmd.twist.linear.x  = v_cmd;
   cmd.twist.angular.z = w_cmd;
 
-  // Debug: idx,n,rev,cte,heading_err_deg,lookahead,delta_deg,v_cmd,w_cmd,dist_to_end,dist_to_path
+  // Debug: idx,n,rev,cte,heading_err_deg,lookahead,delta_deg,v_cmd,w_cmd,dist_to_end,dist_to_path,delta_pp_deg,delta_cte_deg,delta_pp_cte_deg
   {
-    char buf[192];
+    char buf[256];
     std::snprintf(buf, sizeof(buf),
-      "%zu,%zu,%d,%.4f,%.2f,%.3f,%.2f,%.4f,%.4f,%.3f,%.3f",
+      "%zu,%zu,%d,%.4f,%.2f,%.3f,%.2f,%.4f,%.4f,%.3f,%.3f,%.2f,%.2f,%.2f",
       current_idx_, N, (int)rev,
       cte, heading_err * 180.0 / M_PI,
       lookahead, best_delta * 180.0 / M_PI,
-      v_cmd, w_cmd, dist_to_end, dist_to_path);
+      v_cmd, w_cmd, dist_to_end, dist_to_path,
+      delta_pp_only * 180.0 / M_PI,
+      delta_cte     * 180.0 / M_PI,
+      delta_pp_cte  * 180.0 / M_PI);
     std_msgs::msg::String dbg;
     dbg.data = buf;
     debug_pub_->publish(dbg);
