@@ -132,14 +132,19 @@ size_t RsPathController::closestIndex(double px, double py) const
 
   // Search within current segment only. This prevents RS paths (which curve
   // back on themselves) from jumping to a next-segment waypoint that is
-  // geometrically closer but physically unreaached.
-  // Exception: if current_idx_ is already at seg_end (single-waypoint segment
-  // or robot has reached the boundary), open search to the full path so the
-  // index can advance into the next segment.
+  // geometrically closer but physically unreached.
+  // Open to the full path once the robot has passed seg_end in the travel
+  // direction — detected by the projection of (robot - seg_end) onto the
+  // segment tangent being positive (robot is ahead of the junction).
   const size_t seg_end = segmentEndIndex(current_idx_);
-  const size_t search_end = (current_idx_ >= seg_end)
-    ? poses.size() - 1
-    : seg_end;
+  bool past_seg_end = (current_idx_ >= seg_end);
+  if (!past_seg_end && seg_end < poses.size()) {
+    const auto & sep = poses[seg_end].pose.position;
+    const double seg_yaw = tangentYaw(seg_end);
+    const double proj = std::cos(seg_yaw) * (px - sep.x) + std::sin(seg_yaw) * (py - sep.y);
+    if (proj > 0.0) past_seg_end = true;
+  }
+  const size_t search_end = past_seg_end ? poses.size() - 1 : seg_end;
 
   for (size_t i = current_idx_; i <= search_end; ++i) {
     const auto & p = poses[i].pose.position;
