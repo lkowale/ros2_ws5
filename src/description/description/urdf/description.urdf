@@ -73,27 +73,29 @@
   </link>
 
   <!-- base_footprint is at the rear axle centre (Ackermann pivot, RS planning reference).
-       base_link (chassis box) is wheelbase/2 - wheel_radius = 0.40m ahead of the rear axle. -->
+       base_link (chassis box) centre is wheelbase/2 = 0.60m ahead of the rear axle.
+       Wheel joints at ±wheelbase/2 from base_link → axle-to-axle = wheelbase = 1.20m,
+       consistent with the AckermannSteering plugin wheel_base parameter. -->
   <joint name="base_joint" type="fixed">
     <parent link="base_footprint"/>
     <child link="base_link"/>
-    <origin xyz="${wheelbase/2 - wheel_radius} 0.0 ${(wheel_radius+wheel_zoff)}" rpy="0 0 0"/>
+    <origin xyz="${wheelbase/2} 0.0 ${(wheel_radius+wheel_zoff)}" rpy="0 0 0"/>
   </joint>
 
   <xacro:limo_left_steering_hinge parent_prefix="base_link" wheel_prefix="front_left">
-    <origin xyz="${wheelbase/2-wheel_radius} ${track/2} ${wheel_vertical_offset}" rpy="0 0  0" />
+    <origin xyz="${wheelbase/2} ${track/2} ${wheel_vertical_offset}" rpy="0 0  0" />
   </xacro:limo_left_steering_hinge>
 
   <xacro:limo_right_steering_hinge parent_prefix="base_link" wheel_prefix="front_right">
-    <origin xyz="${wheelbase/2-wheel_radius} ${-track/2} ${wheel_vertical_offset}" rpy="${M_PI} 0 0" />
+    <origin xyz="${wheelbase/2} ${-track/2} ${wheel_vertical_offset}" rpy="${M_PI} 0 0" />
   </xacro:limo_right_steering_hinge>
 
     <xacro:limo_wheel parent_prefix="base_link" wheel_prefix="rear_left" reflect="1" fixed_on="false">
-        <origin xyz="${-wheelbase/2+wheel_radius} ${track/2} ${wheel_vertical_offset}" rpy="0 0 0" />
+        <origin xyz="${-wheelbase/2} ${track/2} ${wheel_vertical_offset}" rpy="0 0 0" />
     </xacro:limo_wheel>
 
     <xacro:limo_wheel parent_prefix="base_link" wheel_prefix="rear_right" reflect="-1" fixed_on="false">
-        <origin xyz="${-wheelbase/2+wheel_radius} ${-track/2} ${wheel_vertical_offset}" rpy="${M_PI} 0 0" />
+        <origin xyz="${-wheelbase/2} ${-track/2} ${wheel_vertical_offset}" rpy="${M_PI} 0 0" />
     </xacro:limo_wheel>
 
 <!--              "imu_link"                  -->    
@@ -288,15 +290,16 @@
         <right_joint>rear_right_wheel</right_joint>
         <left_steering_joint>front_left_steering</left_steering_joint>
         <right_steering_joint>front_right_steering</right_steering_joint>
-        <kingpin_width>0.6</kingpin_width>
-        <steering_limit>0.7</steering_limit>
-        <wheel_base>${wheelbase}</wheel_base>
-        <wheel_separation>0.77</wheel_separation>
+        <kingpin_width>${track}</kingpin_width>
+        <steering_limit>0.610865</steering_limit>
+        <wheel_base>1.33</wheel_base>
+        <wheel_separation>${track}</wheel_separation>
         <wheel_radius>${wheel_radius}</wheel_radius>
         <min_velocity>-5</min_velocity>
         <max_velocity>5</max_velocity>
         <min_acceleration>-3</min_acceleration>
         <max_acceleration>3</max_acceleration>
+        <steer_p_gain>100</steer_p_gain>
         <topic>cmd_vel_ackermann</topic>
 
 
