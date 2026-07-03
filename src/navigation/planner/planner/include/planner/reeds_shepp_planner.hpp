@@ -52,8 +52,9 @@ private:
   nav2_util::LifecycleNode::SharedPtr node_;
   std::string global_frame_;
   std::string name_;
-  double rho_;   // min turning radius
-  double step_;  // interpolation resolution
+  double rho_;       // min turning radius
+  double step_;      // interpolation resolution
+  double lead_len_;  // straight lead-in/out length at direction reversals
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr fwd_pub_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr rev_pub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr constraint_sub_;

@@ -136,9 +136,13 @@ void ReedsSheppPlanner::configure(
   nav2_util::declare_parameter_if_not_declared(
     node_, name_ + ".interpolation_resolution",
     rclcpp::ParameterValue(0.05));
+  nav2_util::declare_parameter_if_not_declared(
+    node_, name_ + ".reversal_lead_length",
+    rclcpp::ParameterValue(0.5));
 
   node_->get_parameter(name_ + ".min_turning_radius", rho_);
   node_->get_parameter(name_ + ".interpolation_resolution", step_);
+  node_->get_parameter(name_ + ".reversal_lead_length", lead_len_);
 
   auto pub_qos = rclcpp::QoS(1).transient_local();
   fwd_pub_ = node_->create_publisher<nav_msgs::msg::Path>("/plan_forward", pub_qos);
@@ -171,7 +175,8 @@ void ReedsSheppPlanner::configure(
     });
 
   RCLCPP_INFO(node_->get_logger(),
-    "ReedsSheppPlanner configured (OMPL backend): rho=%.2f m  step=%.3f m", rho_, step_);
+    "ReedsSheppPlanner configured (OMPL backend): rho=%.2f m  step=%.3f m  lead=%.2f m",
+    rho_, step_, lead_len_);
 }
 
 void ReedsSheppPlanner::cleanup() {}
@@ -182,6 +187,46 @@ void ReedsSheppPlanner::deactivate() {}
 // Propagates from (sx,sy,syaw) in OMPL space.
 // If mirror_result is true, reflects each waypoint across the line through
 // (mx,my) at angle mirror_yaw back into world frame.
+// Emit `dist` metres of straight travel in direction `rev` from current (cx,cy,cyaw).
+// Appends to path, fwd_path/rev_path, advances cx/cy. cyaw is unchanged (straight).
+static void emitStraight(
+  double dist, bool rev, double step,
+  bool mirror_result, double mx, double my, double mirror_yaw,
+  const std_msgs::msg::Header & hdr,
+  double & cx, double & cy, double cyaw,
+  nav_msgs::msg::Path & path,
+  nav_msgs::msg::Path & fwd_path,
+  nav_msgs::msg::Path & rev_path)
+{
+  using T = ompl::base::ReedsSheppStateSpace::ReedsSheppPathSegmentType;
+  const std::size_t before = path.poses.size();
+  double travelled = 0.0;
+  while (travelled + step < dist - 1e-9) {
+    stepPose(T::RS_STRAIGHT, rev ? -step : step, 1.0, cx, cy, cyaw);
+    travelled += step;
+    double wx = cx, wy = cy, wyaw = cyaw;
+    if (mirror_result) { mirrorPoint(mx, my, mirror_yaw, cx, cy, wx, wy); wyaw = mirrorYaw(mirror_yaw, cyaw); }
+    geometry_msgs::msg::PoseStamped p; p.header = hdr;
+    p.pose.position.x = wx; p.pose.position.y = wy; p.pose.position.z = 0.0;
+    p.pose.orientation = yawToQuat(wyaw);
+    path.poses.push_back(p);
+  }
+  const double remaining = dist - travelled;
+  if (remaining > 1e-9) {
+    stepPose(T::RS_STRAIGHT, rev ? -remaining : remaining, 1.0, cx, cy, cyaw);
+    double wx = cx, wy = cy, wyaw = cyaw;
+    if (mirror_result) { mirrorPoint(mx, my, mirror_yaw, cx, cy, wx, wy); wyaw = mirrorYaw(mirror_yaw, cyaw); }
+    geometry_msgs::msg::PoseStamped p; p.header = hdr;
+    p.pose.position.x = wx; p.pose.position.y = wy; p.pose.position.z = 0.0;
+    p.pose.orientation = yawToQuat(wyaw);
+    path.poses.push_back(p);
+  }
+  for (std::size_t k = before; k < path.poses.size(); ++k) {
+    if (rev) rev_path.poses.push_back(path.poses[k]);
+    else     fwd_path.poses.push_back(path.poses[k]);
+  }
+}
+
 static void sampleRsPath(
   const ompl::base::ReedsSheppStateSpace::ReedsSheppPath & rs_path,
   double rho, double step,
@@ -192,19 +237,26 @@ static void sampleRsPath(
   nav_msgs::msg::Path & path,
   nav_msgs::msg::Path & fwd_path,
   nav_msgs::msg::Path & rev_path,
-  std::string & seg_str)
+  std::string & seg_str,
+  double lead_len = 0.0)
 {
   using T = ompl::base::ReedsSheppStateSpace::ReedsSheppPathSegmentType;
 
   double cx = sx, cy = sy, cyaw = syaw;
 
+  // Collect active segments first so we can look ahead for direction reversals.
+  struct Seg { T type; double seg_m; };
+  std::vector<Seg> segs;
   for (int i = 0; i < 5; ++i) {
     const T      type    = rs_path.type_[i];
     const double seg_len = rs_path.length_[i];
-
     if (type == T::RS_NOP || std::abs(seg_len) < 1e-9) continue;
+    segs.push_back({type, seg_len * rho});
+  }
 
-    const double seg_m = seg_len * rho;
+  for (std::size_t i = 0; i < segs.size(); ++i) {
+    const T      type  = segs[i].type;
+    const double seg_m = segs[i].seg_m;
     const bool   rev   = (seg_m < 0.0);
     const double dist  = std::abs(seg_m);
 
@@ -257,6 +309,26 @@ static void sampleRsPath(
     for (std::size_t k = before; k < path.poses.size(); ++k) {
       if (rev) rev_path.poses.push_back(path.poses[k]);
       else     fwd_path.poses.push_back(path.poses[k]);
+    }
+
+    // Insert lead-out + lead-in straights at direction reversals.
+    if (lead_len > 1e-9 && i + 1 < segs.size()) {
+      const bool next_rev = (segs[i + 1].seg_m < 0.0);
+      if (next_rev != rev) {
+        // Lead-out: continue in current direction (straight, same rev).
+        seg_str += (rev ? '-' : '+');
+        seg_str += "S_out(";
+        char lb[16]; std::snprintf(lb, sizeof(lb), "%.2fm) ", lead_len); seg_str += lb;
+        emitStraight(lead_len, rev, step, mirror_result, mx, my, mirror_yaw,
+          hdr, cx, cy, cyaw, path, fwd_path, rev_path);
+
+        // Lead-in: advance in next direction (straight, next_rev).
+        seg_str += (next_rev ? '-' : '+');
+        seg_str += "S_in(";
+        std::snprintf(lb, sizeof(lb), "%.2fm) ", lead_len); seg_str += lb;
+        emitStraight(lead_len, next_rev, step, mirror_result, mx, my, mirror_yaw,
+          hdr, cx, cy, cyaw, path, fwd_path, rev_path);
+      }
     }
   }
 }
@@ -354,7 +426,7 @@ nav_msgs::msg::Path ReedsSheppPlanner::createPlan(
   // Sample the direct path first.
   sampleRsPath(rs_path, rho_, step_, sx, sy, syaw, false,
     sx, sy, syaw,
-    path.header, path, fwd_path, rev_path, seg_str);
+    path.header, path, fwd_path, rev_path, seg_str, lead_len_);
 
   if (use_mirror) {
     // Check if the sampled path actually starts forward by examining the
@@ -377,7 +449,7 @@ nav_msgs::msg::Path ReedsSheppPlanner::createPlan(
       std::string seg_fwd;
       sampleRsPath(rs_fwd, rho_, step_, sx, sy, syaw, false,
         sx, sy, syaw,
-        path.header, path, fwd_path, rev_path, seg_fwd);
+        path.header, path, fwd_path, rev_path, seg_fwd, lead_len_);
       seg_str = "[fwd] " + seg_fwd;
       RCLCPP_INFO(node_->get_logger(), "RS fwd-first: negated to %s", seg_str.c_str());
     }
