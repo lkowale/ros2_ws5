@@ -54,7 +54,6 @@ private:
   std::string name_;
   double rho_;           // min turning radius
   double step_;          // interpolation resolution
-  double lead_len_;      // straight lead-in/out length at direction reversals
   double overshoot_len_; // path extension past goal so lookahead never runs out
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr fwd_pub_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr rev_pub_;
