@@ -74,10 +74,18 @@ if [[ "${1:-}" == "line" ]]; then
     _set_cli_cyclone
     FIELD="${2:-test_line}"
     LOG_FILE="$HOME/ros2_ws5/logs/m3_sim/latest.log"
+
+    python3 "$HOME/ros2_ws5/rs_controller_logger.py" &
+    LOGGER_PID=$!
+    sleep 2
+
     echo "RunOneLine: field=$FIELD" | tee -a "$LOG_FILE"
     ros2 action send_goal /run_one_line solbot5_msgs/action/RunOneLine \
         "{field_name: '$FIELD'}" \
         --feedback 2>&1 | tee -a "$LOG_FILE" || true
+
+    kill "$LOGGER_PID" 2>/dev/null || true
+    wait "$LOGGER_PID" 2>/dev/null || true
     exit 0
 fi
 
