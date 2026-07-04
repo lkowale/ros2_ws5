@@ -86,8 +86,9 @@
                 <Sequence>
                   <SetStage stage="turn" stage_out="{stage}"/>
 
-                  <!-- Constrain RS planner to headland side using current swath axis -->
-                  <SetRsPlannerConstraints turn_side="{turn_direction}" map_points="{map_points}"/>
+                  <!-- Constrain RS planner to headland side; pass boundary for inland-crossing check -->
+                  <SetRsPlannerConstraints turn_side="{turn_direction}" map_points="{map_points}"
+                      headland_sw="{headland_sw}" headland_ne="{headland_ne}"/>
 
                   <!-- Advance to next line to get turn goal (next swath start) -->
                   <NextFieldLine

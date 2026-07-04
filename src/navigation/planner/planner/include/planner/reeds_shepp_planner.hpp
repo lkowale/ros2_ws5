@@ -63,6 +63,9 @@ private:
   std::string turn_side_constraint_;  // "left", "right", or ""
   double      swath_yaw_constraint_{0.0};
   bool        force_forward_first_{false};
+  bool        have_boundary_{false};
+  double      boundary_x_{0.0};      // map-frame headland boundary point
+  double      boundary_y_{0.0};
 };
 
 }  // namespace planner

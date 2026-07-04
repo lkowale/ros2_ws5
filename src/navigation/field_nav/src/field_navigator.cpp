@@ -107,6 +107,23 @@ bool FieldNavigator::loadDirectedLinesFromFile(
       lines.push_back(line);
     }
 
+    // Load headland boundaries from FeatureCollection properties (optional)
+    headland_boundaries_.valid = false;
+    if (j.contains("properties") && !j["properties"].is_null()) {
+      const auto & props = j["properties"];
+      if (props.contains("headland_sw") && props.contains("headland_ne")) {
+        headland_boundaries_.sw.longitude = props["headland_sw"][0].get<double>();
+        headland_boundaries_.sw.latitude  = props["headland_sw"][1].get<double>();
+        headland_boundaries_.ne.longitude = props["headland_ne"][0].get<double>();
+        headland_boundaries_.ne.latitude  = props["headland_ne"][1].get<double>();
+        headland_boundaries_.valid = true;
+        RCLCPP_INFO(logger_,
+          "Headland boundaries: SW=[%.8f,%.8f] NE=[%.8f,%.8f]",
+          headland_boundaries_.sw.longitude, headland_boundaries_.sw.latitude,
+          headland_boundaries_.ne.longitude, headland_boundaries_.ne.latitude);
+      }
+    }
+
     RCLCPP_INFO(logger_, "Loaded %zu lines from %s", lines.size(), file_path.c_str());
     return true;
   } catch (const std::exception & e) {
@@ -280,6 +297,12 @@ bool FieldNavigator::goalReceived(ActionT::Goal::ConstSharedPtr goal)
 
   // Store all lines for BT access
   blackboard->set<std::vector<FieldLine>>("field_lines", field_lines_);
+
+  // Headland boundaries (if present in geojson) — published as individual GeoPoints
+  if (headland_boundaries_.valid) {
+    blackboard->set<geographic_msgs::msg::GeoPoint>("headland_sw", headland_boundaries_.sw);
+    blackboard->set<geographic_msgs::msg::GeoPoint>("headland_ne", headland_boundaries_.ne);
+  }
 
   RCLCPP_INFO(logger_, "FieldNavigator received goal:");
   RCLCPP_INFO(logger_, "Field: %s, Total lines: %d, Starting at line: %d",

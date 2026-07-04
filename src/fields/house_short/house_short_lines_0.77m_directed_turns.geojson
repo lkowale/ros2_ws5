@@ -1,5 +1,9 @@
 {
   "type": "FeatureCollection",
+  "properties": {
+    "headland_sw": [17.825876842864, 53.520434530850],
+    "headland_ne": [17.826092429417, 53.520401376839]
+  },
   "features": [
     {
       "type": "Feature",
