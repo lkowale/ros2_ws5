@@ -48,10 +48,18 @@ if [[ "${1:-}" == "field" ]]; then
         exit 1
     fi
     NLINES=$(python3 -c "import json,sys; d=json.load(open('$GEOJSON')); print(len(d['features']))" 2>/dev/null || echo "?")
+
+    python3 "$HOME/ros2_ws5/rs_controller_logger.py" &
+    LOGGER_PID=$!
+    sleep 2
+
     echo "RunField: field=$FIELD  start_line=$START  lines=$NLINES  ($GEOJSON)"
     ros2 action send_goal /run_field solbot5_msgs/action/RunField \
         "{field_name: '$FIELD', start_line_index: $START}" \
-        --feedback
+        --feedback || true
+
+    kill "$LOGGER_PID" 2>/dev/null || true
+    wait "$LOGGER_PID" 2>/dev/null || true
     exit 0
 fi
 

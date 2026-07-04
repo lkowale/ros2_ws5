@@ -139,3 +139,20 @@ displays:
       qos_history: 1
       qos_reliability: 1
       qos_durability: 2
+  - type: mapviz_plugins/pose
+    name: lookahead point (cyan dot)
+    config:
+      visible: true
+      collapsed: false
+      topic: /rs_ctrl_lookahead
+      color: "#00ffff"
+      draw_style: points
+      position_tolerance: 0
+      buffer_size: 1
+      show_laps: false
+      static_arrow_sizes: true
+      arrow_size: 20
+      qos_depth: 1
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 1

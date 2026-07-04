@@ -2,15 +2,16 @@
   Field Navigation BT — Simulation variant for solbot5
 
   Uses inline ComputePathToPose/FollowPath for approach and swath legs
-  (no external action servers needed). RS planner for headland turns.
+  (no external action servers needed). RS planner headland turns.
 
-  Turn flow:
-    1. Advance to next line (NextFieldLine → geo_points/map_points updated)
-    2. SetRsPlannerConstraints — enforce forward-first turn into headland
-    3. ComputePathToPose (GridBased) — RS planner plans the turn path
-    4. ClearRsPlannerConstraints
-    5. FollowPath (arc_goal_checker)
-    6. Stage advances to swath next iteration
+  Turn flow (sim):
+    1. NextFieldLine — advance index and set geo_points to NEXT swath start
+    2. ComputePathToPose (ReedsShepp) — plan RS turn to next swath start
+    3. FollowPath (arc_goal_checker) — execute turn
+    4. SetStage("approach") — next iteration runs approach+swath for new line
+
+  After turn the line index is already advanced — "Move to next line" is removed
+  to avoid the double-advance bug that skipped swath 1 in the original design.
 -->
 <root BTCPP_format="4" main_tree_to_execute="FieldNav">
   <BehaviorTree ID="FieldNav">
@@ -103,8 +104,8 @@
                               goal_checker_id="arc_goal_checker"
                               error_code_id="{turn_follow_error}"/>
 
-                  <!-- Turn consumed the approach — start at swath next iteration -->
-                  <SetStage stage="swath" stage_out="{stage}"/>
+                  <!-- Turn positioned robot at next swath start — run approach+swath next -->
+                  <SetStage stage="approach" stage_out="{stage}"/>
                   <SaveFieldProgress
                       fields_directory="{fields_directory}"
                       field_name="{field_name}"
@@ -113,23 +114,13 @@
                 </Sequence>
               </Fallback>
 
-              <!-- Check field complete -->
+              <!-- Field complete: fires only after last swath (turn skipped with turn_direction="end") -->
               <Fallback name="Check field complete">
-                <Sequence name="Move to next line">
-                  <Inverter>
-                    <CheckSkipTurn turn_direction="{turn_direction}"/>
-                  </Inverter>
-                  <NextFieldLine
-                      field_lines="{field_lines}"
-                      current_line_index="{current_line_index}"
-                      total_lines="{total_lines}"
-                      next_line_index="{current_line_index}"
-                      geo_points="{geo_points}"
-                      turn_direction="{turn_direction}"
-                      all_lines_completed="{all_lines_completed}"/>
-                  <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
-                  <SetStage stage="approach" stage_out="{stage}"/>
-                </Sequence>
+                <!-- Not done: turn_direction != "end" means more swaths remain; continue loop -->
+                <Inverter>
+                  <CheckSkipTurn turn_direction="{turn_direction}"/>
+                </Inverter>
+                <!-- Done: clear progress, signal completion, break loop -->
                 <Sequence name="Field complete">
                   <ClearFieldProgress
                       fields_directory="{fields_directory}"
