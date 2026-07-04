@@ -1,0 +1,28 @@
+<!--
+  Approach Swath Behavior Tree (SubTree)
+
+  Navigates to the start of a swath defined by map_points (poses in map frame).
+  Extracts goal_pose from map_points[0].
+
+  Can be used standalone or included as SubTree in other behavior trees.
+
+  Blackboard variables:
+    Input:
+      - map_points: vector of PoseStamped in map frame
+      - approach_planner_id: string (planner plugin to use)
+      - approach_controller_id: string (controller plugin to use)
+      - approach_path_pub_topic: string (topic to publish path)
+-->
+<root BTCPP_format="4" main_tree_to_execute="ApproachSwath">
+  <BehaviorTree ID="ApproachSwath">
+    <Sequence>
+      <!-- Extract goal_pose from map_points -->
+      <GetPoseFromPoses poses="{map_points}" pose="{approach_goal_pose}" index="0"/>
+      <!-- Compute path to goal pose -->
+      <ComputePathToPose goal="{approach_goal_pose}" path="{approach_path}" planner_id="{approach_planner_id}" error_code_id="{approach_compute_error}"/>
+      <PublishPath topic_name="{approach_path_pub_topic}" path="{approach_path}"/>
+      <!-- Follow path to goal -->
+      <FollowPath path="{approach_path}" controller_id="{approach_controller_id}" error_code_id="{approach_follow_error}"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

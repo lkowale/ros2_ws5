@@ -1,0 +1,10 @@
+<class_libraries>
+  <library path="field_navigator">
+    <class
+      name="field_nav/FieldNavigator"
+      type="field_nav::FieldNavigator"
+      base_class_type="nav2_core::NavigatorBase">
+      <description>Field Navigator for traversing multiple parallel lines from directed_lines.json</description>
+    </class>
+  </library>
+</class_libraries>

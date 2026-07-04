@@ -15,8 +15,9 @@ bt_navigator:
     wait_for_service_timeout: 1000
     action_server_result_timeout: 900.0
     default_nav_to_pose_bt_xml: "/home/aa/ros2_ws5/src/navigation/nav2_bringup/behavior_trees/navigate_plan_once.xml"
+    default_field_bt_xml: "/home/aa/ros2_ws5/src/navigation/field_nav/behavior_trees/field_nav_sim.xml"
     always_reload_bt_xml: true
-    navigators: ["navigate_to_pose", "navigate_through_poses", "run_one_line", "run_rs_test"]
+    navigators: ["navigate_to_pose", "navigate_through_poses", "run_one_line", "run_rs_test", "run_field", "approach_swath", "run_geojson_line"]
     navigate_to_pose:
       plugin: "nav2_bt_navigator::NavigateToPoseNavigator"
     navigate_through_poses:
@@ -26,10 +27,27 @@ bt_navigator:
       fields_directory: "/home/aa/ros2_ws5/src/fields"
     run_rs_test:
       plugin: "rs_test_nav/RsTestNavigator"
+    run_field:
+      plugin: "field_nav/FieldNavigator"
+      fields_directory: "/home/aa/ros2_ws5/src/fields"
+    approach_swath:
+      plugin: "approach_swath_nav/ApproachSwathNavigator"
+    run_geojson_line:
+      plugin: "geojson_line_nav/GeoJsonLineNavigator"
     plugin_lib_names:
       - one_line_bt_nodes
       - drive_arc_bt_node
       - rs_test_bt_nodes
+      - approach_swath_action_bt_node
+      - run_swath_action_bt_node
+      - set_stage_bt_node
+      - check_stage_bt_node
+      - load_field_progress_bt_node
+      - save_field_progress_bt_node
+      - next_field_line_bt_node
+      - get_turn_sequence_bt_node
+      - clear_one_line_progress_bt_node
+      - publish_path_bt_node
     error_code_names:
       - compute_path_error_code
       - follow_path_error_code
@@ -112,12 +130,16 @@ planner_server:
     # (no sensors) the costmap updates at 1 Hz; raise the timeout so it doesn't
     # abort before the first update arrives.
     costmap_update_timeout: 5.0
-    planner_plugins: ["GridBased", "StraightLine", "SwathTurn1", "SwathTurn2", "SwathTurn3"]
+    planner_plugins: ["GridBased", "ReedsShepp", "StraightLine", "SwathTurn1", "SwathTurn2", "SwathTurn3"]
     GridBased:
       plugin: "planner/ReedsSheppPlanner"
       min_turning_radius: 3.0
       interpolation_resolution: 0.05
       reverse_leadout_length: 0.5
+    ReedsShepp:
+      plugin: "universal_rs_planner/UniversalReedsSheppPlanner"
+      min_turning_radius: 3.0
+      interpolation_resolution: 0.05
     StraightLine:
       plugin: "nav2_straightline_planner/StraightLine"
       interpolation_resolution: 0.05

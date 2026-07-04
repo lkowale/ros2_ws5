@@ -1,0 +1,10 @@
+<class_libraries>
+  <library path="approach_swath_navigator">
+    <class
+      name="approach_swath_nav/ApproachSwathNavigator"
+      type="approach_swath_nav::ApproachSwathNavigator"
+      base_class_type="nav2_core::NavigatorBase">
+      <description>Approach Swath Navigator for navigating to swath start point</description>
+    </class>
+  </library>
+</class_libraries>

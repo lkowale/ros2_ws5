@@ -11,6 +11,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/RunOneLine.action"
   "action/DriveArc.action"
   "action/RunRsTest.action"
+  "action/RunField.action"
+  "action/RunApproachSwath.action"
+  "action/RunSwath.action"
+  "action/RunGeoJsonLine.action"
   DEPENDENCIES std_msgs geometry_msgs geographic_msgs builtin_interfaces
 )
 

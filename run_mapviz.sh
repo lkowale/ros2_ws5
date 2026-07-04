@@ -50,6 +50,7 @@ fi
 #   bash run_mapviz.sh <file.mvc>   — explicit config file in nav2_bringup/config/
 #   bash run_mapviz.sh line         — one-line navigator view (mapviz_line.mvc)
 #   bash run_mapviz.sh rs           — RS planner test view  (mapviz_rs_test.mvc)
+#   bash run_mapviz.sh field        — field navigator view  (mapviz_field.mvc)
 #   M=3 bash run_mapviz.sh          — mapviz_m3.mvc
 CONFIG_DIR="$HOME/ros2_ws5/src/navigation/nav2_bringup/config"
 if [ -n "${CONFIG:-}" ]; then
@@ -58,6 +59,8 @@ elif [ "${1:-}" = "line" ]; then
     CONFIG="$CONFIG_DIR/mapviz_line.mvc"
 elif [ "${1:-}" = "rs" ]; then
     CONFIG="$CONFIG_DIR/mapviz_rs_test.mvc"
+elif [ "${1:-}" = "field" ]; then
+    CONFIG="$CONFIG_DIR/mapviz_field.mvc"
 elif [ -n "${1:-}" ] && [ -f "$CONFIG_DIR/${1}" ]; then
     CONFIG="$CONFIG_DIR/${1}"
 else

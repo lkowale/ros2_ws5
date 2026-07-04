@@ -1,0 +1,17 @@
+# Goal - navigate through a swath defined by map points (poses in map frame)
+geometry_msgs/PoseStamped[] map_points
+string planner_id
+string controller_id
+string path_pub_topic
+string behavior_tree
+---
+# Result
+uint16 error_code
+uint16 NONE=0
+uint16 CANCELLED=1
+uint16 FAILED=2
+---
+# Feedback
+float32 distance_traveled
+float32 total_distance
+uint32 current_waypoint

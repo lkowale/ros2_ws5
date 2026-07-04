@@ -1,0 +1,152 @@
+<!--
+  Field Navigation BT — Simulation variant for solbot5
+
+  Uses inline ComputePathToPose/FollowPath for approach and swath legs
+  (no external action servers needed). RS planner for headland turns.
+
+  Turn flow:
+    1. Advance to next line (NextFieldLine → geo_points/map_points updated)
+    2. SetRsPlannerConstraints — enforce forward-first turn into headland
+    3. ComputePathToPose (GridBased) — RS planner plans the turn path
+    4. ClearRsPlannerConstraints
+    5. FollowPath (arc_goal_checker)
+    6. Stage advances to swath next iteration
+-->
+<root BTCPP_format="4" main_tree_to_execute="FieldNav">
+  <BehaviorTree ID="FieldNav">
+    <Sequence>
+      <SetBlackboard output_key="field_complete" value="0"/>
+
+      <Fallback name="Initialize">
+        <LoadFieldProgress
+            fields_directory="{fields_directory}"
+            field_name="{field_name}"
+            field_lines="{field_lines}"
+            current_line_index="{current_line_index}"
+            stage="{stage}"
+            geo_points="{geo_points}"
+            turn_direction="{turn_direction}"
+            has_progress="{has_progress}"/>
+        <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
+      </Fallback>
+
+      <Fallback>
+        <Inverter>
+          <ForceSuccess>
+            <Script code=" has_progress "/>
+          </ForceSuccess>
+        </Inverter>
+        <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
+      </Fallback>
+
+      <Fallback name="TraverseFieldWithSuccessCheck">
+        <KeepRunningUntilFailure>
+          <ReactiveSequence>
+
+            <Sequence name="TraverseLine">
+
+              <!-- APPROACH STAGE -->
+              <Fallback name="Approach or skip">
+                <CheckStagePast stage="{stage}" check="approach"/>
+                <Sequence>
+                  <SetStage stage="approach" stage_out="{stage}"/>
+                  <GetPoseFromPoses poses="{map_points}" pose="{approach_goal}" index="0"/>
+                  <ComputePathToPose goal="{approach_goal}" path="{approach_path}"
+                                     planner_id="ReedsShepp"
+                                     error_code_id="{approach_error_code}"/>
+                  <PublishPath topic_name="to_start_path" path="{approach_path}"/>
+                  <FollowPath path="{approach_path}" controller_id="FollowPath"
+                              goal_checker_id="arc_goal_checker"
+                              error_code_id="{approach_follow_error}"/>
+                </Sequence>
+              </Fallback>
+
+              <!-- SWATH STAGE -->
+              <Fallback name="Swath or skip">
+                <CheckStagePast stage="{stage}" check="swath"/>
+                <Sequence>
+                  <SetStage stage="swath" stage_out="{stage}"/>
+                  <ComputePathThroughPoses goals="{map_points}" path="{swath_path}"
+                                           planner_id="StraightLine"
+                                           error_code_id="{swath_error_code}"/>
+                  <PublishPath topic_name="swath_path" path="{swath_path}"/>
+                  <FollowPath path="{swath_path}" controller_id="SwathFollow"
+                              goal_checker_id="swath_goal_checker"
+                              error_code_id="{swath_follow_error}"/>
+                </Sequence>
+              </Fallback>
+
+              <!-- TURN STAGE - Skip if last line (turn_direction == "end") -->
+              <Fallback name="Turn or end">
+                <CheckStagePast stage="{stage}" check="turn"/>
+                <CheckSkipTurn turn_direction="{turn_direction}"/>
+                <Sequence>
+                  <SetStage stage="turn" stage_out="{stage}"/>
+
+                  <!-- Advance to next line to get turn goal (next swath start) -->
+                  <NextFieldLine
+                      field_lines="{field_lines}"
+                      current_line_index="{current_line_index}"
+                      total_lines="{total_lines}"
+                      next_line_index="{current_line_index}"
+                      geo_points="{geo_points}"
+                      turn_direction="{turn_direction}"
+                      all_lines_completed="{all_lines_completed}"/>
+                  <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
+                  <GetPoseFromPoses poses="{map_points}" pose="{turn_goal_pose}" index="0"/>
+
+                  <!-- RS planner turn: forward-first enforced by planner param -->
+                  <ComputePathToPose goal="{turn_goal_pose}" path="{turn_path}"
+                                     planner_id="ReedsShepp"
+                                     error_code_id="{turn_compute_error}"/>
+                  <FollowPath path="{turn_path}" controller_id="FollowPath"
+                              goal_checker_id="arc_goal_checker"
+                              error_code_id="{turn_follow_error}"/>
+
+                  <!-- Turn consumed the approach — start at swath next iteration -->
+                  <SetStage stage="swath" stage_out="{stage}"/>
+                  <SaveFieldProgress
+                      fields_directory="{fields_directory}"
+                      field_name="{field_name}"
+                      current_line_index="{current_line_index}"
+                      stage="{stage}"/>
+                </Sequence>
+              </Fallback>
+
+              <!-- Check field complete -->
+              <Fallback name="Check field complete">
+                <Sequence name="Move to next line">
+                  <Inverter>
+                    <CheckSkipTurn turn_direction="{turn_direction}"/>
+                  </Inverter>
+                  <NextFieldLine
+                      field_lines="{field_lines}"
+                      current_line_index="{current_line_index}"
+                      total_lines="{total_lines}"
+                      next_line_index="{current_line_index}"
+                      geo_points="{geo_points}"
+                      turn_direction="{turn_direction}"
+                      all_lines_completed="{all_lines_completed}"/>
+                  <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
+                  <SetStage stage="approach" stage_out="{stage}"/>
+                </Sequence>
+                <Sequence name="Field complete">
+                  <ClearFieldProgress
+                      fields_directory="{fields_directory}"
+                      field_name="{field_name}"/>
+                  <SetBlackboard output_key="field_complete" value="1"/>
+                  <ForceFailure>
+                    <AlwaysSuccess/>
+                  </ForceFailure>
+                </Sequence>
+              </Fallback>
+
+            </Sequence>
+          </ReactiveSequence>
+        </KeepRunningUntilFailure>
+
+        <ScriptCondition code=" field_complete == 1 "/>
+      </Fallback>
+    </Sequence>
+  </BehaviorTree>
+</root>

@@ -1,0 +1,19 @@
+# Goal - run through multiple parallel lines defined in directed_lines.json
+# The file contains an array of lines with start/end lat/lon coordinates and turn direction
+string field_name  # Load coordinates from {fields_directory}/{field_name}/directed_lines.json
+string behavior_tree
+int32 start_line_index  # Optional: start from specific line index (0 = first line, -1 = resume from progress)
+---
+# Result - only returned if stopped or error
+uint16 error_code
+uint16 NONE=0
+uint16 CANCELLED=1
+uint16 FAILED=2
+int32 lines_completed
+---
+# Feedback
+int32 current_line_index
+int32 total_lines
+string current_stage  # approach, swath, turn
+float32 distance_traveled
+float32 total_distance

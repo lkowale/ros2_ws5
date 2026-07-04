@@ -1,0 +1,21 @@
+# Goal - approach the start of a swath defined by map_points (poses in map frame)
+geometry_msgs/PoseStamped[] map_points
+string planner_id
+string controller_id
+string path_pub_topic
+string behavior_tree
+# Optional explicit goal override (replaces map_points[0] as the goal pose)
+geometry_msgs/PoseStamped goal_override
+bool use_goal_override
+# Optional explicit start override (replaces TF lookup as path start)
+geometry_msgs/PoseStamped start_override
+bool use_start_override
+---
+# Result
+uint16 error_code
+uint16 NONE=0
+uint16 CANCELLED=1
+uint16 FAILED=2
+---
+# Feedback
+float32 distance_remaining
