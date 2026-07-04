@@ -5,10 +5,12 @@
   (no external action servers needed). RS planner headland turns.
 
   Turn flow (sim):
-    1. NextFieldLine — advance index and set geo_points to NEXT swath start
-    2. ComputePathToPose (ReedsShepp) — plan RS turn to next swath start
-    3. FollowPath (arc_goal_checker) — execute turn
-    4. SetStage("approach") — next iteration runs approach+swath for new line
+    1. SetRsPlannerConstraints — constrain to headland side using current swath axis
+    2. NextFieldLine — advance index and set geo_points to NEXT swath start
+    3. ComputePathToPose (GridBased) — plan RS turn constrained to headland side
+    4. ClearRsPlannerConstraints
+    5. FollowPath (arc_goal_checker) — execute turn
+    6. SetStage("approach") — next iteration runs approach+swath for new line
 
   After turn the line index is already advanced — "Move to next line" is removed
   to avoid the double-advance bug that skipped swath 1 in the original design.
@@ -53,7 +55,7 @@
                   <SetStage stage="approach" stage_out="{stage}"/>
                   <GetPoseFromPoses poses="{map_points}" pose="{approach_goal}" index="0"/>
                   <ComputePathToPose goal="{approach_goal}" path="{approach_path}"
-                                     planner_id="ReedsShepp"
+                                     planner_id="GridBased"
                                      error_code_id="{approach_error_code}"/>
                   <PublishPath topic_name="to_start_path" path="{approach_path}"/>
                   <FollowPath path="{approach_path}" controller_id="FollowPath"
@@ -84,6 +86,9 @@
                 <Sequence>
                   <SetStage stage="turn" stage_out="{stage}"/>
 
+                  <!-- Constrain RS planner to headland side using current swath axis -->
+                  <SetRsPlannerConstraints turn_side="{turn_direction}" map_points="{map_points}"/>
+
                   <!-- Advance to next line to get turn goal (next swath start) -->
                   <NextFieldLine
                       field_lines="{field_lines}"
@@ -96,10 +101,11 @@
                   <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
                   <GetPoseFromPoses poses="{map_points}" pose="{turn_goal_pose}" index="0"/>
 
-                  <!-- RS planner turn: forward-first enforced by planner param -->
+                  <!-- RS planner turn constrained to headland side -->
                   <ComputePathToPose goal="{turn_goal_pose}" path="{turn_path}"
-                                     planner_id="ReedsShepp"
+                                     planner_id="GridBased"
                                      error_code_id="{turn_compute_error}"/>
+                  <ClearRsPlannerConstraints/>
                   <FollowPath path="{turn_path}" controller_id="FollowPath"
                               goal_checker_id="arc_goal_checker"
                               error_code_id="{turn_follow_error}"/>

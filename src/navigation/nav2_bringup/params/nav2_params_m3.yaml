@@ -112,8 +112,8 @@ controller_server:
       plugin: "rs_path_controller/RsPathController"
       desired_linear_vel: 0.5
       max_angular_vel: 0.7       # v*tan(0.7)/1.2 at v=1 m/s
-      min_lookahead_dist: 2.0
-      max_lookahead_dist: 4.0
+      min_lookahead_dist: 1.0
+      max_lookahead_dist: 3.0
       wheelbase: 1.33
       max_steering_angle: 0.610865  # rad (35 deg), matches steering_limit in URDF and joint limits
       sim_steps: 40              # steps in predicted arc
