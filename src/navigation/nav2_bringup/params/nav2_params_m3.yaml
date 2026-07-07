@@ -46,6 +46,7 @@ bt_navigator:
       - save_field_progress_bt_node
       - next_field_line_bt_node
       - get_turn_sequence_bt_node
+      - compute_headland_pose_bt_node
       - clear_one_line_progress_bt_node
       - publish_path_bt_node
     error_code_names:
@@ -79,7 +80,7 @@ controller_server:
       stateful: True
       plugin: "nav2_controller::SimpleGoalChecker"
       xy_goal_tolerance: 0.1
-      yaw_goal_tolerance: 0.2
+      yaw_goal_tolerance: 0.524
 
     swath_goal_checker:
       stateful: True

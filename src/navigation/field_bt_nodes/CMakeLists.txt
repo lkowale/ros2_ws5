@@ -61,6 +61,13 @@ add_library(set_swath_lateral_offset_bt_node SHARED
 ament_target_dependencies(set_swath_lateral_offset_bt_node ${dependencies})
 target_compile_definitions(set_swath_lateral_offset_bt_node PRIVATE BT_PLUGIN_EXPORT)
 
+# ComputeHeadlandPose BT node
+add_library(compute_headland_pose_bt_node SHARED
+  src/compute_headland_pose.cpp
+)
+ament_target_dependencies(compute_headland_pose_bt_node ${dependencies})
+target_compile_definitions(compute_headland_pose_bt_node PRIVATE BT_PLUGIN_EXPORT)
+
 # Install libraries
 install(TARGETS
   load_field_progress_bt_node
@@ -68,6 +75,7 @@ install(TARGETS
   next_field_line_bt_node
   get_turn_sequence_bt_node
   set_swath_lateral_offset_bt_node
+  compute_headland_pose_bt_node
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
@@ -79,6 +87,7 @@ ament_export_libraries(
   next_field_line_bt_node
   get_turn_sequence_bt_node
   set_swath_lateral_offset_bt_node
+  compute_headland_pose_bt_node
 )
 ament_export_dependencies(${dependencies})
 
