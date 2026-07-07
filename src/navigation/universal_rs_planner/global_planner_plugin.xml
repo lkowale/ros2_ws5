@@ -1,0 +1,9 @@
+<library path="universal_rs_planner_plugin">
+  <class name="universal_rs_planner/UniversalReedsSheppPlanner"
+         type="universal_rs_planner::UniversalReedsSheppPlanner"
+         base_class_type="nav2_core::GlobalPlanner">
+    <description>
+      Universal Reeds-Shepp planner — shortest RS path, no turn constraints.
+    </description>
+  </class>
+</library>

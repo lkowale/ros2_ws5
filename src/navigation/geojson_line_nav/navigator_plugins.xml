@@ -1,0 +1,10 @@
+<class_libraries>
+  <library path="geojson_line_navigator">
+    <class
+      name="geojson_line_nav/GeoJsonLineNavigator"
+      type="geojson_line_nav::GeoJsonLineNavigator"
+      base_class_type="nav2_core::NavigatorBase">
+      <description>GeoJSON Line Navigator for navigating along a GeoJSON LineString</description>
+    </class>
+  </library>
+</class_libraries>

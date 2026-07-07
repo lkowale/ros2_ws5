@@ -1,0 +1,190 @@
+<!--
+  Field Navigation Behavior Tree
+
+  Traverses multiple parallel lines from directed_lines.json.
+  Uses approach_swath_action and run_swath_action for each line.
+  At the end of each line, executes turn sequence based on turn direction:
+    - "left": uses turn_left_07.json
+    - "right": uses turn_right_07.json
+    - "end": stops (last line)
+
+  Supports pause/resume with progress persistence to field_progress.json.
+
+  To pause:  ros2 topic pub /pause solbot5_msgs/msg/Pause "{paused: true, source: 'operator', reason: 'Manual pause'}"
+  To resume: ros2 topic pub /pause solbot5_msgs/msg/Pause "{paused: false, source: 'operator', reason: 'Resuming'}"
+
+  Blackboard variables (set by navigator):
+    - field_lines: vector of FieldLine structs
+    - geo_points: current line start/end points
+    - field_name: name of the field
+    - fields_directory: base directory for field files
+    - current_line_index: current line being traversed
+    - total_lines: total number of lines
+    - stage: current stage (approach, swath, turn)
+    - turn_direction: direction for current line's turn
+-->
+<root BTCPP_format="4" main_tree_to_execute="FieldNav">
+  <BehaviorTree ID="FieldNav">
+    <Sequence>
+      <!-- Initialize field_complete flag (0=incomplete, 1=complete) -->
+      <SetBlackboard output_key="field_complete" value="0"/>
+
+      <!-- Try to load saved progress, or use navigator's initial values -->
+      <Fallback name="Initialize">
+        <LoadFieldProgress
+            fields_directory="{fields_directory}"
+            field_name="{field_name}"
+            field_lines="{field_lines}"
+            current_line_index="{current_line_index}"
+            stage="{stage}"
+            geo_points="{geo_points}"
+            turn_direction="{turn_direction}"
+            has_progress="{has_progress}"/>
+        <!-- If no progress, geo_points already set by navigator -->
+        <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
+      </Fallback>
+
+      <!-- Convert geo_points if we loaded from progress -->
+      <Fallback>
+        <Inverter>
+          <ForceSuccess>
+            <Script code=" has_progress "/>
+          </ForceSuccess>
+        </Inverter>
+        <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
+      </Fallback>
+
+      <!-- Main field traversal loop - exits when field_complete is set -->
+      <Fallback name="TraverseFieldWithSuccessCheck">
+        <KeepRunningUntilFailure>
+          <ReactiveSequence>
+            <!-- Check pause state and save progress when paused -->
+            <Fallback>
+              <NotPaused pause_topic="/pause"/>
+              <Sequence name="Save and wait">
+                <ForceSuccess><StopPlanter service_name="/planter_control"/></ForceSuccess>
+                <SaveFieldProgress
+                    fields_directory="{fields_directory}"
+                    field_name="{field_name}"
+                    current_line_index="{current_line_index}"
+                    stage="{stage}"/>
+                <WaitUntilNotPaused pause_topic="/pause"/>
+              </Sequence>
+            </Fallback>
+
+            <Sequence name="TraverseLine">
+              <!-- APPROACH STAGE -->
+              <Fallback name="Approach or skip">
+                <CheckStagePast stage="{stage}" check="approach"/>
+                <Sequence>
+                  <SetStage stage="approach" stage_out="{stage}"/>
+                  <ApproachSwathAction map_points="{map_points}"
+                                       planner_id="StraightLine"
+                                       controller_id="GpsLineFollowerApproach"
+                                       path_pub_topic="to_start_path"
+                                       error_code="{approach_error_code}"/>
+                </Sequence>
+              </Fallback>
+
+              <!-- SWATH STAGE -->
+              <Fallback name="Swath or skip">
+                <CheckStagePast stage="{stage}" check="swath"/>
+                <Sequence>
+                  <SetStage stage="swath" stage_out="{stage}"/>
+                  <SetSwathLateralOffset
+                      field_lines="{field_lines}"
+                      current_line_index="{current_line_index}"
+                      controller_plugin="GpsLineFollower"/>
+                  <HandbrakeEngage/>
+                  <LiftDown service_name="/lift_control"/>
+                  <HandbrakeRelease/>
+                  <ForceSuccess><StartPlanter service_name="/planter_control"/></ForceSuccess>
+                  <RunSwathAction map_points="{map_points}"
+                                  planner_id="StraightLine"
+                                  controller_id="GpsLineFollower"
+                                  path_pub_topic="swath_path"
+                                  error_code="{swath_error_code}"
+                                  distance_traveled="{distance_traveled}"
+                                  total_distance="{total_distance}"/>
+                  <ForceSuccess><StopPlanter service_name="/planter_control"/></ForceSuccess>
+                  <HandbrakeEngage/>
+                  <LiftUp service_name="/lift_control"/>
+                  <HandbrakeRelease/>
+                  <SetStage stage="turn" stage_out="{stage}"/>
+                  <SaveFieldProgress
+                      fields_directory="{fields_directory}"
+                      field_name="{field_name}"
+                      current_line_index="{current_line_index}"
+                      stage="{stage}"/>
+                </Sequence>
+              </Fallback>
+
+              <!-- TURN STAGE - Skip if last line (turn_direction == "end") -->
+              <Fallback name="Turn or skip or end">
+                <CheckStagePast stage="{stage}" check="turn"/>
+                <CheckSkipTurn turn_direction="{turn_direction}"/>
+                <Sequence>
+                  <SetStage stage="turn" stage_out="{stage}"/>
+                  <GetTurnSequenceFile
+                      turn_direction="{turn_direction}"
+                      left_sequence="turn_left_07_hw.json"
+                      right_sequence="turn_right_07_hw.json"
+                      sequence_file="{turn_sequence_file}"
+                      skip_turn="{skip_turn}"/>
+                  <MoveSequence sequence_file="{turn_sequence_file}"
+                                segment_idx="0"
+                                segment_distance_traveled="0.0"
+                                progress_file="/tmp/move_sequence_progress.json"
+                                current_segment_idx="{segment_idx}"
+                                current_segment_distance="{seg_trav}"
+                                error_code="{move_seq_error_code}"/>
+                </Sequence>
+              </Fallback>
+
+              <!-- Check if this is the last line -->
+              <Fallback name="Check field complete">
+                <Sequence name="Move to next line">
+                  <!-- Not the last line - advance to next -->
+                  <Inverter>
+                    <CheckSkipTurn turn_direction="{turn_direction}"/>
+                  </Inverter>
+                  <NextFieldLine
+                      field_lines="{field_lines}"
+                      current_line_index="{current_line_index}"
+                      total_lines="{total_lines}"
+                      next_line_index="{current_line_index}"
+                      geo_points="{geo_points}"
+                      turn_direction="{turn_direction}"
+                      all_lines_completed="{all_lines_completed}"/>
+                  <SetStage stage="approach" stage_out="{stage}"/>
+                  <!-- Save progress immediately so a pause during the arc turn
+                       resumes at approach (not the previous line's turn stage). -->
+                  <SaveFieldProgress
+                      fields_directory="{fields_directory}"
+                      field_name="{field_name}"
+                      current_line_index="{current_line_index}"
+                      stage="{stage}"/>
+                  <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
+                </Sequence>
+                <!-- Last line completed - set flag and exit loop -->
+                <Sequence name="Field complete">
+                  <ClearFieldProgress
+                      fields_directory="{fields_directory}"
+                      field_name="{field_name}"/>
+                  <SetBlackboard output_key="field_complete" value="1"/>
+                  <ForceFailure>
+                    <AlwaysSuccess/>
+                  </ForceFailure>
+                </Sequence>
+              </Fallback>
+
+            </Sequence>
+          </ReactiveSequence>
+        </KeepRunningUntilFailure>
+
+        <!-- After loop exits, check if it was successful completion -->
+        <ScriptCondition code=" field_complete == 1 "/>
+      </Fallback>
+    </Sequence>
+  </BehaviorTree>
+</root>

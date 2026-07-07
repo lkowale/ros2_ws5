@@ -1,0 +1,92 @@
+<!--
+  GeoJSON Line Navigator Behavior Tree - Hardware
+
+  Navigates along a GeoJSON LineString once in the given direction.
+  Builds the line path directly from map_points (PosesToPath), bypassing
+  the Nav2 planner costmap-bounds check (50x50m rolling on PD600).
+  Supports pause/resume via /pause topic.
+
+  Starts following from the closest point on the line to the robot's
+  current position (not necessarily the line start).
+
+  To pause:  ros2 topic pub -1 /pause_request solbot5_msgs/msg/Pause \
+               "{paused: true, source: 'operator', reason: 'E-stop'}"
+  To resume: ros2 service call /resume_pause solbot5_msgs/srv/ResumePause \
+               "{operator_id: 'operator'}"
+
+  Blackboard variables (set by navigator):
+    - geo_points: vector of GeoPoint (all LineString coordinates, possibly reversed)
+-->
+<root BTCPP_format="4" main_tree_to_execute="GeoJsonLineHw">
+  <BehaviorTree ID="GeoJsonLineHw">
+    <Sequence>
+      <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
+
+      <!-- Find closest point on line and measure distance to it -->
+      <TrimPathToClosest
+        poses="{map_points}"
+        robot_frame="base_footprint"
+        global_frame="map"
+        transform_tolerance="0.5"
+        closest_pose="{goal_pose}"
+        trimmed_poses="{trimmed_map_points}"
+        distance_to_closest="{dist_to_line}"/>
+
+      <!-- APPROACH to closest point on line — skip if already within 1.5 m -->
+      <SetBlackboard output_key="approach_complete" value="0"/>
+      <Fallback>
+        <!-- Already on line — skip approach -->
+        <ScriptCondition code=" dist_to_line &lt; 1.5 "/>
+        <KeepRunningUntilFailure>
+          <ReactiveSequence>
+            <Fallback>
+              <NotPaused pause_topic="/pause"/>
+              <WaitUntilNotPaused pause_topic="/pause"/>
+            </Fallback>
+            <Sequence>
+              <!-- Re-find closest point after unpause so robot position is current -->
+              <TrimPathToClosest
+                poses="{map_points}"
+                robot_frame="base_footprint"
+                global_frame="map"
+                transform_tolerance="0.5"
+                closest_pose="{goal_pose}"
+                trimmed_poses="{trimmed_map_points}"
+                distance_to_closest="{dist_to_line}"/>
+              <ComputePathToPose goal="{goal_pose}" path="{approach_path}" planner_id="StraightLine"/>
+              <PublishPath topic_name="to_start_path" path="{approach_path}"/>
+              <FollowPath path="{approach_path}" controller_id="GpsLineFollowerApproach" goal_checker_id="gps_goal_checker"/>
+              <SetBlackboard output_key="approach_complete" value="1"/>
+              <ForceFailure><AlwaysSuccess/></ForceFailure>
+            </Sequence>
+          </ReactiveSequence>
+        </KeepRunningUntilFailure>
+        <ScriptCondition code=" approach_complete == 1 "/>
+      </Fallback>
+
+      <!-- LINE: follow trimmed path from closest point to end -->
+      <Sequence>
+        <PosesToPath poses="{trimmed_map_points}" path="{swath_path}"/>
+        <PublishPath topic_name="line_path" path="{swath_path}"/>
+        <SetBlackboard output_key="line_complete" value="0"/>
+        <Fallback>
+          <KeepRunningUntilFailure>
+            <ReactiveSequence>
+              <Fallback>
+                <NotPaused pause_topic="/pause"/>
+                <WaitUntilNotPaused pause_topic="/pause"/>
+              </Fallback>
+              <Sequence>
+                <FollowPath path="{swath_path}" controller_id="GpsLineFollower" goal_checker_id="gps_goal_checker"/>
+                <SetBlackboard output_key="line_complete" value="1"/>
+                <ForceFailure><AlwaysSuccess/></ForceFailure>
+              </Sequence>
+            </ReactiveSequence>
+          </KeepRunningUntilFailure>
+          <ScriptCondition code=" line_complete == 1 "/>
+        </Fallback>
+      </Sequence>
+
+    </Sequence>
+  </BehaviorTree>
+</root>

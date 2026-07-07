@@ -309,10 +309,13 @@ def main():
     node = RsCtrlLogger(csv_path)
     try:
         rclpy.spin(node)
-    except (KeyboardInterrupt, rclpy.executors.ExternalShutdownException):
+    except (KeyboardInterrupt, rclpy.executors.ExternalShutdownException, Exception):
         pass
     finally:
-        node.destroy_node()
+        try:
+            node.destroy_node()
+        except Exception:
+            pass
         try:
             rclpy.shutdown()
         except Exception:

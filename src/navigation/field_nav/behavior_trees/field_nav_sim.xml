@@ -1,0 +1,171 @@
+<!--
+  Field Navigation BT — Simulation variant for solbot5
+
+  Uses inline ComputePathToPose/FollowPath for approach and swath legs
+  (no external action servers needed). Two-phase headland turns.
+
+  Turn flow (sim):
+    Phase 1 — deterministic 90° arc into headland:
+      1. SetRsPlannerConstraints — constrain RS planner to headland side
+      2. ComputeHeadlandPose — compute 90° arc endpoint from swath end
+      3. ComputePathToPose (GridBased) to headland_pose + FollowPath
+      4. ClearRsPlannerConstraints
+    Phase 2 — RS hop to next swath start:
+      5. NextFieldLine — advance index, get next swath geo_points
+      6. ConvertGeoPoints + GetPoseFromPoses → turn_goal_pose
+      7. ComputePathToPose (GridBased) to turn_goal_pose + FollowPath
+      8. SetStage("approach") + SaveFieldProgress
+
+  After turn the line index is already advanced — "Move to next line" is removed
+  to avoid the double-advance bug that skipped swath 1 in the original design.
+-->
+<root BTCPP_format="4" main_tree_to_execute="FieldNav">
+  <BehaviorTree ID="FieldNav">
+    <Sequence>
+      <SetBlackboard output_key="field_complete" value="0"/>
+
+      <Fallback name="Initialize">
+        <LoadFieldProgress
+            fields_directory="{fields_directory}"
+            field_name="{field_name}"
+            field_lines="{field_lines}"
+            current_line_index="{current_line_index}"
+            stage="{stage}"
+            geo_points="{geo_points}"
+            turn_direction="{turn_direction}"
+            has_progress="{has_progress}"/>
+        <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
+      </Fallback>
+
+      <Fallback>
+        <Inverter>
+          <ForceSuccess>
+            <Script code=" has_progress "/>
+          </ForceSuccess>
+        </Inverter>
+        <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
+      </Fallback>
+
+      <Fallback name="TraverseFieldWithSuccessCheck">
+        <KeepRunningUntilFailure>
+          <ReactiveSequence>
+
+            <Sequence name="TraverseLine">
+
+              <!-- APPROACH STAGE -->
+              <Fallback name="Approach or skip">
+                <CheckStagePast stage="{stage}" check="approach"/>
+                <Sequence>
+                  <SetStage stage="approach" stage_out="{stage}"/>
+                  <GetPoseFromPoses poses="{map_points}" pose="{approach_goal}" index="0"/>
+                  <ComputePathToPose goal="{approach_goal}" path="{approach_path}"
+                                     planner_id="GridBased"
+                                     error_code_id="{approach_error_code}"/>
+                  <PublishPath topic_name="to_start_path" path="{approach_path}"/>
+                  <FollowPath path="{approach_path}" controller_id="FollowPath"
+                              goal_checker_id="arc_goal_checker"
+                              error_code_id="{approach_follow_error}"/>
+                </Sequence>
+              </Fallback>
+
+              <!-- SWATH STAGE -->
+              <Fallback name="Swath or skip">
+                <CheckStagePast stage="{stage}" check="swath"/>
+                <Sequence>
+                  <SetStage stage="swath" stage_out="{stage}"/>
+                  <ComputePathThroughPoses goals="{map_points}" path="{swath_path}"
+                                           planner_id="StraightLine"
+                                           error_code_id="{swath_error_code}"/>
+                  <PublishPath topic_name="swath_path" path="{swath_path}"/>
+                  <FollowPath path="{swath_path}" controller_id="SwathFollow"
+                              goal_checker_id="swath_goal_checker"
+                              error_code_id="{swath_follow_error}"/>
+                </Sequence>
+              </Fallback>
+
+              <!-- TURN STAGE - always set stage=turn first, then skip or execute -->
+              <Fallback name="Turn or end">
+                <CheckStagePast stage="{stage}" check="turn"/>
+                <Sequence>
+                  <SetStage stage="turn" stage_out="{stage}"/>
+                  <Fallback>
+                    <!-- Last swath: skip turn, leave stage="turn" so field-complete fires -->
+                    <CheckSkipTurn turn_direction="{turn_direction}"/>
+                    <!-- Otherwise: two-phase headland turn -->
+                    <Sequence>
+                      <!-- Constrain RS planner to headland side using current swath axis -->
+                      <SetRsPlannerConstraints turn_side="{turn_direction}" map_points="{map_points}"/>
+
+                      <!-- Phase 1: deterministic 90° arc into headland -->
+                      <ComputeHeadlandPose
+                          map_points="{map_points}"
+                          turn_direction="{turn_direction}"
+                          headland_pose="{headland_pose}"/>
+                      <ComputePathToPose goal="{headland_pose}" path="{arc_path}"
+                                         planner_id="GridBased"
+                                         error_code_id="{arc_compute_error}"/>
+                      <FollowPath path="{arc_path}" controller_id="FollowPath"
+                                  goal_checker_id="arc_goal_checker"
+                                  error_code_id="{arc_follow_error}"/>
+                      <ClearRsPlannerConstraints/>
+
+                      <!-- Phase 2: RS hop to next swath start -->
+                      <NextFieldLine
+                          field_lines="{field_lines}"
+                          current_line_index="{current_line_index}"
+                          total_lines="{total_lines}"
+                          next_line_index="{current_line_index}"
+                          geo_points="{geo_points}"
+                          turn_direction="{turn_direction}"
+                          all_lines_completed="{all_lines_completed}"/>
+                      <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
+                      <GetPoseFromPoses poses="{map_points}" pose="{turn_goal_pose}" index="0"/>
+                      <ComputePathToPose goal="{turn_goal_pose}" path="{turn_path}"
+                                         planner_id="GridBased"
+                                         error_code_id="{turn_compute_error}"/>
+                      <FollowPath path="{turn_path}" controller_id="FollowPath"
+                                  goal_checker_id="arc_goal_checker"
+                                  error_code_id="{turn_follow_error}"/>
+
+                      <!-- Turn done: advance to approach for new line -->
+                      <SetStage stage="approach" stage_out="{stage}"/>
+                      <SaveFieldProgress
+                          fields_directory="{fields_directory}"
+                          field_name="{field_name}"
+                          current_line_index="{current_line_index}"
+                          stage="{stage}"/>
+                    </Sequence>
+                  </Fallback>
+                </Sequence>
+              </Fallback>
+
+              <!-- Field complete: fires only when stage="turn" AND turn_direction="end" -->
+              <Fallback name="Check field complete">
+                <!-- Not done: stage not yet at turn, or more swaths remain -->
+                <Inverter>
+                  <Sequence>
+                    <CheckStagePast stage="{stage}" check="swath"/>
+                    <CheckSkipTurn turn_direction="{turn_direction}"/>
+                  </Sequence>
+                </Inverter>
+                <!-- Done: stage=turn and turn_direction=end — last swath fully traversed -->
+                <Sequence name="Field complete">
+                  <ClearFieldProgress
+                      fields_directory="{fields_directory}"
+                      field_name="{field_name}"/>
+                  <SetBlackboard output_key="field_complete" value="1"/>
+                  <ForceFailure>
+                    <AlwaysSuccess/>
+                  </ForceFailure>
+                </Sequence>
+              </Fallback>
+
+            </Sequence>
+          </ReactiveSequence>
+        </KeepRunningUntilFailure>
+
+        <ScriptCondition code=" field_complete == 1 "/>
+      </Fallback>
+    </Sequence>
+  </BehaviorTree>
+</root>

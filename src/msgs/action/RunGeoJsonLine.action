@@ -1,0 +1,14 @@
+# Goal - navigate along a line from a GeoJSON file in a given direction
+string geojson_file  # Path to .geojson file containing a LineString
+bool forward true    # true = follow coordinates in order, false = reverse
+string behavior_tree
+---
+# Result
+uint16 error_code
+uint16 NONE=0
+uint16 CANCELLED=1
+uint16 FAILED=2
+---
+# Feedback
+float32 distance_traveled
+float32 total_distance

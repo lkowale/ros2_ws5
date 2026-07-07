@@ -1,0 +1,34 @@
+<!--
+  GeoJSON Line Navigator Behavior Tree
+
+  Navigates along a GeoJSON LineString once in the given direction.
+  Approaches the first point, then follows the path through all points.
+
+  Blackboard variables:
+    Input (set by navigator):
+      - geo_points: vector of GeoPoint (all LineString coordinates, possibly reversed)
+
+    Output (set by ConvertGeoPoints):
+      - map_points: vector of PoseStamped in map frame
+-->
+<root BTCPP_format="4" main_tree_to_execute="GeoJsonLine">
+  <BehaviorTree ID="GeoJsonLine">
+    <Sequence>
+      <!-- Convert WGS84 geo_points to map frame -->
+      <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
+
+      <!-- Approach: navigate to the first point -->
+      <GetPoseFromPoses poses="{map_points}" index="0" pose="{goal_pose}"/>
+      <ComputePathToPose goal="{goal_pose}" path="{approach_path}"
+                         planner_id="StraightLine"/>
+      <PublishPath topic_name="to_start_path" path="{approach_path}"/>
+      <FollowPath path="{approach_path}" controller_id="FollowPath"/>
+
+      <!-- Follow the full line through all points -->
+      <ComputePathThroughPoses goals="{map_points}" path="{swath_path}"
+                               planner_id="StraightLine"/>
+      <PublishPath topic_name="line_path" path="{swath_path}"/>
+      <FollowPath path="{swath_path}" controller_id="GpsLineFollower"/>
+    </Sequence>
+  </BehaviorTree>
+</root>
