@@ -5,15 +5,22 @@
   (no external action servers needed). RS planner headland turns.
 
   Turn flow (sim):
-    1. SetRsPlannerConstraints — constrain to headland side using current swath axis
-    2. NextFieldLine — advance index and set geo_points to NEXT swath start
-    3. ComputePathToPose (GridBased) — plan RS turn constrained to headland side
-    4. ClearRsPlannerConstraints
-    5. FollowPath (arc_goal_checker) — execute turn
-    6. SetStage("approach") — next iteration runs approach+swath for new line
+    1. SetStage("turn") — always mark turn stage before skip check
+    2. CheckSkipTurn — if turn_direction="end", skip turn (stage stays "turn")
+    3. SetRsPlannerConstraints — constrain to headland side using current swath axis
+    4. NextFieldLine — advance index and set geo_points to NEXT swath start
+    5. ComputePathToPose (GridBased) — plan RS turn constrained to headland side
+    6. ClearRsPlannerConstraints
+    7. FollowPath (arc_goal_checker) — execute turn
+    8. SetStage("approach") — next iteration runs approach+swath for new line
 
   After turn the line index is already advanced — "Move to next line" is removed
   to avoid the double-advance bug that skipped swath 1 in the original design.
+
+  Last swath fix: SetStage("turn") runs before CheckSkipTurn so stage="turn" is
+  set even when the turn is skipped. "Check field complete" uses
+  CheckStagePast(check="swath") which is true when stage="turn", ensuring all 16
+  swaths are traversed before the field-complete signal fires.
 -->
 <root BTCPP_format="4" main_tree_to_execute="FieldNav">
   <BehaviorTree ID="FieldNav">
@@ -79,55 +86,62 @@
                 </Sequence>
               </Fallback>
 
-              <!-- TURN STAGE - Skip if last line (turn_direction == "end") -->
+              <!-- TURN STAGE - always set stage=turn first, then skip or execute -->
               <Fallback name="Turn or end">
                 <CheckStagePast stage="{stage}" check="turn"/>
-                <CheckSkipTurn turn_direction="{turn_direction}"/>
                 <Sequence>
                   <SetStage stage="turn" stage_out="{stage}"/>
+                  <Fallback>
+                    <!-- Last swath: skip turn, leave stage="turn" so field-complete fires -->
+                    <CheckSkipTurn turn_direction="{turn_direction}"/>
+                    <!-- Otherwise: plan and execute the RS turn -->
+                    <Sequence>
+                      <!-- Constrain RS planner to headland side using current swath axis -->
+                      <SetRsPlannerConstraints turn_side="{turn_direction}" map_points="{map_points}"/>
 
-                  <!-- Constrain RS planner to headland side; pass boundary for inland-crossing check -->
-                  <SetRsPlannerConstraints turn_side="{turn_direction}" map_points="{map_points}"
-                      headland_sw="{headland_sw}" headland_ne="{headland_ne}"/>
+                      <!-- Advance to next line to get turn goal (next swath start) -->
+                      <NextFieldLine
+                          field_lines="{field_lines}"
+                          current_line_index="{current_line_index}"
+                          total_lines="{total_lines}"
+                          next_line_index="{current_line_index}"
+                          geo_points="{geo_points}"
+                          turn_direction="{turn_direction}"
+                          all_lines_completed="{all_lines_completed}"/>
+                      <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
+                      <GetPoseFromPoses poses="{map_points}" pose="{turn_goal_pose}" index="0"/>
 
-                  <!-- Advance to next line to get turn goal (next swath start) -->
-                  <NextFieldLine
-                      field_lines="{field_lines}"
-                      current_line_index="{current_line_index}"
-                      total_lines="{total_lines}"
-                      next_line_index="{current_line_index}"
-                      geo_points="{geo_points}"
-                      turn_direction="{turn_direction}"
-                      all_lines_completed="{all_lines_completed}"/>
-                  <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
-                  <GetPoseFromPoses poses="{map_points}" pose="{turn_goal_pose}" index="0"/>
+                      <!-- RS planner turn constrained to headland side -->
+                      <ComputePathToPose goal="{turn_goal_pose}" path="{turn_path}"
+                                         planner_id="GridBased"
+                                         error_code_id="{turn_compute_error}"/>
+                      <ClearRsPlannerConstraints/>
+                      <FollowPath path="{turn_path}" controller_id="FollowPath"
+                                  goal_checker_id="arc_goal_checker"
+                                  error_code_id="{turn_follow_error}"/>
 
-                  <!-- RS planner turn constrained to headland side -->
-                  <ComputePathToPose goal="{turn_goal_pose}" path="{turn_path}"
-                                     planner_id="GridBased"
-                                     error_code_id="{turn_compute_error}"/>
-                  <ClearRsPlannerConstraints/>
-                  <FollowPath path="{turn_path}" controller_id="FollowPath"
-                              goal_checker_id="arc_goal_checker"
-                              error_code_id="{turn_follow_error}"/>
-
-                  <!-- Turn positioned robot at next swath start — run approach+swath next -->
-                  <SetStage stage="approach" stage_out="{stage}"/>
-                  <SaveFieldProgress
-                      fields_directory="{fields_directory}"
-                      field_name="{field_name}"
-                      current_line_index="{current_line_index}"
-                      stage="{stage}"/>
+                      <!-- Turn done: advance to approach for new line -->
+                      <SetStage stage="approach" stage_out="{stage}"/>
+                      <SaveFieldProgress
+                          fields_directory="{fields_directory}"
+                          field_name="{field_name}"
+                          current_line_index="{current_line_index}"
+                          stage="{stage}"/>
+                    </Sequence>
+                  </Fallback>
                 </Sequence>
               </Fallback>
 
-              <!-- Field complete: fires only after last swath (turn skipped with turn_direction="end") -->
+              <!-- Field complete: fires only when stage="turn" AND turn_direction="end" -->
               <Fallback name="Check field complete">
-                <!-- Not done: turn_direction != "end" means more swaths remain; continue loop -->
+                <!-- Not done: stage not yet at turn, or more swaths remain -->
                 <Inverter>
-                  <CheckSkipTurn turn_direction="{turn_direction}"/>
+                  <Sequence>
+                    <CheckStagePast stage="{stage}" check="swath"/>
+                    <CheckSkipTurn turn_direction="{turn_direction}"/>
+                  </Sequence>
                 </Inverter>
-                <!-- Done: clear progress, signal completion, break loop -->
+                <!-- Done: stage=turn and turn_direction=end — last swath fully traversed -->
                 <Sequence name="Field complete">
                   <ClearFieldProgress
                       fields_directory="{fields_directory}"
