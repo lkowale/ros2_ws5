@@ -65,7 +65,6 @@ protected:
 
   std::string fields_directory_;
   std::vector<FieldLine> field_lines_;
-  HeadlandBoundaries headland_boundaries_;
   int32_t total_lines_;
 };
 

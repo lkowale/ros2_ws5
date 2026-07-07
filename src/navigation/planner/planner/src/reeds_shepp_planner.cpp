@@ -160,30 +160,18 @@ void ReedsSheppPlanner::configure(
       turn_side_constraint_ = "";
       swath_yaw_constraint_ = 0.0;
       force_forward_first_  = false;
-      have_boundary_ = false;
       if (!msg->data.empty()) {
         std::istringstream ss(msg->data);
         std::string tok;
         if (std::getline(ss, tok, ',')) turn_side_constraint_ = tok;
         if (std::getline(ss, tok, ',')) swath_yaw_constraint_ = std::stod(tok);
         if (std::getline(ss, tok, ',')) force_forward_first_ = (tok == "forward");
-        std::string bx_s, by_s;
-        if (std::getline(ss, tok, ',')) bx_s = tok;
-        if (std::getline(ss, tok, ',')) by_s = tok;
-        if (!bx_s.empty() && !by_s.empty()) {
-          boundary_x_ = std::stod(bx_s);
-          boundary_y_ = std::stod(by_s);
-          have_boundary_ = true;
-        }
       }
       RCLCPP_INFO(node_->get_logger(),
-        "RS constraint: side=%s swath_yaw=%.1f° fwd_first=%d boundary=%s(%.2f,%.2f)",
+        "RS constraint: side=%s swath_yaw=%.1f° fwd_first=%d",
         turn_side_constraint_.c_str(),
         swath_yaw_constraint_ * 180.0 / M_PI,
-        force_forward_first_,
-        have_boundary_ ? "" : "none ",
-        have_boundary_ ? boundary_x_ : 0.0,
-        have_boundary_ ? boundary_y_ : 0.0);
+        force_forward_first_);
     });
 
   RCLCPP_INFO(node_->get_logger(),
@@ -359,145 +347,94 @@ nav_msgs::msg::Path ReedsSheppPlanner::createPlan(
   std::string turn_side;
   double swath_yaw = 0.0;
   bool force_fwd_first = false;
-  bool have_bnd = false;
-  double bnd_x = 0.0, bnd_y = 0.0;
   {
     std::lock_guard<std::mutex> lk(constraint_mutex_);
     turn_side       = turn_side_constraint_;
     swath_yaw       = swath_yaw_constraint_;
     force_fwd_first = force_forward_first_;
-    have_bnd        = have_boundary_;
-    bnd_x           = boundary_x_;
-    bnd_y           = boundary_y_;
   }
 
-  // Swath axis unit vector from swath_yaw (normalised to [0,π) so undirected).
-  // Along-swath direction: (ux, uy). The headland boundary is at the
-  // along-axis projection of (bnd_x, bnd_y). Any path waypoint whose
-  // along-axis projection is on the inland side of this value violates the
-  // constraint and triggers a retry with the goal pushed deeper into headland.
-  const double ux = std::cos(swath_yaw);
-  const double uy = std::sin(swath_yaw);
-  // Inland side: the start pose is on the swath (inland); boundary is further
-  // along (or against) the swath axis in the headland direction.
-  // bnd_along > s_along → NE headland (even swaths end there).
-  // bnd_along < s_along → SW headland.
-  const double s_along  = sx * ux + sy * uy;
-  const double bnd_along = have_bnd ? (bnd_x * ux + bnd_y * uy) : 0.0;
-  // heading_sign: +1 if headland is in the +ux direction from start, -1 if opposite.
-  const double heading_sign = (have_bnd && bnd_along > s_along) ? 1.0 : -1.0;
+  // ── Plan with OMPL ────────────────────────────────────────────────────────
+  ompl::base::ReedsSheppStateSpace rs(rho_);
+  auto * s_from = rs.allocState()->as<ompl::base::SE2StateSpace::StateType>();
+  auto * s_to   = rs.allocState()->as<ompl::base::SE2StateSpace::StateType>();
+  s_from->setX(sx); s_from->setY(sy); s_from->setYaw(syaw);
+  s_to->setX(gx);   s_to->setY(gy);   s_to->setYaw(gyaw);
 
-  // ── Plan with OMPL + headland boundary retry loop ────────────────────────
-  // If a headland boundary is known, after planning we check every waypoint's
-  // along-swath projection. Any waypoint that crosses back past the boundary
-  // into the inland zone means the path is invalid. We shift the goal further
-  // into the headland by the violation amount + rho_ margin and retry.
-  // Max 5 iterations; the goal yaw is preserved, only position shifts.
+  const auto rs_path = rs.reedsShepp(s_from, s_to);
+  rs.freeState(s_from);
+  rs.freeState(s_to);
+
   using T = ompl::base::ReedsSheppStateSpace::ReedsSheppPathSegmentType;
 
-  double cur_gx = gx, cur_gy = gy;  // goal position, adjusted each retry
-  nav_msgs::msg::Path fwd_path, rev_path;
-  std::string seg_str;
-
-  static constexpr int kMaxRetries = 5;
-  static constexpr double kRetryMargin = 0.3;  // extra push per retry beyond violation
-
-  for (int attempt = 0; attempt <= kMaxRetries; ++attempt) {
-    path.poses.clear(); fwd_path.poses.clear(); rev_path.poses.clear(); seg_str.clear();
-    fwd_path.header = rev_path.header = path.header;
-
-    ompl::base::ReedsSheppStateSpace rs(rho_);
-    auto * s_from = rs.allocState()->as<ompl::base::SE2StateSpace::StateType>();
-    auto * s_to   = rs.allocState()->as<ompl::base::SE2StateSpace::StateType>();
-    s_from->setX(sx);      s_from->setY(sy);      s_from->setYaw(syaw);
-    s_to->setX(cur_gx);    s_to->setY(cur_gy);    s_to->setYaw(gyaw);
-
-    const auto rs_path = rs.reedsShepp(s_from, s_to);
-    rs.freeState(s_from);
-    rs.freeState(s_to);
-
-    // ── Forward-first constraint ────────────────────────────────────────────
-    bool use_mirror = false;
-    if (force_fwd_first) {
-      for (int i = 0; i < 5; ++i) {
-        if (rs_path.type_[i] == T::RS_NOP) continue;
-        if (std::abs(rs_path.length_[i]) < 1e-9) continue;
-        if (rs_path.length_[i] < 0.0) {
-          use_mirror = true;
-          RCLCPP_INFO(node_->get_logger(),
-            "RS attempt %d: starts reverse — applying fwd-first fix", attempt);
-        }
-        break;
-      }
+  // ── Forward-first constraint ──────────────────────────────────────────────
+  // A reverse-first path drives back into the infield immediately after the
+  // swath end. We must ensure the first RS segment is driven forward.
+  // Check by looking at the sign of the first non-NOP segment length.
+  bool use_mirror = false;
+  bool first_seg_reverse = false;
+  if (force_fwd_first) {
+    for (int i = 0; i < 5; ++i) {
+      if (rs_path.type_[i] == T::RS_NOP) continue;
+      if (std::abs(rs_path.length_[i]) < 1e-9) continue;
+      first_seg_reverse = (rs_path.length_[i] < 0.0);
+      break;
     }
-
-    sampleRsPath(rs_path, rho_, step_, sx, sy, syaw, false,
-      sx, sy, syaw,
-      path.header, path, fwd_path, rev_path, seg_str, rev_leadout_);
-
-    if (use_mirror) {
-      bool sampled_fwd = false;
-      if (path.poses.size() >= 2) {
-        const double dx0 = path.poses[1].pose.position.x - path.poses[0].pose.position.x;
-        const double dy0 = path.poses[1].pose.position.y - path.poses[0].pose.position.y;
-        sampled_fwd = (std::cos(syaw) * dx0 + std::sin(syaw) * dy0) > 0.0;
-      }
-      if (!sampled_fwd) {
-        ompl::base::ReedsSheppStateSpace::ReedsSheppPath rs_fwd = rs_path;
-        for (int i = 0; i < 5; ++i) rs_fwd.length_[i] = -rs_fwd.length_[i];
-        path.poses.clear(); fwd_path.poses.clear(); rev_path.poses.clear();
-        std::string seg_fwd;
-        sampleRsPath(rs_fwd, rho_, step_, sx, sy, syaw, false,
-          sx, sy, syaw,
-          path.header, path, fwd_path, rev_path, seg_fwd, rev_leadout_);
-        seg_str = "[fwd] " + seg_fwd;
-      }
+    if (first_seg_reverse) {
+      use_mirror = true;
+      RCLCPP_INFO(node_->get_logger(),
+        "RS: direct path starts reverse — will search for forward-first candidate");
     }
-
-    // ── Headland boundary check ─────────────────────────────────────────────
-    // Project all waypoints onto the swath axis. If any waypoint is on the
-    // inland side of the boundary (i.e. has not yet crossed into headland),
-    // compute how far it violates, shift goal deeper into headland, and retry.
-    if (have_bnd && attempt < kMaxRetries) {
-      // Find worst inland violation: the waypoint closest to start along-axis
-      // (most inland) compared to bnd_along.
-      double worst_violation = 0.0;  // positive = inland penetration depth
-      for (const auto & p : path.poses) {
-        const double wp_along = p.pose.position.x * ux + p.pose.position.y * uy;
-        // violation if waypoint is on the inland side of boundary
-        // heading_sign>0: inland side is bnd_along > wp_along → violation = bnd_along - wp_along
-        // heading_sign<0: inland side is bnd_along < wp_along → violation = wp_along - bnd_along
-        const double v = heading_sign > 0.0
-          ? (bnd_along - wp_along)
-          : (wp_along - bnd_along);
-        if (v > worst_violation) worst_violation = v;
-      }
-
-      if (worst_violation > 1e-3) {
-        const double shift = worst_violation + kRetryMargin;
-        cur_gx += heading_sign * shift * ux;
-        cur_gy += heading_sign * shift * uy;
-        RCLCPP_WARN(node_->get_logger(),
-          "RS attempt %d: path crosses inland by %.3fm — shifting goal %.3fm deeper into headland",
-          attempt, worst_violation, shift);
-        continue;  // retry
-      }
-    }
-
-    // Path is clean (or no boundary constraint). Break out of retry loop.
-    RCLCPP_INFO(node_->get_logger(),
-      "RS attempt %d: path OK%s", attempt,
-      (cur_gx != gx || cur_gy != gy) ? " (goal shifted)" : "");
-    break;
   }
 
-  // ── Close end-point gap ───────────────────────────────────────────────────
-  const double end_gap = path.poses.empty() ? 0.0 :
-    std::hypot(path.poses.back().pose.position.x - cur_gx,
-               path.poses.back().pose.position.y - cur_gy);
+  // ── Sample ────────────────────────────────────────────────────────────────
+  nav_msgs::msg::Path fwd_path, rev_path;
+  fwd_path.header = rev_path.header = path.header;
+  std::string seg_str;
 
-  bool path_starts_fwd = false;
+  // Sample the direct path first.
+  sampleRsPath(rs_path, rho_, step_, sx, sy, syaw, false,
+    sx, sy, syaw,
+    path.header, path, fwd_path, rev_path, seg_str, rev_leadout_);
+
+  if (use_mirror) {
+    // Check if the sampled path actually starts forward by examining the
+    // direction from start to second waypoint.
+    bool sampled_fwd = false;
+    if (path.poses.size() >= 2) {
+      const double dx0 = path.poses[1].pose.position.x - path.poses[0].pose.position.x;
+      const double dy0 = path.poses[1].pose.position.y - path.poses[0].pose.position.y;
+      sampled_fwd = (std::cos(syaw) * dx0 + std::sin(syaw) * dy0) > 0.0;
+    }
+
+    if (!sampled_fwd) {
+      // Negate all segment lengths: -L+R-L becomes +L-R+L.
+      // RS paths are reversible — negating lengths produces a path that
+      // traverses the identical arcs forward-first, also connecting start→goal.
+      ompl::base::ReedsSheppStateSpace::ReedsSheppPath rs_fwd = rs_path;
+      for (int i = 0; i < 5; ++i) rs_fwd.length_[i] = -rs_fwd.length_[i];
+
+      path.poses.clear(); fwd_path.poses.clear(); rev_path.poses.clear();
+      std::string seg_fwd;
+      sampleRsPath(rs_fwd, rho_, step_, sx, sy, syaw, false,
+        sx, sy, syaw,
+        path.header, path, fwd_path, rev_path, seg_fwd, rev_leadout_);
+      seg_str = "[fwd] " + seg_fwd;
+      RCLCPP_INFO(node_->get_logger(), "RS fwd-first: negated to %s", seg_str.c_str());
+    }
+  }
+
+  // Close end-point gap
+  // Track where the propagation ended by re-examining last pose vs goal
+  const double end_gap = path.poses.empty() ? 0.0 :
+    std::hypot(path.poses.back().pose.position.x - gx,
+               path.poses.back().pose.position.y - gy);
+
+  // Compute path bounding box to detect infield excursion.
+  // Swath runs east-west (X axis). Infield is ±Y from swath line.
+  // First waypoint direction tells us fwd (same sign as cos/sin of syaw) or rev.
   double bb_xmin = sx, bb_xmax = sx, bb_ymin = sy, bb_ymax = sy;
+  bool path_starts_fwd = false;
   if (path.poses.size() >= 2) {
     const double dx0 = path.poses.front().pose.position.x - sx;
     const double dy0 = path.poses.front().pose.position.y - sy;
@@ -510,13 +447,14 @@ nav_msgs::msg::Path ReedsSheppPlanner::createPlan(
     }
   }
   const double peak_y_excursion = std::max(std::abs(bb_ymax - sy), std::abs(bb_ymin - sy));
+  // Flag if path went backward (into infield) or had large lateral excursion.
   const char * fwd_flag = path_starts_fwd ? "FWD" : "REV(INFIELD!)";
 
   RCLCPP_INFO(node_->get_logger(),
     "RS: (%.2f,%.2f,%.1f°)→(%.2f,%.2f,%.1f°) %s pts=%zu gap=%.4fm "
     "[%s bbox x=%.2f..%.2f y=%.2f..%.2f peak_lateral=%.2fm]",
     sx, sy, syaw * 180.0 / M_PI,
-    cur_gx, cur_gy, gyaw * 180.0 / M_PI,
+    gx, gy, gyaw * 180.0 / M_PI,
     seg_str.c_str(), path.poses.size(), end_gap,
     fwd_flag, bb_xmin, bb_xmax, bb_ymin, bb_ymax, peak_y_excursion);
 
@@ -524,9 +462,10 @@ nav_msgs::msg::Path ReedsSheppPlanner::createPlan(
     RCLCPP_WARN(node_->get_logger(), "RS path end gap %.4fm — appending exact goal", end_gap);
     geometry_msgs::msg::PoseStamped gp;
     gp.header = path.header;
-    gp.pose.position.x = cur_gx; gp.pose.position.y = cur_gy; gp.pose.position.z = 0.0;
+    gp.pose.position.x = gx; gp.pose.position.y = gy; gp.pose.position.z = 0.0;
     gp.pose.orientation = goal.pose.orientation;
     path.poses.push_back(gp);
+    // Append to whichever of fwd/rev had the last waypoint
     const auto & last = path.poses[path.poses.size() - 2];
     bool last_in_rev = !rev_path.poses.empty() &&
       std::abs(rev_path.poses.back().pose.position.x - last.pose.position.x) < 1e-6 &&
