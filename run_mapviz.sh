@@ -61,6 +61,8 @@ elif [ "${1:-}" = "rs" ]; then
     CONFIG="$CONFIG_DIR/mapviz_rs_test.mvc"
 elif [ "${1:-}" = "field" ]; then
     CONFIG="$CONFIG_DIR/mapviz_field.mvc"
+elif [ "${1:-}" = "m4" ]; then
+    CONFIG="$CONFIG_DIR/mapviz_m4.mvc"
 elif [ -n "${1:-}" ] && [ -f "$CONFIG_DIR/${1}" ]; then
     CONFIG="$CONFIG_DIR/${1}"
 else
