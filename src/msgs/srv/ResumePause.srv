@@ -1,0 +1,9 @@
+# Operator command to resume from a pause (for HIGH severity conditions)
+
+string condition_id         # Specific condition to resume (empty = all HIGH severity pauses)
+string operator_id          # Operator identifier for audit
+string notes                # Optional notes for audit log
+---
+bool success
+string message
+string[] resumed_conditions # List of condition IDs that were resumed
