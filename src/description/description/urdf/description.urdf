@@ -308,7 +308,59 @@
 <joint name="tool_bar_joint" type="fixed">
   <parent link="tool_link"/>
   <child link="tool_bar"/>
-  <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+  <origin xyz="0.5 0.0 0.4" rpy="0 0 0"/>
+</joint>
+
+<!--              implements (3 × red tines on tool_bar)           -->
+<link name="implement_center">
+  <visual>
+    <geometry><box size="0.10 0.02 0.10"/></geometry>
+    <material name="implement_red"><color rgba="1.0 0.0 0.0 1.0"/></material>
+  </visual>
+  <collision><geometry><box size="0.10 0.02 0.10"/></geometry></collision>
+  <inertial>
+    <mass value="0.5"/>
+    <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+  </inertial>
+</link>
+<joint name="implement_center_joint" type="fixed">
+  <parent link="tool_bar"/>
+  <child link="implement_center"/>
+  <origin xyz="-0.20 0.0 0.0" rpy="0 0 0"/>
+</joint>
+
+<link name="implement_left">
+  <visual>
+    <geometry><box size="0.10 0.02 0.10"/></geometry>
+    <material name="implement_red"/>
+  </visual>
+  <collision><geometry><box size="0.10 0.02 0.10"/></geometry></collision>
+  <inertial>
+    <mass value="0.5"/>
+    <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+  </inertial>
+</link>
+<joint name="implement_left_joint" type="fixed">
+  <parent link="tool_bar"/>
+  <child link="implement_left"/>
+  <origin xyz="-0.20 0.36 0.0" rpy="0 0 0"/>
+</joint>
+
+<link name="implement_right">
+  <visual>
+    <geometry><box size="0.10 0.02 0.10"/></geometry>
+    <material name="implement_red"/>
+  </visual>
+  <collision><geometry><box size="0.10 0.02 0.10"/></geometry></collision>
+  <inertial>
+    <mass value="0.5"/>
+    <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+  </inertial>
+</link>
+<joint name="implement_right_joint" type="fixed">
+  <parent link="tool_bar"/>
+  <child link="implement_right"/>
+  <origin xyz="-0.20 -0.36 0.0" rpy="0 0 0"/>
 </joint>
 
 <!--              OAK-D Lite camera           -->
@@ -336,12 +388,11 @@
   </inertial>
 </link>
 
-<!-- Camera is at rear axle (base_footprint) + 0.50 m above ground,
-     rotated -90° pitch so it looks straight down. -->
+<!-- Camera is 0.5m forward and 0.9m above rear axle, pointing straight down. -->
 <joint name="oakd_joint" type="fixed">
   <parent link="base_footprint"/>
   <child link="oakd_link"/>
-  <origin xyz="0.0 0.0 0.50" rpy="0 ${-M_PI/2} 0"/>
+  <origin xyz="0.5 0.0 0.90" rpy="0 ${-M_PI/2} 0"/>
 </joint>
 
 <!-- Optical frame: ROS camera convention (z forward, x right, y down) -->

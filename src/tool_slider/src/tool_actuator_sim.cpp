@@ -82,9 +82,9 @@ private:
     tf.header.stamp = now();
     tf.header.frame_id = "tool_link";
     tf.child_frame_id  = "tool_bar";
-    tf.transform.translation.x = 0.0;
+    tf.transform.translation.x = 0.5;
     tf.transform.translation.y = actual_;   // lateral offset, +right
-    tf.transform.translation.z = 0.0;
+    tf.transform.translation.z = 0.4;
     tf.transform.rotation.x = 0.0;
     tf.transform.rotation.y = 0.0;
     tf.transform.rotation.z = 0.0;
