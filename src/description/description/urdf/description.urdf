@@ -279,6 +279,102 @@
   <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
 </joint>
 
+<!--              tool_bar                   -->
+<!-- Laterally sliding toolbar, centred on tool_link.
+     In simulation the dynamic TF (tool_link → tool_bar) is broadcast by
+     tool_actuator_sim; this static joint is the zero-position fallback for
+     robot_state_publisher when the sim nodes are not running. -->
+<link name="tool_bar">
+  <visual>
+    <geometry>
+      <box size="0.05 0.80 0.05"/>
+    </geometry>
+    <material name="tool_bar_color">
+      <color rgba="0.8 0.4 0.0 1.0"/>
+    </material>
+  </visual>
+  <collision>
+    <geometry>
+      <box size="0.05 0.80 0.05"/>
+    </geometry>
+  </collision>
+  <inertial>
+    <mass value="3.0"/>
+    <inertia ixx="0.016" ixy="0.0" ixz="0.0"
+             iyy="0.001" iyz="0.0" izz="0.016"/>
+  </inertial>
+</link>
+
+<joint name="tool_bar_joint" type="fixed">
+  <parent link="tool_link"/>
+  <child link="tool_bar"/>
+  <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+</joint>
+
+<!--              OAK-D Lite camera           -->
+<!-- Forward-facing, mounted on base_link 50 cm above ground centre,
+     pointing straight down toward the crop rows.
+     Gazebo RGBD sensor simulates the RGB stream used by plant_row_detector_sim. -->
+<link name="oakd_link">
+  <visual>
+    <geometry>
+      <box size="0.036 0.091 0.028"/>
+    </geometry>
+    <material name="oakd_color">
+      <color rgba="0.1 0.1 0.1 1.0"/>
+    </material>
+  </visual>
+  <collision>
+    <geometry>
+      <box size="0.036 0.091 0.028"/>
+    </geometry>
+  </collision>
+  <inertial>
+    <mass value="0.061"/>
+    <inertia ixx="0.000020" ixy="0.0" ixz="0.0"
+             iyy="0.000153" iyz="0.0" izz="0.000161"/>
+  </inertial>
+</link>
+
+<!-- Camera is at rear axle (base_footprint) + 0.50 m above ground,
+     rotated -90° pitch so it looks straight down. -->
+<joint name="oakd_joint" type="fixed">
+  <parent link="base_footprint"/>
+  <child link="oakd_link"/>
+  <origin xyz="0.0 0.0 0.50" rpy="0 ${-M_PI/2} 0"/>
+</joint>
+
+<!-- Optical frame: ROS camera convention (z forward, x right, y down) -->
+<link name="oakd_rgb_optical_frame"/>
+<joint name="oakd_rgb_optical_joint" type="fixed">
+  <parent link="oakd_link"/>
+  <child link="oakd_rgb_optical_frame"/>
+  <origin xyz="0 0 0" rpy="${-M_PI/2} 0 ${-M_PI/2}"/>
+</joint>
+
+<gazebo reference="oakd_link">
+  <sensor name="oakd_rgb" type="rgbd_camera">
+    <always_on>1</always_on>
+    <update_rate>30</update_rate>
+    <camera>
+      <!-- OAK-D Lite RGB: 81° HFOV -->
+      <horizontal_fov>1.414</horizontal_fov>
+      <image>
+        <width>640</width>
+        <height>480</height>
+        <format>R8G8B8</format>
+      </image>
+      <clip>
+        <near>0.1</near>
+        <far>10.0</far>
+      </clip>
+      <optical_frame_id>oakd_rgb_optical_frame</optical_frame_id>
+    </camera>
+    <topic>oakd/rgb</topic>
+    <visualize>false</visualize>
+  </sensor>
+</gazebo>
+
     <!--              ackermann plugin                 -->
   <gazebo>
       <plugin

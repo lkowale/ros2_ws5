@@ -18,6 +18,11 @@
 
   After turn the line index is already advanced — "Move to next line" is removed
   to avoid the double-advance bug that skipped swath 1 in the original design.
+
+  Supports pause/resume with progress persistence to field_progress.json.
+
+  To pause:  ros2 topic pub /pause solbot5_msgs/msg/Pause "{paused: true, source: 'operator', reason: 'Manual pause'}"
+  To resume: ros2 topic pub /pause solbot5_msgs/msg/Pause "{paused: false, source: 'operator', reason: 'Resuming'}"
 -->
 <root BTCPP_format="4" main_tree_to_execute="FieldNav">
   <BehaviorTree ID="FieldNav">
@@ -50,10 +55,17 @@
         <KeepRunningUntilFailure>
           <ReactiveSequence>
 
-            <!-- Pause guard: halt all navigation when paused, wait until resumed -->
-            <Fallback name="PauseGuard">
+            <!-- Check pause state and save progress when paused -->
+            <Fallback>
               <NotPaused pause_topic="/pause"/>
-              <WaitUntilNotPaused pause_topic="/pause"/>
+              <Sequence name="Save and wait">
+                <SaveFieldProgress
+                    fields_directory="{fields_directory}"
+                    field_name="{field_name}"
+                    current_line_index="{current_line_index}"
+                    stage="{stage}"/>
+                <WaitUntilNotPaused pause_topic="/pause"/>
+              </Sequence>
             </Fallback>
 
             <Sequence name="TraverseLine">

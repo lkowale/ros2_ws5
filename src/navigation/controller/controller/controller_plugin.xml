@@ -44,3 +44,15 @@
     </description>
   </class>
 </library>
+
+<library path="tool_line_follower_controller_plugin">
+  <class name="pause_progress_checker/PauseProgressChecker"
+         type="pause_progress_checker::PauseProgressChecker"
+         base_class_type="nav2_core::ProgressChecker">
+    <description>
+      Progress checker that publishes a SEVERITY_HIGH pause on /pause instead of cancelling
+      the goal when the robot stops making progress. Clears the pause automatically when
+      progress resumes.
+    </description>
+  </class>
+</library>

@@ -24,7 +24,7 @@ set -e
 
 # Reset ROS environment to avoid contamination from other workspaces (e.g. ws4).
 unset AMENT_PREFIX_PATH COLCON_PREFIX_PATH CMAKE_PREFIX_PATH
-unset PYTHONPATH ROS_PACKAGE_PATH
+unset PYTHONPATH ROS_PACKAGE_PATH LD_LIBRARY_PATH
 
 source /opt/ros/jazzy/setup.bash
 source /home/aa/ros2_ws5/install/setup.bash
