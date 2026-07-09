@@ -1,0 +1,15 @@
+# Manage the pause_manager suppressed conditions list.
+# Suppressed conditions are silently ignored — they never trigger a pause.
+#
+# action: "add"    — add condition_id to suppress list
+#         "remove" — remove condition_id from suppress list
+#         "list"   — return current list (condition_id ignored)
+#
+# condition_id: full id as "source/condition_id", supports trailing wildcard e.g. "planter_service/*"
+
+string action
+string condition_id
+---
+bool success
+string message
+string[] suppressed_conditions

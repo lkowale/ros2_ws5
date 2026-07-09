@@ -47,9 +47,9 @@ bt_navigator:
       - next_field_line_bt_node
       - get_turn_sequence_bt_node
       - compute_headland_pose_bt_node
+      - pause_condition_bt_node
       - clear_one_line_progress_bt_node
       - publish_path_bt_node
-      - pause_condition_bt_node
     error_code_names:
       - compute_path_error_code
       - follow_path_error_code
