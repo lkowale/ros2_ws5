@@ -1,0 +1,11 @@
+# Query pause history from PauseManager
+
+int32 max_entries           # Maximum entries to return (0 = all available)
+bool active_only            # Only return currently active pauses
+string filter_source        # Filter by source component (empty = all)
+uint8 min_severity          # Minimum severity to include (0 = all)
+---
+bool success
+string message
+solbot5_msgs/PauseHistoryEntry[] entries
+int32 total_entries         # Total matching entries (may be > returned if max_entries set)

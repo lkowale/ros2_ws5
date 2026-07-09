@@ -50,6 +50,12 @@
         <KeepRunningUntilFailure>
           <ReactiveSequence>
 
+            <!-- Pause guard: halt all navigation when paused, wait until resumed -->
+            <Fallback name="PauseGuard">
+              <NotPaused pause_topic="/pause"/>
+              <WaitUntilNotPaused pause_topic="/pause"/>
+            </Fallback>
+
             <Sequence name="TraverseLine">
 
               <!-- APPROACH STAGE -->

@@ -129,6 +129,14 @@ def generate_launch_description():
         }],
     )
 
+    pause_manager = Node(
+        package='pause_manager',
+        executable='pause_manager',
+        name='pause_manager',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}],
+    )
+
     return LaunchDescription([
         declare_use_sim_time_cmd,
         declare_headless_cmd,
@@ -138,6 +146,7 @@ def generate_launch_description():
         origin_publisher,
         tf_pose_publisher,
         static_tf_map_origin,
+        pause_manager,
         nav2_cmd,
         plant_row_detector,
         tool_slider_controller,

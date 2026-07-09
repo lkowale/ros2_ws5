@@ -8,6 +8,12 @@ find_package(geometry_msgs REQUIRED)
 find_package(geographic_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/DiagnosticReport.msg"
+  "msg/Pause.msg"
+  "msg/PauseHistoryEntry.msg"
+  "srv/GetPauseHistory.srv"
+  "srv/ResumePause.srv"
+  "srv/ManageSuppressedConditions.srv"
   "action/RunOneLine.action"
   "action/DriveArc.action"
   "action/RunRsTest.action"
