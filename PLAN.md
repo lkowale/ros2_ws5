@@ -78,6 +78,18 @@ with hardware nodes replaced by Gazebo adapters.
    feed heading as a well-trusted absolute measurement.
 4. `run_hw.sh` (sim variant) + `run_localization.sh` + `run_sim.sh`.
 
+## Dependencies built from source
+
+### tile_map (mapviz plugin)
+The apt-installed `ros-jazzy-mapviz-plugins` binary has a rendering bug where the
+tile map display fails to load tiles correctly. Fix: build `tile_map` from source
+inside this workspace so colcon's version takes precedence over the system binary.
+
+Source is in `src/mapviz_plugins/tile_map/` (extracted from
+`ros-jazzy-mapviz-plugins_2.6.5`). No code changes — recompiling from source is
+sufficient. If the workspace is cloned fresh on a new machine, this package is
+already present and will be built automatically by `colcon build`.
+
 ## Open questions for later milestones
 - Antenna baseline sign / mounting offset calibration (front=gps_link +0.95,
   rear=gps_rear_link −0.95 → baseline points forward).

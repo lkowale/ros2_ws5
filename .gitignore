@@ -5,3 +5,4 @@ logs/
 /.claude/
 __pycache__/
 *.pyc
+src/fields/*/field_progress.json
