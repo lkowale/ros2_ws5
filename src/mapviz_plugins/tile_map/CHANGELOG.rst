@@ -1,0 +1,271 @@
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changelog for package tile_map
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+2.6.5 (2026-05-29)
+------------------
+* Fix plugin export (`#875 <https://github.com/swri-robotics/mapviz/issues/875>`_)
+  Co-authored-by: Ben Andrew <benjamin.andrew@swri.org>
+  (cherry picked from commit 667d284ac3138bcb726e32cca478a9a768b8dc0c)
+* Contributors: DangitBen, David Anthony
+
+2.6.4 (2026-05-10)
+------------------
+
+2.6.3 (2026-04-27)
+------------------
+
+2.6.2 (2026-03-16)
+------------------
+
+2.6.1 (2026-01-07)
+------------------
+
+2.6.0 (2025-12-18)
+------------------
+* Added additional tilemap sources (`#864 <https://github.com/swri-robotics/mapviz/issues/864>`_)
+  Co-authored-by: David Anthony <djanthony@gmail.com>
+* Contributors: Logan Elliott
+
+2.5.10 (2025-09-04)
+-------------------
+
+2.5.9 (2025-08-27)
+------------------
+* Removing unused function (`#861 <https://github.com/swri-robotics/mapviz/issues/861>`_)
+* Improve whitespace trimming behavior (`#859 <https://github.com/swri-robotics/mapviz/issues/859>`_)
+  moved MapvizPlugin::TrimString to protected from private
+  make plugins use TrimString instead of remove_if with std::isspace
+  Co-authored-by: Ben Andrew <benjamin.andrew@swri.org>
+* Contributors: DangitBen, David Anthony
+
+2.5.8 (2025-07-16)
+------------------
+
+2.5.7 (2025-07-07)
+------------------
+
+2.5.6 (2025-06-10)
+------------------
+
+2.5.5 (2025-06-03)
+------------------
+* Updating headers with new names (`#848 <https://github.com/swri-robotics/mapviz/issues/848>`_)
+* Contributors: David Anthony
+
+2.5.4 (2025-06-03)
+------------------
+
+2.5.3 (2025-06-02)
+------------------
+* Dependency cleanup (`#845 <https://github.com/swri-robotics/mapviz/issues/845>`_)
+* Contributors: DangitBen
+
+2.5.2 (2025-05-31)
+------------------
+
+2.5.1 (2025-05-30)
+------------------
+* Fix missing trailing slash in cmake include install (`#843 <https://github.com/swri-robotics/mapviz/issues/843>`_)
+* Contributors: DangitBen
+
+2.5.0 (2025-05-29)
+------------------
+* Correct CMake Export (`#842 <https://github.com/swri-robotics/mapviz/issues/842>`_)
+  * Removes Boost
+  * Removes deprecated ament macro
+  * General fixes to fix CMake exports and dependencies
+  ---------
+  Co-authored-by: Ben Andrew <benjamin.andrew@swri.org>
+* Contributors: David Anthony
+
+2.4.9 (2025-05-20)
+------------------
+* Adding Mapviz to tile map include directories (`#840 <https://github.com/swri-robotics/mapviz/issues/840>`_)
+* Contributors: David Anthony
+
+2.4.8 (2025-05-20)
+------------------
+* Fixing various dependencies (`#839 <https://github.com/swri-robotics/mapviz/issues/839>`_)
+* Contributors: David Anthony
+
+2.4.7 (2025-05-20)
+------------------
+* [kilted] Update deprecated call to ament_target_dependencies (`#838 <https://github.com/swri-robotics/mapviz/issues/838>`_)
+  * Removing deprecated ament calls while building.
+* Contributors: David V. Lu!!
+
+2.4.6 (2025-04-02)
+------------------
+
+2.4.5 (2025-01-20)
+------------------
+
+2.4.4 (2024-12-09)
+------------------
+
+2.4.3 (2024-09-18)
+------------------
+
+2.4.2 (2024-08-12)
+------------------
+
+2.4.1 (2024-08-09)
+------------------
+
+2.4.0 (2024-08-09)
+------------------
+* Fix unitialized bing source (`#800 <https://github.com/swri-robotics/mapviz/issues/800>`_)
+  Co-authored-by: Alex Youngs <alexyoungs@hatchbed.com>
+* Contributors: agyoungs
+
+2.3.0 (2023-08-24)
+------------------
+
+2.2.2 (2023-06-07)
+------------------
+* Iron Compatibility (`#779 <https://github.com/swri-robotics/mapviz/issues/779>`_)
+* Contributors: David Anthony
+
+2.2.1 (2023-05-30)
+------------------
+* Updating maintainers list (`#778 <https://github.com/swri-robotics/mapviz/issues/778>`_)
+* Contributors: David Anthony
+
+2.1.0 (2020-10-22)
+------------------
+
+2.0.0 (2020-05-13)
+------------------
+* Port mapviz to ROS 2 (`#672 <https://github.com/swri-robotics/mapviz/issues/672>`_)
+* Remove OpenGL warning (`#667 <https://github.com/swri-robotics/mapviz/issues/667>`_)
+* Contributors: Daniel D'Souza, P. J. Reed, Jacob Hassold, Kevin Nickels, Roger Strain, Matthew Bries
+
+1.2.0 (2019-09-04)
+------------------
+
+1.1.1 (2019-05-17)
+------------------
+
+1.1.0 (2019-02-20)
+------------------
+* Fix non-Bing sources (`#615 <https://github.com/swri-robotics/mapviz/issues/615>`_)
+* Contributors: P. J. Reed
+
+1.0.1 (2019-01-25)
+------------------
+
+1.0.0 (2019-01-23)
+------------------
+* Sharing tf_manager\_ between main app and plugins (`#555 <https://github.com/swri-robotics/mapviz/issues/555>`_)
+* Fix issue with loading Bing map tiles (`#599 <https://github.com/swri-robotics/mapviz/issues/599>`_)
+* Contributors: Davide Faconti, P. J. Reed
+
+0.3.0 (2018-11-16)
+------------------
+* Merge all -devel branches into a single master branch
+* Contributors: P. J. Reed
+
+0.2.6 (2018-07-31)
+------------------
+
+0.2.5 (2018-04-12)
+------------------
+* Bug fix in TileMap. GenTexture was invoked over and over again (`#559 <https://github.com/swri-robotics/mapviz/issues/559>`_)
+* Improve tile loading prioritization.
+* Glew warning fixed (`#539 <https://github.com/swri-robotics/mapviz/issues/539>`_)
+* update to use non deprecated pluginlib macro
+* Contributors: Davide Faconti, Marc Alban, Mikael Arguedas, P. J. Reed
+
+0.2.4 (2017-08-11)
+------------------
+* add include for boost::algorithm::trim_copy to fix tile_map_plugin.cpp:408:31: error: ‘trim_copy’ is not a member of ‘boost’ (`#497 <https://github.com/swri-robotics/mapviz/issues/497>`_)
+* Contributors: Austin Deric
+
+0.2.3 (2016-12-10)
+------------------
+
+0.2.2 (2016-12-07)
+------------------
+
+0.2.1 (2016-10-23)
+------------------
+* Rewrite tile_map loading to be more reliable
+  This changes how the tile_map plugin handles making network requires for tiles.
+  It will now:
+  - Use thread conditions to prompt loading rather than spinning
+  - Prioritize loading tiles in the visible area
+  - Retry a failed network request up to 5 times
+  - Not discard tile requests if there are more than 100 in the queue
+  This changes should significantly reduce (if not completely eliminate) the
+  number of tiles that fail to load and hopefully make tiles within the visible
+  area appear faster when there are many in the queue.
+  Fixes `#342 <https://github.com/swri-robotics/mapviz/issues/342>`_ and `#421 <https://github.com/swri-robotics/mapviz/issues/421>`_.
+* Adding support for Bing Maps (`#409 <https://github.com/swri-robotics/mapviz/issues/409>`_)
+  This makes a number of changes in the `tile_map` plugin in order to support
+  different types of tile servers, including Bing Maps.  Notable changes include:
+  - TileSource is now an abstract class
+  - WMTS server-specific behavior has been moved into a new WmtsSource class
+  - BingSource provides support for obtaining tiles from Bing Maps
+  - The UI for specifying server URLs has changed
+  - Prefix and coordinate order are no longer separate fields
+  - In URLs for WMTS sources, the variables {level}, {x}, and {y} will be substituted with appropriate values when tiles are requested
+  - Rather than generating hashes for image tiles based on their URLs, hashes are now generated by the TileSource implementations in order to support sources that can pull tiles from multiple servers
+  - Idle performance has been improved by removing redundant recalculations of the map view
+  - Added a dependency on libjsoncpp
+  Resolves `#227 <https://github.com/swri-robotics/mapviz/issues/227>`_
+  Conflicts:
+  tile_map/CMakeLists.txt
+  tile_map/package.xml
+* Giving `tile_map` an interface overhaul
+  MapQuest has turned off their public API for map tiles, so this plugin needed some work.  I have:
+  - Removed the MapQuest sources
+  - Made the interface for adding new sources more powerful
+  - Overhauled how sources are saved and loaded under the hood
+  - Added a button to reset the current tile cache
+  Resolves `#402 <https://github.com/swri-robotics/mapviz/issues/402>`_
+  Conflicts:
+  tile_map/CMakeLists.txt
+* Contributors: P. J. Reed
+
+0.2.0 (2016-06-23)
+------------------
+* Update tile_map to Qt5.
+* Contributors: Ed Venator
+
+0.1.3 (2016-05-20)
+------------------
+* Fix typo in tile map view size comparison.
+* Contributors: Marc Alban
+
+0.1.2 (2016-01-06)
+------------------
+
+0.1.1 (2015-11-17)
+------------------
+* Mark single argument constructors explicit.
+* Contributors: Marc Alban
+
+0.1.0 (2015-09-29)
+------------------
+
+0.0.3 (2015-09-28)
+------------------
+
+0.0.2 (2015-09-27)
+------------------
+
+0.0.1 (2015-09-27)
+------------------
+* Adds missing qt-opengl dependency to tile_map.
+* Renames all marti_common packages that were renamed.
+  (See http://github.com/swri-robotics/marti_common/issues/231)
+* Fixes catkin_lint problems that could prevent installation.
+* updates cmake version to squash the CMP0003 warning
+* removes dependencies on build_tools
+* uses format 2 package definition
+* implements subdivision of map tiles at the highest zoom levels to correctly warp map to the canvas coordinate system
+* only transform tile map when the transform changes
+* fixes related to merging catkin branch into tile_map and building on Ubuntu 12.04
+* initial working implementation of tile map plugin
+* Contributors: Ed Venator, Edward Venator, Marc Alban, P. J. Reed
