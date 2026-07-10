@@ -137,6 +137,17 @@ def generate_launch_description():
         parameters=[{'use_sim_time': use_sim_time}],
     )
 
+    web_video_server = Node(
+        package='web_video_server',
+        executable='web_video_server',
+        name='web_video_server',
+        output='screen',
+        parameters=[{
+            'port': 8080,
+            'use_sim_time': use_sim_time,
+        }],
+    )
+
     return LaunchDescription([
         declare_use_sim_time_cmd,
         declare_headless_cmd,
@@ -151,4 +162,5 @@ def generate_launch_description():
         plant_row_detector,
         tool_slider_controller,
         tool_actuator_sim,
+        web_video_server,
     ])

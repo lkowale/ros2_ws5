@@ -305,19 +305,21 @@
   </inertial>
 </link>
 
-<joint name="tool_bar_joint" type="fixed">
+<joint name="tool_bar_joint" type="prismatic">
   <parent link="tool_link"/>
   <child link="tool_bar"/>
-  <origin xyz="0.5 0.0 0.4" rpy="0 0 0"/>
+  <origin xyz="0.6 0.0 0.4" rpy="0 0 0"/>
+  <axis xyz="0 1 0"/>
+  <limit lower="-0.10" upper="0.10" effort="100" velocity="0.5"/>
 </joint>
 
 <!--              implements (3 × red tines on tool_bar)           -->
 <link name="implement_center">
   <visual>
-    <geometry><box size="0.10 0.02 0.10"/></geometry>
+    <geometry><box size="0.03 0.02 0.01"/></geometry>
     <material name="implement_red"><color rgba="1.0 0.0 0.0 1.0"/></material>
   </visual>
-  <collision><geometry><box size="0.10 0.02 0.10"/></geometry></collision>
+  <collision><geometry><box size="0.03 0.02 0.01"/></geometry></collision>
   <inertial>
     <mass value="0.5"/>
     <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
@@ -331,10 +333,10 @@
 
 <link name="implement_left">
   <visual>
-    <geometry><box size="0.10 0.02 0.10"/></geometry>
+    <geometry><box size="0.03 0.02 0.01"/></geometry>
     <material name="implement_red"/>
   </visual>
-  <collision><geometry><box size="0.10 0.02 0.10"/></geometry></collision>
+  <collision><geometry><box size="0.03 0.02 0.01"/></geometry></collision>
   <inertial>
     <mass value="0.5"/>
     <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
@@ -348,10 +350,10 @@
 
 <link name="implement_right">
   <visual>
-    <geometry><box size="0.10 0.02 0.10"/></geometry>
+    <geometry><box size="0.03 0.02 0.01"/></geometry>
     <material name="implement_red"/>
   </visual>
-  <collision><geometry><box size="0.10 0.02 0.10"/></geometry></collision>
+  <collision><geometry><box size="0.03 0.02 0.01"/></geometry></collision>
   <inertial>
     <mass value="0.5"/>
     <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
@@ -392,7 +394,7 @@
 <joint name="oakd_joint" type="fixed">
   <parent link="base_footprint"/>
   <child link="oakd_link"/>
-  <origin xyz="0.5 0.0 0.90" rpy="0 ${-M_PI/2} 0"/>
+  <origin xyz="0.5 0.0 0.80" rpy="0 ${M_PI/2} 0"/>
 </joint>
 
 <!-- Optical frame: ROS camera convention (z forward, x right, y down) -->
@@ -464,8 +466,19 @@
         <joint_name>front_right_wheel</joint_name>
         <joint_name>front_left_steering</joint_name>
         <joint_name>front_right_steering</joint_name>
+        <joint_name>tool_bar_joint</joint_name>
         <topic>joint_states</topic>
         <update_rate>30</update_rate>
+      </plugin>
+
+      <plugin
+        filename="gz-sim-joint-position-controller-system"
+        name="gz::sim::systems::JointPositionController">
+        <joint_name>tool_bar_joint</joint_name>
+        <topic>/tool_bar_joint/cmd_pos</topic>
+        <p_gain>100</p_gain>
+        <i_gain>0</i_gain>
+        <d_gain>10</d_gain>
       </plugin>
 
   </gazebo>
