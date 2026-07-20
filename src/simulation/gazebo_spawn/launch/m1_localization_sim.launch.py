@@ -36,6 +36,7 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time')
     headless = LaunchConfiguration('headless')
     heading_offset_deg = LaunchConfiguration('heading_offset_deg')
+    world = LaunchConfiguration('world')
 
     declare_use_sim_time_cmd = DeclareLaunchArgument(
         'use_sim_time', default_value='true')
@@ -45,6 +46,10 @@ def generate_launch_description():
     declare_heading_offset_cmd = DeclareLaunchArgument(
         'heading_offset_deg', default_value='0.0',
         description='Antenna-baseline mounting offset to calibrate')
+    declare_world_cmd = DeclareLaunchArgument(
+        'world',
+        default_value=os.path.join(sim_dir, 'worlds', 'empty.sdf'),
+        description='Full path to Gazebo world SDF file')
 
     # Gazebo + robot + gz bridge + covariance injectors + ackermann preprocessor.
     simulation_cmd = IncludeLaunchDescription(
@@ -53,6 +58,7 @@ def generate_launch_description():
         launch_arguments={
             'use_sim_time': use_sim_time,
             'headless': headless,
+            'world': world,
         }.items(),
     )
 
@@ -110,6 +116,7 @@ def generate_launch_description():
         declare_use_sim_time_cmd,
         declare_headless_cmd,
         declare_heading_offset_cmd,
+        declare_world_cmd,
         simulation_cmd,
         sim_gps_fix,
         sim_relposned,

@@ -1,0 +1,575 @@
+<?xml version='1.0' encoding='ASCII'?>
+<sdf version='1.7'>
+  <world name='house_short_crop_rows'>
+    <physics name="1ms" type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_update_rate>2000.0</real_time_update_rate>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+    <plugin filename="gz-sim-physics-system"           name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system"     name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system"           name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-imu-system"               name="gz::sim::systems::Imu"/>
+    <plugin filename="gz-sim-navsat-system"            name="gz::sim::systems::NavSat"/>
+
+    <spherical_coordinates>
+      <surface_model>EARTH_WGS84</surface_model>
+      <world_frame_orientation>ENU</world_frame_orientation>
+      <latitude_deg>53.5204991</latitude_deg>
+      <longitude_deg>17.8258532</longitude_deg>
+      <elevation>100.0</elevation>
+      <heading_deg>0</heading_deg>
+    </spherical_coordinates>
+
+    <scene>
+      <ambient>1 1 1 1</ambient>
+      <background>0.4 0.7 0.9 1</background>
+      <shadows>0</shadows>
+      <grid>false</grid>
+    </scene>
+
+    <light type="directional" name="sun">
+      <cast_shadows>false</cast_shadows>
+      <pose>0 0 20 0 0 0</pose>
+      <diffuse>0.9 0.9 0.9 1</diffuse>
+      <specular>0.1 0.1 0.1 1</specular>
+      <direction>0 0 -1</direction>
+    </light>
+
+    <model name='ground_plane'>
+      <static>true</static>
+      <link name='link'>
+        <collision name='collision'>
+          <geometry><plane><normal>0 0 1</normal><size>200 200</size></plane></geometry>
+        </collision>
+        <visual name='visual'>
+          <geometry><plane><normal>0 0 1</normal><size>200 200</size></plane></geometry>
+          <material>
+            <ambient>0.40 0.26 0.13 1</ambient>
+            <diffuse>0.40 0.26 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 32 crop rows from WGS84 swath coords — 2 per swath ±18cm -->
+
+    <model name='crop_row_0_L'>
+      <static>true</static>
+      <pose>10.2538 -3.2777 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.6676 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_0_R'>
+      <static>true</static>
+      <pose>10.1637 -3.6262 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.6676 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_1_L'>
+      <static>true</static>
+      <pose>8.5532 -9.5795 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7425 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_1_R'>
+      <static>true</static>
+      <pose>8.6433 -9.2310 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7425 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_2_L'>
+      <static>true</static>
+      <pose>10.0525 -4.0218 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.6770 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_2_R'>
+      <static>true</static>
+      <pose>9.9623 -4.3704 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.6770 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_3_L'>
+      <static>true</static>
+      <pose>8.3518 -10.3237 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7519 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_3_R'>
+      <static>true</static>
+      <pose>8.4420 -9.9751 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7519 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_4_L'>
+      <static>true</static>
+      <pose>9.8512 -4.7660 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.6863 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_4_R'>
+      <static>true</static>
+      <pose>9.7610 -5.1145 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.6863 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_5_L'>
+      <static>true</static>
+      <pose>8.1505 -11.0678 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7613 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_5_R'>
+      <static>true</static>
+      <pose>8.2407 -10.7193 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7613 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_6_L'>
+      <static>true</static>
+      <pose>9.6499 -5.5102 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.6957 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_6_R'>
+      <static>true</static>
+      <pose>9.5597 -5.8587 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.6957 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_7_L'>
+      <static>true</static>
+      <pose>7.9492 -11.8120 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7706 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_7_R'>
+      <static>true</static>
+      <pose>8.0394 -11.4634 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7706 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_8_L'>
+      <static>true</static>
+      <pose>9.4486 -6.2543 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7051 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_8_R'>
+      <static>true</static>
+      <pose>9.3584 -6.6029 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7051 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_9_L'>
+      <static>true</static>
+      <pose>7.7479 -12.5561 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7800 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_9_R'>
+      <static>true</static>
+      <pose>7.8380 -12.2076 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7800 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_10_L'>
+      <static>true</static>
+      <pose>9.2472 -6.9985 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7144 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_10_R'>
+      <static>true</static>
+      <pose>9.1571 -7.3470 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7144 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_11_L'>
+      <static>true</static>
+      <pose>7.5466 -13.3003 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7894 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_11_R'>
+      <static>true</static>
+      <pose>7.6367 -12.9518 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7894 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_12_L'>
+      <static>true</static>
+      <pose>9.0459 -7.7426 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7238 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_12_R'>
+      <static>true</static>
+      <pose>8.9558 -8.0912 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7238 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_13_L'>
+      <static>true</static>
+      <pose>7.3453 -14.0445 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7987 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_13_R'>
+      <static>true</static>
+      <pose>7.4354 -13.6959 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7987 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_14_L'>
+      <static>true</static>
+      <pose>8.8446 -8.4868 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7332 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_14_R'>
+      <static>true</static>
+      <pose>8.7545 -8.8353 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.7332 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_15_L'>
+      <static>true</static>
+      <pose>7.1440 -14.7886 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.8081 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <model name='crop_row_15_R'>
+      <static>true</static>
+      <pose>7.2341 -14.4401 0.005 0 0 -0.253117</pose>
+      <link name='link'>
+        <visual name='visual'>
+          <geometry>
+            <box><size>14.8081 0.06 0.01</size></box>
+          </geometry>
+          <material>
+            <ambient>0.13 0.55 0.13 1</ambient>
+            <diffuse>0.13 0.55 0.13 1</diffuse>
+            <specular>0 0 0 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

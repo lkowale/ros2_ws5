@@ -49,6 +49,7 @@ def generate_launch_description():
             'use_sim_time': use_sim_time,
             'headless': headless,
             'heading_offset_deg': heading_offset_deg,
+            'world': os.path.join(sim_dir, 'worlds', 'house_short_rows.sdf'),
         }.items(),
     )
 
