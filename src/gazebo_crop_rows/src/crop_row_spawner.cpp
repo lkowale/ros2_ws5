@@ -145,6 +145,7 @@ private:
   bool get_transforms(double & rx, double & ry, double & ryaw,
                       double & mo_tx, double & mo_ty, double & mo_yaw) {
     try {
+      // Robot in map frame (RL/EKF domain)
       auto tr = tf_buffer_->lookupTransform(
         "map", "base_footprint", tf2::TimePointZero,
         tf2::durationFromSec(0.1));
@@ -153,13 +154,18 @@ private:
       ryaw = quat_yaw(tr.transform.rotation.x, tr.transform.rotation.y,
                       tr.transform.rotation.z, tr.transform.rotation.w);
 
-      auto tm = tf_buffer_->lookupTransform(
-        "odom", "map", tf2::TimePointZero,
+      // Robot in odom frame (= Gazebo world frame)
+      auto to = tf_buffer_->lookupTransform(
+        "odom", "base_footprint", tf2::TimePointZero,
         tf2::durationFromSec(0.1));
-      mo_tx  = tm.transform.translation.x;
-      mo_ty  = tm.transform.translation.y;
-      mo_yaw = quat_yaw(tm.transform.rotation.x, tm.transform.rotation.y,
-                        tm.transform.rotation.z, tm.transform.rotation.w);
+      double ox = to.transform.translation.x;
+      double oy = to.transform.translation.y;
+
+      // map→world offset: world = map_pos + offset
+      // ox = rx + mo_tx  →  mo_tx = ox - rx
+      mo_tx  = ox - rx;
+      mo_ty  = oy - ry;
+      mo_yaw = 0.0;  // assume no rotation between map and world (same heading datum)
     } catch (...) {
       return false;
     }
@@ -183,10 +189,11 @@ private:
   }
 
   void map_to_world(double mx, double my,
-                    double tx, double ty, double yaw,
+                    double tx, double ty, double /*yaw*/,
                     double & wx, double & wy) {
-    wx = tx + mx * std::cos(yaw) - my * std::sin(yaw);
-    wy = ty + mx * std::sin(yaw) + my * std::cos(yaw);
+    // Simple translation offset: world = map + (odom_robot - map_robot)
+    wx = mx + tx;
+    wy = my + ty;
   }
 
   void remove_all() {
