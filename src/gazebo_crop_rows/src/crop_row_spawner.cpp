@@ -169,8 +169,11 @@ private:
       double len = std::hypot(dx, dy);
       Swath sw;
       sw.ux = dx/len; sw.uy = dy/len;
+      // Perpendicular always points to the same physical side regardless of
+      // which direction the swath was stored. Ensure py > 0 (points North in ENU).
       sw.px = -sw.uy; sw.py = sw.ux;
-      sw.yaw = std::atan2(dy, dx);  // raw heading, not normalized — boxes are symmetric
+      if (sw.py < 0) { sw.px = -sw.px; sw.py = -sw.py; }
+      sw.yaw = std::atan2(dy, dx);
       sw.cx = (x0+x1)/2; sw.cy = (y0+y1)/2;
       sw.length = len; sw.offset = row_offset_;
       swaths_.push_back(sw);
