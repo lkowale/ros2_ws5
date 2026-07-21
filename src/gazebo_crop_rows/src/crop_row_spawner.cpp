@@ -241,11 +241,15 @@ private:
 
     double a = along(*sw, rx, ry);
 
-    // Remove segments that have fallen behind
+    // Remove segments that have fallen behind (signed by travel direction)
+    double dot_for_removal = std::cos(ryaw) * sw->ux + std::sin(ryaw) * sw->uy;
+    double ts = (dot_for_removal >= 0) ? 1.0 : -1.0;
     {
       std::lock_guard<std::mutex> lk(mtx_);
       for (auto it = spawned_.begin(); it != spawned_.end(); ) {
-        if (a - it->second.along > behind_) {
+        // "behind" means segment's along is more than behind_ in the opposite travel dir
+        double lag = ts * (a - it->second.along);
+        if (lag > behind_) {
           gz::msgs::Entity req;
           req.set_name(it->first);
           req.set_type(gz::msgs::Entity::MODEL);
@@ -257,27 +261,39 @@ private:
       }
     }
 
-    double spawn_a = a + ahead_;
+    // dot>0: robot travels in same direction as swath ux,uy → spawn ahead = a+ahead
+    // dot<0: robot travels opposite                         → spawn ahead = a-ahead
+    double dot = std::cos(ryaw) * sw->ux + std::sin(ryaw) * sw->uy;
+    double travel_sign = (dot >= 0) ? 1.0 : -1.0;
+    double spawn_a = a + travel_sign * ahead_;
+
     if (std::abs(spawn_a) > sw->length / 2 + seg_len_) return;
     if (last_spawn_along_ && std::abs(spawn_a - *last_spawn_along_) < min_move_) return;
     last_spawn_along_ = spawn_a;
 
-    // Foot of perpendicular on swath at spawn_a — map frame
+    // Foot of perpendicular on swath at spawn_a — map frame = Gazebo world frame
     double seg_cx = sw->cx + spawn_a * sw->ux;
     double seg_cy = sw->cy + spawn_a * sw->uy;
 
     int ctr;
     { std::lock_guard<std::mutex> lk(mtx_); ctr = counter_++; }
 
+    // Row yaw matches swath direction the robot is currently travelling
+    double row_yaw = sw->yaw;
+    if (travel_sign < 0) {
+      // Flip yaw 180° when travelling opposite to stored swath direction,
+      // so the spawned box aligns with actual travel direction
+      row_yaw = normalize_angle(row_yaw + M_PI);
+    }
+
     for (int sign : {+1, -1}) {
-      // Map-frame row position = Gazebo world position (map=odom, static identity)
       double wx = seg_cx + sign * sw->offset * sw->px;
       double wy = seg_cy + sign * sw->offset * sw->py;
       std::string name = "gcr_" + std::to_string(ctr) + (sign > 0 ? "_L" : "_R");
 
       gz::msgs::EntityFactory req;
       req.set_name(name);
-      req.set_sdf(make_sdf(name, wx, wy, sw->yaw, seg_len_, width_));
+      req.set_sdf(make_sdf(name, wx, wy, row_yaw, seg_len_, width_));
       gz::msgs::Boolean rep;
       bool result = false;
       if (gz_node_.Request(spawn_srv_, req, 500, rep, result) && rep.data()) {
@@ -289,12 +305,18 @@ private:
       }
     }
 
-    // Diagnostic: log swath match and spawn position
+    // Diagnostic
     int si = (int)(sw - swaths_.data());
     double perp = (rx - sw->cx) * (-sw->uy) + (ry - sw->cy) * sw->ux;
+    double sw_yaw_deg = std::atan2(sw->uy, sw->ux) * 180.0 / M_PI;
+    double robot_yaw_deg = ryaw * 180.0 / M_PI;
     RCLCPP_INFO(get_logger(),
-      "[DIAG] swath=%d along=%.2f perp=%.3f robot=(%.3f,%.3f) spawn_foot=(%.3f,%.3f)",
-      si, a, perp, rx, ry, seg_cx, seg_cy);
+      "[DIAG] swath=%d along=%.2f perp=%.3f travel_sign=%.0f "
+      "robot=(%.3f,%.3f,%.1f°) sw_yaw=%.1f° dot=%.3f "
+      "spawn_foot=(%.3f,%.3f) row_yaw=%.1f°",
+      si, a, perp, travel_sign,
+      rx, ry, robot_yaw_deg, sw_yaw_deg, dot,
+      seg_cx, seg_cy, row_yaw * 180.0 / M_PI);
   }
 
   std::string field_file_, world_, spawn_srv_, remove_srv_;
