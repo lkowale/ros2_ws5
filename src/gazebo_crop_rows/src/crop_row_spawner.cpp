@@ -170,7 +170,7 @@ private:
       Swath sw;
       sw.ux = dx/len; sw.uy = dy/len;
       sw.px = -sw.uy; sw.py = sw.ux;
-      sw.yaw = normalize_angle(std::atan2(dy, dx));
+      sw.yaw = std::atan2(dy, dx);  // raw heading, not normalized — boxes are symmetric
       sw.cx = (x0+x1)/2; sw.cy = (y0+y1)/2;
       sw.length = len; sw.offset = row_offset_;
       swaths_.push_back(sw);
@@ -278,14 +278,6 @@ private:
     int ctr;
     { std::lock_guard<std::mutex> lk(mtx_); ctr = counter_++; }
 
-    // Row yaw matches swath direction the robot is currently travelling
-    double row_yaw = sw->yaw;
-    if (travel_sign < 0) {
-      // Flip yaw 180° when travelling opposite to stored swath direction,
-      // so the spawned box aligns with actual travel direction
-      row_yaw = normalize_angle(row_yaw + M_PI);
-    }
-
     for (int sign : {+1, -1}) {
       double wx = seg_cx + sign * sw->offset * sw->px;
       double wy = seg_cy + sign * sw->offset * sw->py;
@@ -293,7 +285,7 @@ private:
 
       gz::msgs::EntityFactory req;
       req.set_name(name);
-      req.set_sdf(make_sdf(name, wx, wy, row_yaw, seg_len_, width_));
+      req.set_sdf(make_sdf(name, wx, wy, sw->yaw, seg_len_, width_));
       gz::msgs::Boolean rep;
       bool result = false;
       if (gz_node_.Request(spawn_srv_, req, 500, rep, result) && rep.data()) {
@@ -308,15 +300,13 @@ private:
     // Diagnostic
     int si = (int)(sw - swaths_.data());
     double perp = (rx - sw->cx) * (-sw->uy) + (ry - sw->cy) * sw->ux;
-    double sw_yaw_deg = std::atan2(sw->uy, sw->ux) * 180.0 / M_PI;
+    double sw_yaw_deg = sw->yaw * 180.0 / M_PI;
     double robot_yaw_deg = ryaw * 180.0 / M_PI;
     RCLCPP_INFO(get_logger(),
       "[DIAG] swath=%d along=%.2f perp=%.3f travel_sign=%.0f "
-      "robot=(%.3f,%.3f,%.1f°) sw_yaw=%.1f° dot=%.3f "
-      "spawn_foot=(%.3f,%.3f) row_yaw=%.1f°",
+      "robot=(%.3f,%.3f,%.1f°) sw_yaw=%.1f° dot=%.3f spawn_foot=(%.3f,%.3f)",
       si, a, perp, travel_sign,
-      rx, ry, robot_yaw_deg, sw_yaw_deg, dot,
-      seg_cx, seg_cy, row_yaw * 180.0 / M_PI);
+      rx, ry, robot_yaw_deg, sw_yaw_deg, dot, seg_cx, seg_cy);
   }
 
   std::string field_file_, world_, spawn_srv_, remove_srv_;
