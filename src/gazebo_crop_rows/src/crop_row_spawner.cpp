@@ -218,6 +218,33 @@ private:
 
     double a = along(*sw, rx, ry);
 
+    // --- Diagnostic log every ~2 s (4 ticks at 0.5 Hz) ---
+    if (++diag_tick_ % 4 == 0) {
+      // Swath index
+      int si = (int)(sw - swaths_.data());
+      // Row positions in map frame (what RL sees)
+      double perp_dist = (rx - sw->cx) * (-sw->uy) + (ry - sw->cy) * sw->ux;
+      double row_L_mx = rx + sw->offset * sw->px;
+      double row_L_my = ry + sw->offset * sw->py;
+      double row_R_mx = rx - sw->offset * sw->px;
+      double row_R_my = ry - sw->offset * sw->py;
+      // Same points in Gazebo world frame (odom)
+      double row_L_wx, row_L_wy, row_R_wx, row_R_wy;
+      map_to_world(row_L_mx, row_L_my, mo_tx, mo_ty, mo_yaw, row_L_wx, row_L_wy);
+      map_to_world(row_R_mx, row_R_my, mo_tx, mo_ty, mo_yaw, row_R_wx, row_R_wy);
+      RCLCPP_INFO(get_logger(),
+        "[DIAG] swath=%d along=%.2f perp=%.3f | "
+        "robot map=(%.3f,%.3f) yaw=%.2f | "
+        "odom->map tx=(%.3f,%.3f) yaw=%.3f | "
+        "rowL map=(%.3f,%.3f) gz=(%.3f,%.3f) | "
+        "rowR map=(%.3f,%.3f) gz=(%.3f,%.3f)",
+        si, a, perp_dist,
+        rx, ry, ryaw,
+        mo_tx, mo_ty, mo_yaw,
+        row_L_mx, row_L_my, row_L_wx, row_L_wy,
+        row_R_mx, row_R_my, row_R_wx, row_R_wy);
+    }
+
     // Remove segments that have fallen behind
     {
       std::lock_guard<std::mutex> lk(mtx_);
@@ -280,6 +307,7 @@ private:
   int counter_ = 0;
   std::optional<double> last_spawn_along_;
   const Swath * current_swath_ = nullptr;
+  int diag_tick_ = 0;
 
   gz::transport::Node gz_node_;
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
