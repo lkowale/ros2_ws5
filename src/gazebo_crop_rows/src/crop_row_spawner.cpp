@@ -189,6 +189,20 @@ private:
     wy = ty + mx * std::sin(yaw) + my * std::cos(yaw);
   }
 
+  void remove_all() {
+    std::lock_guard<std::mutex> lk(mtx_);
+    for (auto & [name, _] : spawned_) {
+      gz::msgs::Entity req;
+      req.set_name(name);
+      req.set_type(gz::msgs::Entity::MODEL);
+      gz::msgs::Boolean rep;
+      bool result = false;
+      gz_node_.Request(remove_srv_, req, 500, rep, result);
+    }
+    spawned_.clear();
+    last_spawn_along_.reset();
+  }
+
   void update() {
     double rx, ry, ryaw, mo_tx, mo_ty, mo_yaw;
     if (!get_transforms(rx, ry, ryaw, mo_tx, mo_ty, mo_yaw)) return;
@@ -196,9 +210,15 @@ private:
     const Swath * sw = nearest_swath(rx, ry, ryaw);
     if (!sw) return;
 
+    // Swath changed — remove all segments from previous swath
+    if (sw != current_swath_) {
+      remove_all();
+      current_swath_ = sw;
+    }
+
     double a = along(*sw, rx, ry);
 
-    // Remove old segments
+    // Remove segments that have fallen behind
     {
       std::lock_guard<std::mutex> lk(mtx_);
       for (auto it = spawned_.begin(); it != spawned_.end(); ) {
@@ -259,6 +279,7 @@ private:
   std::mutex mtx_;
   int counter_ = 0;
   std::optional<double> last_spawn_along_;
+  const Swath * current_swath_ = nullptr;
 
   gz::transport::Node gz_node_;
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
