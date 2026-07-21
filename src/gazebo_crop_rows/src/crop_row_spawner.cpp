@@ -2,6 +2,7 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 #include <geometry_msgs/msg/transform_stamped.hpp>
+#include <robot_localization/srv/from_ll.hpp>
 
 #include <gz/transport/Node.hh>
 #include <gz/msgs/entity_factory.pb.h>
@@ -13,33 +14,25 @@
 #include <cmath>
 #include <fstream>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-static constexpr double WGS84_A = 6378137.0;
-
 struct Swath {
   double cx, cy;
-  double ux, uy;   // unit along-swath
-  double px, py;   // unit perpendicular (left)
+  double ux, uy;
+  double px, py;
   double yaw;
   double length;
   double offset;
 };
 
 struct Segment {
-  double along;  // along-swath position when spawned
+  double along;
 };
 
-static double wgs84_x(double lon, double lat, double dlon, double dlat) {
-  return (lon - dlon) * M_PI / 180.0 * WGS84_A * std::cos(dlat * M_PI / 180.0);
-}
-static double wgs84_y(double lat, double dlat) {
-  return (lat - dlat) * M_PI / 180.0 * WGS84_A;
-}
-
-static double norm_angle(double a) {
+static double normalize_angle(double a) {
   while (a >  M_PI / 2) a -= M_PI;
   while (a <= -M_PI / 2) a += M_PI;
   return a;
@@ -86,66 +79,111 @@ public:
     declare_parameter("row_width_m", 0.06);
     declare_parameter("segment_length_m", 2.0);
     declare_parameter("min_move_m", 1.5);
-    declare_parameter("datum_lat", 53.5204991);
-    declare_parameter("datum_lon", 17.8258532);
 
-    auto field_file   = get_parameter("field_file").as_string();
-    world_            = get_parameter("world_name").as_string();
-    ahead_            = get_parameter("spawn_ahead_m").as_double();
-    behind_           = get_parameter("remove_behind_m").as_double();
-    width_            = get_parameter("row_width_m").as_double();
-    seg_len_          = get_parameter("segment_length_m").as_double();
-    min_move_         = get_parameter("min_move_m").as_double();
-    double datum_lat  = get_parameter("datum_lat").as_double();
-    double datum_lon  = get_parameter("datum_lon").as_double();
+    field_file_   = get_parameter("field_file").as_string();
+    world_        = get_parameter("world_name").as_string();
+    ahead_        = get_parameter("spawn_ahead_m").as_double();
+    behind_       = get_parameter("remove_behind_m").as_double();
+    row_offset_   = get_parameter("row_offset_m").as_double();
+    width_        = get_parameter("row_width_m").as_double();
+    seg_len_      = get_parameter("segment_length_m").as_double();
+    min_move_     = get_parameter("min_move_m").as_double();
 
-    if (field_file.empty()) {
+    if (field_file_.empty()) {
       RCLCPP_ERROR(get_logger(), "field_file parameter not set");
       return;
     }
 
-    load_swaths(field_file, datum_lon, datum_lat,
-                get_parameter("row_offset_m").as_double());
-    RCLCPP_INFO(get_logger(), "Loaded %zu swaths from %s",
-                swaths_.size(), field_file.c_str());
-
     tf_buffer_   = std::make_shared<tf2_ros::Buffer>(get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
+    from_ll_cli_ = create_client<robot_localization::srv::FromLL>("/fromLL");
 
     spawn_srv_  = "/world/" + world_ + "/create";
     remove_srv_ = "/world/" + world_ + "/remove";
 
+    // Wait for /fromLL then load swaths using it for coordinate conversion
+    RCLCPP_INFO(get_logger(), "Waiting for /fromLL service...");
+    init_timer_ = create_wall_timer(
+      std::chrono::milliseconds(500),
+      std::bind(&CropRowSpawner::try_init, this));
+  }
+
+private:
+  void try_init() {
+    if (!from_ll_cli_->service_is_ready()) return;
+    init_timer_->cancel();
+
+    RCLCPP_INFO(get_logger(), "/fromLL ready — loading swaths from %s",
+                field_file_.c_str());
+    load_swaths_async();
+  }
+
+  void load_swaths_async() {
+    std::ifstream f(field_file_);
+    auto d = nlohmann::json::parse(f);
+
+    // Collect all WGS84 endpoints
+    pending_raw_.clear();
+    for (auto & feat : d["features"]) {
+      auto & c = feat["geometry"]["coordinates"];
+      pending_raw_.push_back({c[0][0], c[0][1], c[1][0], c[1][1]});
+    }
+
+    pending_idx_ = 0;
+    converted_.clear();
+    converted_.resize(pending_raw_.size() * 2);
+    convert_next_point();
+  }
+
+  void convert_next_point() {
+    size_t total = pending_raw_.size() * 2;
+    if (pending_idx_ >= total) {
+      finish_swath_load();
+      return;
+    }
+
+    size_t si = pending_idx_ / 2;
+    bool second = (pending_idx_ % 2) == 1;
+    auto & r = pending_raw_[si];
+
+    auto req = std::make_shared<robot_localization::srv::FromLL::Request>();
+    req->ll_point.latitude  = second ? r.lat1 : r.lat0;
+    req->ll_point.longitude = second ? r.lon1 : r.lon0;
+    req->ll_point.altitude  = 100.0;
+
+    from_ll_cli_->async_send_request(req,
+      [this](rclcpp::Client<robot_localization::srv::FromLL>::SharedFuture fut) {
+        auto & p = fut.get()->map_point;
+        converted_[pending_idx_] = {p.x, p.y};
+        ++pending_idx_;
+        convert_next_point();
+      });
+  }
+
+  void finish_swath_load() {
+    for (size_t i = 0; i < pending_raw_.size(); ++i) {
+      double x0 = converted_[2*i].x,   y0 = converted_[2*i].y;
+      double x1 = converted_[2*i+1].x, y1 = converted_[2*i+1].y;
+      double dx = x1-x0, dy = y1-y0;
+      double len = std::hypot(dx, dy);
+      Swath sw;
+      sw.ux = dx/len; sw.uy = dy/len;
+      sw.px = -sw.uy; sw.py = sw.ux;
+      sw.yaw = normalize_angle(std::atan2(dy, dx));
+      sw.cx = (x0+x1)/2; sw.cy = (y0+y1)/2;
+      sw.length = len; sw.offset = row_offset_;
+      swaths_.push_back(sw);
+    }
+    RCLCPP_INFO(get_logger(), "Loaded %zu swaths (map-frame coords via /fromLL)",
+                swaths_.size());
     timer_ = create_wall_timer(
       std::chrono::milliseconds(500),
       std::bind(&CropRowSpawner::update, this));
   }
 
-private:
-  void load_swaths(const std::string & path, double dlon, double dlat, double offset) {
-    std::ifstream f(path);
-    auto d = nlohmann::json::parse(f);
-    for (auto & feat : d["features"]) {
-      auto & coords = feat["geometry"]["coordinates"];
-      double x0 = wgs84_x(coords[0][0], coords[0][1], dlon, dlat);
-      double y0 = wgs84_y(coords[0][1], dlat);
-      double x1 = wgs84_x(coords[1][0], coords[1][1], dlon, dlat);
-      double y1 = wgs84_y(coords[1][1], dlat);
-      double dx = x1 - x0, dy = y1 - y0;
-      double len = std::hypot(dx, dy);
-      Swath sw;
-      sw.ux = dx / len; sw.uy = dy / len;
-      sw.px = -sw.uy;   sw.py = sw.ux;
-      sw.yaw = norm_angle(std::atan2(dy, dx));
-      sw.cx = (x0 + x1) / 2; sw.cy = (y0 + y1) / 2;
-      sw.length = len; sw.offset = offset;
-      swaths_.push_back(sw);
-    }
-  }
-
-  bool get_transforms(double & rx, double & ry, double & ryaw,
-                      double & mo_tx, double & mo_ty, double & mo_yaw) {
+  bool get_transforms(double & rx, double & ry, double & ryaw) {
     try {
-      // Robot in map frame (RL/EKF domain)
       auto tr = tf_buffer_->lookupTransform(
         "map", "base_footprint", tf2::TimePointZero,
         tf2::durationFromSec(0.1));
@@ -153,19 +191,6 @@ private:
       ry   = tr.transform.translation.y;
       ryaw = quat_yaw(tr.transform.rotation.x, tr.transform.rotation.y,
                       tr.transform.rotation.z, tr.transform.rotation.w);
-
-      // Robot in odom frame (= Gazebo world frame)
-      auto to = tf_buffer_->lookupTransform(
-        "odom", "base_footprint", tf2::TimePointZero,
-        tf2::durationFromSec(0.1));
-      double ox = to.transform.translation.x;
-      double oy = to.transform.translation.y;
-
-      // map→world offset: world = map_pos + offset
-      // ox = rx + mo_tx  →  mo_tx = ox - rx
-      mo_tx  = ox - rx;
-      mo_ty  = oy - ry;
-      mo_yaw = 0.0;  // assume no rotation between map and world (same heading datum)
     } catch (...) {
       return false;
     }
@@ -188,14 +213,6 @@ private:
     return (rx - sw.cx) * sw.ux + (ry - sw.cy) * sw.uy;
   }
 
-  void map_to_world(double mx, double my,
-                    double tx, double ty, double /*yaw*/,
-                    double & wx, double & wy) {
-    // Simple translation offset: world = map + (odom_robot - map_robot)
-    wx = mx + tx;
-    wy = my + ty;
-  }
-
   void remove_all() {
     std::lock_guard<std::mutex> lk(mtx_);
     for (auto & [name, _] : spawned_) {
@@ -211,48 +228,18 @@ private:
   }
 
   void update() {
-    double rx, ry, ryaw, mo_tx, mo_ty, mo_yaw;
-    if (!get_transforms(rx, ry, ryaw, mo_tx, mo_ty, mo_yaw)) return;
+    double rx, ry, ryaw;
+    if (!get_transforms(rx, ry, ryaw)) return;
 
     const Swath * sw = nearest_swath(rx, ry, ryaw);
     if (!sw) return;
 
-    // Swath changed — remove all segments from previous swath
     if (sw != current_swath_) {
       remove_all();
       current_swath_ = sw;
     }
 
     double a = along(*sw, rx, ry);
-
-    // --- Diagnostic log every ~2 s ---
-    if (++diag_tick_ % 4 == 0) {
-      int si = (int)(sw - swaths_.data());
-      double perp_dist = (rx - sw->cx) * (-sw->uy) + (ry - sw->cy) * sw->ux;
-      // Foot of perpendicular from robot onto swath axis
-      double foot_x = sw->cx + a * sw->ux;
-      double foot_y = sw->cy + a * sw->uy;
-      double row_L_mx = foot_x + sw->offset * sw->px;
-      double row_L_my = foot_y + sw->offset * sw->py;
-      double row_R_mx = foot_x - sw->offset * sw->px;
-      double row_R_my = foot_y - sw->offset * sw->py;
-      double row_L_wx, row_L_wy, row_R_wx, row_R_wy;
-      map_to_world(row_L_mx, row_L_my, mo_tx, mo_ty, mo_yaw, row_L_wx, row_L_wy);
-      map_to_world(row_R_mx, row_R_my, mo_tx, mo_ty, mo_yaw, row_R_wx, row_R_wy);
-      RCLCPP_INFO(get_logger(),
-        "[DIAG] swath=%d along=%.2f perp=%.3f | "
-        "robot map=(%.3f,%.3f) yaw=%.2f | "
-        "odom->map tx=(%.3f,%.3f) yaw=%.3f | "
-        "foot map=(%.3f,%.3f) | "
-        "rowL map=(%.3f,%.3f) gz=(%.3f,%.3f) | "
-        "rowR map=(%.3f,%.3f) gz=(%.3f,%.3f)",
-        si, a, perp_dist,
-        rx, ry, ryaw,
-        mo_tx, mo_ty, mo_yaw,
-        foot_x, foot_y,
-        row_L_mx, row_L_my, row_L_wx, row_L_wy,
-        row_R_mx, row_R_my, row_R_wx, row_R_wy);
-    }
 
     // Remove segments that have fallen behind
     {
@@ -266,20 +253,16 @@ private:
           bool result = false;
           gz_node_.Request(remove_srv_, req, 500, rep, result);
           it = spawned_.erase(it);
-        } else {
-          ++it;
-        }
+        } else { ++it; }
       }
     }
 
     double spawn_a = a + ahead_;
     if (std::abs(spawn_a) > sw->length / 2 + seg_len_) return;
-
-    // Throttle by min_move_m
     if (last_spawn_along_ && std::abs(spawn_a - *last_spawn_along_) < min_move_) return;
     last_spawn_along_ = spawn_a;
 
-    // Spawn point = foot of perpendicular onto swath at spawn_a distance
+    // Foot of perpendicular on swath at spawn_a — map frame
     double seg_cx = sw->cx + spawn_a * sw->ux;
     double seg_cy = sw->cy + spawn_a * sw->uy;
 
@@ -287,12 +270,9 @@ private:
     { std::lock_guard<std::mutex> lk(mtx_); ctr = counter_++; }
 
     for (int sign : {+1, -1}) {
-      // ±offset from swath centreline, not from robot position
-      double mx = seg_cx + sign * sw->offset * sw->px;
-      double my = seg_cy + sign * sw->offset * sw->py;
-      double wx, wy;
-      map_to_world(mx, my, mo_tx, mo_ty, mo_yaw, wx, wy);
-
+      // Map-frame row position = Gazebo world position (map=odom, static identity)
+      double wx = seg_cx + sign * sw->offset * sw->px;
+      double wy = seg_cy + sign * sw->offset * sw->py;
       std::string name = "gcr_" + std::to_string(ctr) + (sign > 0 ? "_L" : "_R");
 
       gz::msgs::EntityFactory req;
@@ -303,15 +283,22 @@ private:
       if (gz_node_.Request(spawn_srv_, req, 500, rep, result) && rep.data()) {
         std::lock_guard<std::mutex> lk(mtx_);
         spawned_[name] = {spawn_a};
-        RCLCPP_DEBUG(get_logger(), "Spawned %s", name.c_str());
+        RCLCPP_DEBUG(get_logger(), "Spawned %s at (%.2f,%.2f)", name.c_str(), wx, wy);
       } else {
         RCLCPP_WARN(get_logger(), "Failed to spawn %s", name.c_str());
       }
     }
+
+    // Diagnostic: log swath match and spawn position
+    int si = (int)(sw - swaths_.data());
+    double perp = (rx - sw->cx) * (-sw->uy) + (ry - sw->cy) * sw->ux;
+    RCLCPP_INFO(get_logger(),
+      "[DIAG] swath=%d along=%.2f perp=%.3f robot=(%.3f,%.3f) spawn_foot=(%.3f,%.3f)",
+      si, a, perp, rx, ry, seg_cx, seg_cy);
   }
 
-  std::string world_, spawn_srv_, remove_srv_;
-  double ahead_, behind_, width_, seg_len_, min_move_;
+  std::string field_file_, world_, spawn_srv_, remove_srv_;
+  double ahead_, behind_, row_offset_, width_, seg_len_, min_move_;
   std::vector<Swath> swaths_;
   std::unordered_map<std::string, Segment> spawned_;
   std::mutex mtx_;
@@ -320,9 +307,17 @@ private:
   const Swath * current_swath_ = nullptr;
   int diag_tick_ = 0;
 
+  struct Point2d { double x, y; };
+  struct RawSwath { double lon0, lat0, lon1, lat1; };
+  std::vector<RawSwath> pending_raw_;
+  std::vector<Point2d> converted_;
+  size_t pending_idx_ = 0;
+
+  rclcpp::Client<robot_localization::srv::FromLL>::SharedPtr from_ll_cli_;
   gz::transport::Node gz_node_;
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+  rclcpp::TimerBase::SharedPtr init_timer_;
   rclcpp::TimerBase::SharedPtr timer_;
 };
 

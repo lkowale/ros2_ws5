@@ -5,6 +5,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(robot_localization REQUIRED)
 
 set(CMAKE_PREFIX_PATH
   "/opt/ros/jazzy/opt/gz_transport_vendor"
@@ -26,6 +27,7 @@ ament_target_dependencies(crop_row_spawner
   rclcpp
   tf2_ros
   geometry_msgs
+  robot_localization
 )
 
 target_link_libraries(crop_row_spawner
