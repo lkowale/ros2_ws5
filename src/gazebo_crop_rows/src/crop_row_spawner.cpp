@@ -79,6 +79,9 @@ public:
     declare_parameter("row_width_m", 0.06);
     declare_parameter("segment_length_m", 2.0);
     declare_parameter("min_move_m", 1.5);
+    // Gazebo world spherical_coordinates reference — Gazebo world (0,0) in WGS84
+    declare_parameter("datum_lat", 0.0);
+    declare_parameter("datum_lon", 0.0);
 
     field_file_   = get_parameter("field_file").as_string();
     world_        = get_parameter("world_name").as_string();
@@ -88,6 +91,8 @@ public:
     width_        = get_parameter("row_width_m").as_double();
     seg_len_      = get_parameter("segment_length_m").as_double();
     min_move_     = get_parameter("min_move_m").as_double();
+    datum_lat_    = get_parameter("datum_lat").as_double();
+    datum_lon_    = get_parameter("datum_lon").as_double();
 
     if (field_file_.empty()) {
       RCLCPP_ERROR(get_logger(), "field_file parameter not set");
@@ -101,6 +106,11 @@ public:
 
     spawn_srv_  = "/world/" + world_ + "/create";
     remove_srv_ = "/world/" + world_ + "/remove";
+
+    if (datum_lat_ == 0.0 || datum_lon_ == 0.0) {
+      RCLCPP_ERROR(get_logger(), "datum_lat/datum_lon not set — must match Gazebo spherical_coordinates");
+      return;
+    }
 
     // Wait for /fromLL then load swaths using it for coordinate conversion
     RCLCPP_INFO(get_logger(), "Waiting for /fromLL service...");
@@ -120,6 +130,26 @@ private:
   }
 
   void load_swaths_async() {
+    // First convert Gazebo world origin (datum) so we know the map→gz_world offset
+    auto req = std::make_shared<robot_localization::srv::FromLL::Request>();
+    req->ll_point.latitude  = datum_lat_;
+    req->ll_point.longitude = datum_lon_;
+    req->ll_point.altitude  = 100.0;
+    from_ll_cli_->async_send_request(req,
+      [this](rclcpp::Client<robot_localization::srv::FromLL>::SharedFuture fut) {
+        auto & p = fut.get()->map_point;
+        // Gazebo world (0,0) is at (p.x, p.y) in map frame
+        // So: gz_world = map - (p.x, p.y)
+        gz_offset_x_ = p.x;
+        gz_offset_y_ = p.y;
+        RCLCPP_INFO(get_logger(),
+          "Gazebo world origin in map frame: (%.4f, %.4f) — will subtract from spawn coords",
+          gz_offset_x_, gz_offset_y_);
+        load_swath_points();
+      });
+  }
+
+  void load_swath_points() {
     std::ifstream f(field_file_);
     auto d = nlohmann::json::parse(f);
 
@@ -282,8 +312,9 @@ private:
     { std::lock_guard<std::mutex> lk(mtx_); ctr = counter_++; }
 
     for (int sign : {+1, -1}) {
-      double wx = seg_cx + sign * sw->offset * sw->px;
-      double wy = seg_cy + sign * sw->offset * sw->py;
+      // map-frame position → Gazebo world-frame position
+      double wx = (seg_cx + sign * sw->offset * sw->px) - gz_offset_x_;
+      double wy = (seg_cy + sign * sw->offset * sw->py) - gz_offset_y_;
       std::string name = "gcr_" + std::to_string(ctr) + (sign > 0 ? "_L" : "_R");
 
       gz::msgs::EntityFactory req;
@@ -307,13 +338,19 @@ private:
     double robot_yaw_deg = ryaw * 180.0 / M_PI;
     RCLCPP_INFO(get_logger(),
       "[DIAG] swath=%d along=%.2f perp=%.3f travel_sign=%.0f "
-      "robot=(%.3f,%.3f,%.1f°) sw_yaw=%.1f° dot=%.3f spawn_foot=(%.3f,%.3f)",
+      "robot_map=(%.3f,%.3f,%.1f°) sw_yaw=%.1f° dot=%.3f "
+      "spawn_map=(%.3f,%.3f) spawn_gz=(%.3f,%.3f) gz_offset=(%.3f,%.3f)",
       si, a, perp, travel_sign,
-      rx, ry, robot_yaw_deg, sw_yaw_deg, dot, seg_cx, seg_cy);
+      rx, ry, robot_yaw_deg, sw_yaw_deg, dot,
+      seg_cx, seg_cy,
+      seg_cx - gz_offset_x_, seg_cy - gz_offset_y_,
+      gz_offset_x_, gz_offset_y_);
   }
 
   std::string field_file_, world_, spawn_srv_, remove_srv_;
   double ahead_, behind_, row_offset_, width_, seg_len_, min_move_;
+  double datum_lat_, datum_lon_;
+  double gz_offset_x_ = 0.0, gz_offset_y_ = 0.0;
   std::vector<Swath> swaths_;
   std::unordered_map<std::string, Segment> spawned_;
   std::mutex mtx_;
