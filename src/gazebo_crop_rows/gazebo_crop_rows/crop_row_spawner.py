@@ -128,7 +128,7 @@ class CropRowSpawner(Node):
         self._ready = False
         self.get_logger().info(
             f'Waiting for Gazebo services {spawn_srv}, {remove_srv}...')
-        # Poll for service availability from the timer so the executor can spin
+        threading.Thread(target=self._wait_for_services, daemon=True).start()
         self.create_timer(0.2, self._update)
 
     def _load_rows(self, field_file, datum_lon, datum_lat):
@@ -179,12 +179,14 @@ class CropRowSpawner(Node):
         """Signed distance of robot along swath axis relative to row centre."""
         return (rx - row['cx']) * row['ux'] + (ry - row['cy']) * row['uy']
 
+    def _wait_for_services(self):
+        self._spawn_cli.wait_for_service()
+        self._remove_cli.wait_for_service()
+        self._ready = True
+        self.get_logger().info('Gazebo services ready')
+
     def _update(self):
         if not self._ready:
-            if (self._spawn_cli.service_is_ready() and
-                    self._remove_cli.service_is_ready()):
-                self._ready = True
-                self.get_logger().info('Gazebo services ready')
             return
 
         pose = self._get_robot_pose()
