@@ -268,27 +268,17 @@ private:
     const Swath * sw = nearest_swath(rx, ry, ryaw);
     if (!sw) return;
 
-    // On first well-aligned swath pass, calibrate gz_offset from live Gazebo pose.
+    // Refresh gz_offset every tick from live Gazebo pose.
     // gz_offset = map_pose - gz_world_pose, so: gz_world = map - gz_offset.
-    if (!calibrated_) {
-      double dot_cal = std::cos(ryaw) * sw->ux + std::sin(ryaw) * sw->uy;
-      if (std::abs(dot_cal) > 0.95) {
-        double gx, gy, gyaw;
-        if (gz_model_pose(robot_model_, gx, gy, gyaw)) {
-          gz_offset_x_ = rx - gx;
-          gz_offset_y_ = ry - gy;
-          calibrated_ = true;
-          RCLCPP_INFO(get_logger(),
-            "[CALIB] gz_offset=(%.4f, %.4f)  map=(%.3f,%.3f)  gz=(%.3f,%.3f)",
-            gz_offset_x_, gz_offset_y_, rx, ry, gx, gy);
-        } else {
-          RCLCPP_WARN(get_logger(), "Waiting for Gazebo pose of '%s' to calibrate offset...",
-                      robot_model_.c_str());
-          return;
-        }
-      } else {
-        return; // not yet aligned enough to calibrate
+    {
+      double gx, gy, gyaw;
+      if (!gz_model_pose(robot_model_, gx, gy, gyaw)) {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
+          "Cannot get Gazebo pose of '%s' — skipping spawn", robot_model_.c_str());
+        return;
       }
+      gz_offset_x_ = rx - gx;
+      gz_offset_y_ = ry - gy;
     }
 
     if (sw != current_swath_) {
@@ -373,7 +363,6 @@ private:
   std::string field_file_, world_, robot_model_, spawn_srv_, remove_srv_;
   double ahead_, behind_, row_offset_, width_, seg_len_, min_move_;
   double gz_offset_x_ = 0.0, gz_offset_y_ = 0.0;
-  bool calibrated_ = false;
   std::vector<Swath> swaths_;
   std::unordered_map<std::string, Segment> spawned_;
   std::mutex mtx_;
