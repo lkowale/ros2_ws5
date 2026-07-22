@@ -12,6 +12,7 @@
 #include <nlohmann/json.hpp>
 
 #include <cmath>
+#include <cstdio>
 #include <fstream>
 #include <mutex>
 #include <optional>
@@ -31,12 +32,6 @@ struct Swath {
 struct Segment {
   double along;
 };
-
-static double normalize_angle(double a) {
-  while (a >  M_PI / 2) a -= M_PI;
-  while (a <= -M_PI / 2) a += M_PI;
-  return a;
-}
 
 static double quat_yaw(double x, double y, double z, double w) {
   return std::atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z));
@@ -73,26 +68,23 @@ public:
   CropRowSpawner() : Node("crop_row_spawner") {
     declare_parameter("field_file", "");
     declare_parameter("world_name", "house_short_crop_rows");
+    declare_parameter("robot_model", "solbot5");
     declare_parameter("spawn_ahead_m", 4.0);
     declare_parameter("remove_behind_m", 3.0);
     declare_parameter("row_offset_m", 0.18);
     declare_parameter("row_width_m", 0.06);
     declare_parameter("segment_length_m", 2.0);
     declare_parameter("min_move_m", 1.5);
-    // Gazebo world spherical_coordinates reference — Gazebo world (0,0) in WGS84
-    declare_parameter("datum_lat", 0.0);
-    declare_parameter("datum_lon", 0.0);
 
     field_file_   = get_parameter("field_file").as_string();
     world_        = get_parameter("world_name").as_string();
+    robot_model_  = get_parameter("robot_model").as_string();
     ahead_        = get_parameter("spawn_ahead_m").as_double();
     behind_       = get_parameter("remove_behind_m").as_double();
     row_offset_   = get_parameter("row_offset_m").as_double();
     width_        = get_parameter("row_width_m").as_double();
     seg_len_      = get_parameter("segment_length_m").as_double();
     min_move_     = get_parameter("min_move_m").as_double();
-    datum_lat_    = get_parameter("datum_lat").as_double();
-    datum_lon_    = get_parameter("datum_lon").as_double();
 
     if (field_file_.empty()) {
       RCLCPP_ERROR(get_logger(), "field_file parameter not set");
@@ -107,11 +99,6 @@ public:
     spawn_srv_  = "/world/" + world_ + "/create";
     remove_srv_ = "/world/" + world_ + "/remove";
 
-    if (datum_lat_ == 0.0 || datum_lon_ == 0.0) {
-      RCLCPP_ERROR(get_logger(), "datum_lat/datum_lon not set — must match Gazebo spherical_coordinates");
-      return;
-    }
-
     // Wait for /fromLL then load swaths using it for coordinate conversion
     RCLCPP_INFO(get_logger(), "Waiting for /fromLL service...");
     init_timer_ = create_wall_timer(
@@ -120,33 +107,47 @@ public:
   }
 
 private:
+  // Returns (x, y, yaw_rad) of a Gazebo model via gz CLI, or false on failure.
+  bool gz_model_pose(const std::string & model, double & x, double & y, double & yaw) {
+    std::string cmd = "gz model -m " + model + " -p 2>/dev/null";
+    FILE * fp = popen(cmd.c_str(), "r");
+    if (!fp) return false;
+    char buf[256];
+    bool found_xyz_header = false;
+    bool got_xyz = false;
+    double lx = 0, ly = 0, lyaw = 0;
+    while (fgets(buf, sizeof(buf), fp)) {
+      std::string s(buf);
+      // trim leading whitespace
+      auto pos = s.find_first_not_of(" \t\r\n");
+      if (pos != std::string::npos) s = s.substr(pos);
+      if (s.find("XYZ") != std::string::npos) { found_xyz_header = true; continue; }
+      if (found_xyz_header && !got_xyz && s.size() > 1 && s[0] == '[') {
+        if (std::sscanf(s.c_str(), "[%lf %lf", &lx, &ly) == 2) got_xyz = true;
+        continue;
+      }
+      if (got_xyz && s.find("RPY") != std::string::npos && s.find("rad") != std::string::npos) continue;
+      if (got_xyz && s.size() > 1 && s[0] == '[') {
+        double r = 0, p = 0, yw = 0;
+        if (std::sscanf(s.c_str(), "[%lf %lf %lf]", &r, &p, &yw) == 3) {
+          lyaw = yw;
+          x = lx; y = ly; yaw = lyaw;
+          pclose(fp);
+          return true;
+        }
+      }
+    }
+    pclose(fp);
+    return false;
+  }
+
   void try_init() {
     if (!from_ll_cli_->service_is_ready()) return;
     init_timer_->cancel();
 
     RCLCPP_INFO(get_logger(), "/fromLL ready — loading swaths from %s",
                 field_file_.c_str());
-    load_swaths_async();
-  }
-
-  void load_swaths_async() {
-    // First convert Gazebo world origin (datum) so we know the map→gz_world offset
-    auto req = std::make_shared<robot_localization::srv::FromLL::Request>();
-    req->ll_point.latitude  = datum_lat_;
-    req->ll_point.longitude = datum_lon_;
-    req->ll_point.altitude  = 100.0;
-    from_ll_cli_->async_send_request(req,
-      [this](rclcpp::Client<robot_localization::srv::FromLL>::SharedFuture fut) {
-        auto & p = fut.get()->map_point;
-        // Gazebo world (0,0) is at (p.x, p.y) in map frame
-        // So: gz_world = map - (p.x, p.y)
-        gz_offset_x_ = p.x;
-        gz_offset_y_ = p.y;
-        RCLCPP_INFO(get_logger(),
-          "Gazebo world origin in map frame: (%.4f, %.4f) — will subtract from spawn coords",
-          gz_offset_x_, gz_offset_y_);
-        load_swath_points();
-      });
+    load_swath_points();
   }
 
   void load_swath_points() {
@@ -267,6 +268,29 @@ private:
     const Swath * sw = nearest_swath(rx, ry, ryaw);
     if (!sw) return;
 
+    // On first well-aligned swath pass, calibrate gz_offset from live Gazebo pose.
+    // gz_offset = map_pose - gz_world_pose, so: gz_world = map - gz_offset.
+    if (!calibrated_) {
+      double dot_cal = std::cos(ryaw) * sw->ux + std::sin(ryaw) * sw->uy;
+      if (std::abs(dot_cal) > 0.95) {
+        double gx, gy, gyaw;
+        if (gz_model_pose(robot_model_, gx, gy, gyaw)) {
+          gz_offset_x_ = rx - gx;
+          gz_offset_y_ = ry - gy;
+          calibrated_ = true;
+          RCLCPP_INFO(get_logger(),
+            "[CALIB] gz_offset=(%.4f, %.4f)  map=(%.3f,%.3f)  gz=(%.3f,%.3f)",
+            gz_offset_x_, gz_offset_y_, rx, ry, gx, gy);
+        } else {
+          RCLCPP_WARN(get_logger(), "Waiting for Gazebo pose of '%s' to calibrate offset...",
+                      robot_model_.c_str());
+          return;
+        }
+      } else {
+        return; // not yet aligned enough to calibrate
+      }
+    }
+
     if (sw != current_swath_) {
       remove_all();
       current_swath_ = sw;
@@ -280,7 +304,6 @@ private:
     {
       std::lock_guard<std::mutex> lk(mtx_);
       for (auto it = spawned_.begin(); it != spawned_.end(); ) {
-        // "behind" means segment's along is more than behind_ in the opposite travel dir
         double lag = ts * (a - it->second.along);
         if (lag > behind_) {
           gz::msgs::Entity req;
@@ -304,7 +327,7 @@ private:
     if (last_spawn_along_ && std::abs(spawn_a - *last_spawn_along_) < min_move_) return;
     last_spawn_along_ = spawn_a;
 
-    // Foot of perpendicular on swath at spawn_a — map frame = Gazebo world frame
+    // Foot of perpendicular on swath at spawn_a, in map frame
     double seg_cx = sw->cx + spawn_a * sw->ux;
     double seg_cy = sw->cy + spawn_a * sw->uy;
 
@@ -312,7 +335,7 @@ private:
     { std::lock_guard<std::mutex> lk(mtx_); ctr = counter_++; }
 
     for (int sign : {+1, -1}) {
-      // map-frame position → Gazebo world-frame position
+      // Convert map-frame spawn position to Gazebo world frame using calibrated offset
       double wx = (seg_cx + sign * sw->offset * sw->px) - gz_offset_x_;
       double wy = (seg_cy + sign * sw->offset * sw->py) - gz_offset_y_;
       std::string name = "gcr_" + std::to_string(ctr) + (sign > 0 ? "_L" : "_R");
@@ -325,7 +348,7 @@ private:
       if (gz_node_.Request(spawn_srv_, req, 500, rep, result) && rep.data()) {
         std::lock_guard<std::mutex> lk(mtx_);
         spawned_[name] = {spawn_a};
-        RCLCPP_DEBUG(get_logger(), "Spawned %s at (%.2f,%.2f)", name.c_str(), wx, wy);
+        RCLCPP_DEBUG(get_logger(), "Spawned %s at gz=(%.2f,%.2f)", name.c_str(), wx, wy);
       } else {
         RCLCPP_WARN(get_logger(), "Failed to spawn %s", name.c_str());
       }
@@ -347,17 +370,16 @@ private:
       gz_offset_x_, gz_offset_y_);
   }
 
-  std::string field_file_, world_, spawn_srv_, remove_srv_;
+  std::string field_file_, world_, robot_model_, spawn_srv_, remove_srv_;
   double ahead_, behind_, row_offset_, width_, seg_len_, min_move_;
-  double datum_lat_, datum_lon_;
   double gz_offset_x_ = 0.0, gz_offset_y_ = 0.0;
+  bool calibrated_ = false;
   std::vector<Swath> swaths_;
   std::unordered_map<std::string, Segment> spawned_;
   std::mutex mtx_;
   int counter_ = 0;
   std::optional<double> last_spawn_along_;
   const Swath * current_swath_ = nullptr;
-  int diag_tick_ = 0;
 
   struct Point2d { double x, y; };
   struct RawSwath { double lon0, lat0, lon1, lat1; };
