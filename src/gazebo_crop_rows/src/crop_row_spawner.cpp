@@ -2,6 +2,7 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 #include <geometry_msgs/msg/transform_stamped.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 #include <robot_localization/srv/from_ll.hpp>
 
 #include <gz/transport/Node.hh>
@@ -11,8 +12,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <atomic>
 #include <cmath>
-#include <cstdio>
 #include <fstream>
 #include <mutex>
 #include <optional>
@@ -69,6 +70,7 @@ public:
     declare_parameter("field_file", "");
     declare_parameter("world_name", "house_short_crop_rows");
     declare_parameter("robot_model", "solbot5");
+    declare_parameter("gz_odom_topic", "odometry/gazebo");
     declare_parameter("spawn_ahead_m", 4.0);
     declare_parameter("remove_behind_m", 3.0);
     declare_parameter("row_offset_m", 0.18);
@@ -78,7 +80,6 @@ public:
 
     field_file_   = get_parameter("field_file").as_string();
     world_        = get_parameter("world_name").as_string();
-    robot_model_  = get_parameter("robot_model").as_string();
     ahead_        = get_parameter("spawn_ahead_m").as_double();
     behind_       = get_parameter("remove_behind_m").as_double();
     row_offset_   = get_parameter("row_offset_m").as_double();
@@ -99,6 +100,19 @@ public:
     spawn_srv_  = "/world/" + world_ + "/create";
     remove_srv_ = "/world/" + world_ + "/remove";
 
+    // Subscribe to Gazebo odometry bridge — provides robot world pose with no subprocess cost
+    gz_odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
+      get_parameter("gz_odom_topic").as_string(), 10,
+      [this](nav_msgs::msg::Odometry::ConstSharedPtr msg) {
+        const auto & p = msg->pose.pose.position;
+        const auto & q = msg->pose.pose.orientation;
+        double yaw = quat_yaw(q.x, q.y, q.z, q.w);
+        gz_pose_x_.store(p.x);
+        gz_pose_y_.store(p.y);
+        gz_pose_yaw_.store(yaw);
+        gz_pose_valid_.store(true);
+      });
+
     // Wait for /fromLL then load swaths using it for coordinate conversion
     RCLCPP_INFO(get_logger(), "Waiting for /fromLL service...");
     init_timer_ = create_wall_timer(
@@ -107,40 +121,6 @@ public:
   }
 
 private:
-  // Returns (x, y, yaw_rad) of a Gazebo model via gz CLI, or false on failure.
-  bool gz_model_pose(const std::string & model, double & x, double & y, double & yaw) {
-    std::string cmd = "gz model -m " + model + " -p 2>/dev/null";
-    FILE * fp = popen(cmd.c_str(), "r");
-    if (!fp) return false;
-    char buf[256];
-    bool found_xyz_header = false;
-    bool got_xyz = false;
-    double lx = 0, ly = 0, lyaw = 0;
-    while (fgets(buf, sizeof(buf), fp)) {
-      std::string s(buf);
-      // trim leading whitespace
-      auto pos = s.find_first_not_of(" \t\r\n");
-      if (pos != std::string::npos) s = s.substr(pos);
-      if (s.find("XYZ") != std::string::npos) { found_xyz_header = true; continue; }
-      if (found_xyz_header && !got_xyz && s.size() > 1 && s[0] == '[') {
-        if (std::sscanf(s.c_str(), "[%lf %lf", &lx, &ly) == 2) got_xyz = true;
-        continue;
-      }
-      if (got_xyz && s.find("RPY") != std::string::npos && s.find("rad") != std::string::npos) continue;
-      if (got_xyz && s.size() > 1 && s[0] == '[') {
-        double r = 0, p = 0, yw = 0;
-        if (std::sscanf(s.c_str(), "[%lf %lf %lf]", &r, &p, &yw) == 3) {
-          lyaw = yw;
-          x = lx; y = ly; yaw = lyaw;
-          pclose(fp);
-          return true;
-        }
-      }
-    }
-    pclose(fp);
-    return false;
-  }
-
   void try_init() {
     if (!from_ll_cli_->service_is_ready()) return;
     init_timer_->cancel();
@@ -268,19 +248,22 @@ private:
     const Swath * sw = nearest_swath(rx, ry, ryaw);
     if (!sw) return;
 
-    // Refresh gz_offset and gz_yaw_offset every tick from live Gazebo pose.
+    // Refresh gz_offset and gz_yaw_offset from the latest bridged Gazebo odometry.
     // gz_offset = map_pose - gz_world_pose  (XY translation)
     // gz_yaw_offset = gz_yaw - map_yaw      (yaw rotation to apply to spawned box)
+    if (!gz_pose_valid_.load()) {
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
+        "No Gazebo odometry yet on '%s' — skipping spawn",
+        get_parameter("gz_odom_topic").as_string().c_str());
+      return;
+    }
     {
-      double gx, gy, gyaw_gz;
-      if (!gz_model_pose(robot_model_, gx, gy, gyaw_gz)) {
-        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
-          "Cannot get Gazebo pose of '%s' — skipping spawn", robot_model_.c_str());
-        return;
-      }
+      double gx  = gz_pose_x_.load();
+      double gy  = gz_pose_y_.load();
+      double gyw = gz_pose_yaw_.load();
       gz_offset_x_   = rx - gx;
       gz_offset_y_   = ry - gy;
-      gz_yaw_offset_ = gyaw_gz - ryaw;   // radians; wrap not needed, used in trig
+      gz_yaw_offset_ = gyw - ryaw;   // radians; wrap not needed, used in trig
     }
 
     if (sw != current_swath_) {
@@ -366,9 +349,12 @@ private:
       gz_yaw_offset_ * 180.0 / M_PI);
   }
 
-  std::string field_file_, world_, robot_model_, spawn_srv_, remove_srv_;
+  std::string field_file_, world_, spawn_srv_, remove_srv_;
   double ahead_, behind_, row_offset_, width_, seg_len_, min_move_;
   double gz_offset_x_ = 0.0, gz_offset_y_ = 0.0, gz_yaw_offset_ = 0.0;
+  // Cached Gazebo world pose from bridged odometry topic (lock-free)
+  std::atomic<double> gz_pose_x_{0.0}, gz_pose_y_{0.0}, gz_pose_yaw_{0.0};
+  std::atomic<bool>   gz_pose_valid_{false};
   std::vector<Swath> swaths_;
   std::unordered_map<std::string, Segment> spawned_;
   std::mutex mtx_;
@@ -383,6 +369,7 @@ private:
   size_t pending_idx_ = 0;
 
   rclcpp::Client<robot_localization::srv::FromLL>::SharedPtr from_ll_cli_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr gz_odom_sub_;
   gz::transport::Node gz_node_;
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;

@@ -46,8 +46,9 @@
   direction: ROS_TO_GZ
 
 # OAK-D Lite RGB camera
+# type=camera sensor publishes image to /oakd/rgb (no /image suffix), camera_info to /oakd/rgb/camera_info
 - ros_topic_name: "/oakd/rgb/image"
-  gz_topic_name: "/oakd/rgb/image"
+  gz_topic_name: "/oakd/rgb"
   ros_type_name: "sensor_msgs/msg/Image"
   gz_type_name: "gz.msgs.Image"
   direction: GZ_TO_ROS
