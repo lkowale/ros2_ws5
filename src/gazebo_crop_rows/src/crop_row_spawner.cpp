@@ -258,12 +258,8 @@ private:
       return;
     }
     {
-      double gx  = gz_pose_x_.load();
-      double gy  = gz_pose_y_.load();
       double gyw = gz_pose_yaw_.load();
-      gz_offset_x_   = rx - gx;
-      gz_offset_y_   = ry - gy;
-      gz_yaw_offset_ = gyw - ryaw;   // radians; wrap not needed, used in trig
+      gz_yaw_offset_ = gyw - ryaw;
     }
 
     if (sw != current_swath_) {
@@ -309,13 +305,25 @@ private:
     int ctr;
     { std::lock_guard<std::mutex> lk(mtx_); ctr = counter_++; }
 
-    // Row yaw in Gazebo world frame = map-frame swath yaw + gz_yaw_offset
+    // Row yaw in Gazebo world frame = map-frame swath yaw - gz_yaw_offset
+    // gz_yaw_offset = gz_yaw - map_yaw, so gz_yaw = map_yaw + gz_yaw_offset
+    // The row's map-frame yaw must be expressed in gz world frame the same way.
     double gz_row_yaw = sw->yaw + gz_yaw_offset_;
 
+    // Cache gz robot pose for XY conversion (gz_pose_* atomics read once above)
+    double gx_robot = gz_pose_x_.load();
+    double gy_robot = gz_pose_y_.load();
+    double cos_off  = std::cos(gz_yaw_offset_);
+    double sin_off  = std::sin(gz_yaw_offset_);
+
     for (int sign : {+1, -1}) {
-      // Convert map-frame spawn position to Gazebo world frame
-      double wx = (seg_cx + sign * sw->offset * sw->px) - gz_offset_x_;
-      double wy = (seg_cy + sign * sw->offset * sw->py) - gz_offset_y_;
+      // Displacement from robot in map frame
+      double dx_map = (seg_cx + sign * sw->offset * sw->px) - rx;
+      double dy_map = (seg_cy + sign * sw->offset * sw->py) - ry;
+      // Rotate displacement by gz_yaw_offset_ to express it in gz world frame,
+      // then add gz robot position.
+      double wx = gx_robot + cos_off * dx_map - sin_off * dy_map;
+      double wy = gy_robot + sin_off * dx_map + cos_off * dy_map;
       std::string name = "gcr_" + std::to_string(ctr) + (sign > 0 ? "_L" : "_R");
 
       gz::msgs::EntityFactory req;
@@ -339,19 +347,18 @@ private:
     double robot_yaw_deg = ryaw * 180.0 / M_PI;
     RCLCPP_INFO(get_logger(),
       "[DIAG] swath=%d along=%.2f perp=%.3f travel_sign=%.0f "
-      "robot_map=(%.3f,%.3f,%.1f°) sw_yaw=%.1f° gz_row_yaw=%.1f° dot=%.3f "
-      "spawn_gz=(%.3f,%.3f) gz_offset=(%.3f,%.3f) gz_yaw_off=%.1f°",
+      "robot_map=(%.3f,%.3f,%.1f°) robot_gz=(%.3f,%.3f) "
+      "sw_yaw=%.1f° gz_row_yaw=%.1f° dot=%.3f gz_yaw_off=%.1f°",
       si, a, perp, travel_sign,
-      rx, ry, robot_yaw_deg, sw_yaw_deg,
-      gz_row_yaw * 180.0 / M_PI, dot,
-      seg_cx - gz_offset_x_, seg_cy - gz_offset_y_,
-      gz_offset_x_, gz_offset_y_,
+      rx, ry, robot_yaw_deg,
+      gx_robot, gy_robot,
+      sw_yaw_deg, gz_row_yaw * 180.0 / M_PI, dot,
       gz_yaw_offset_ * 180.0 / M_PI);
   }
 
   std::string field_file_, world_, spawn_srv_, remove_srv_;
   double ahead_, behind_, row_offset_, width_, seg_len_, min_move_;
-  double gz_offset_x_ = 0.0, gz_offset_y_ = 0.0, gz_yaw_offset_ = 0.0;
+  double gz_yaw_offset_ = 0.0;
   // Cached Gazebo world pose from bridged odometry topic (lock-free)
   std::atomic<double> gz_pose_x_{0.0}, gz_pose_y_{0.0}, gz_pose_yaw_{0.0};
   std::atomic<bool>   gz_pose_valid_{false};
