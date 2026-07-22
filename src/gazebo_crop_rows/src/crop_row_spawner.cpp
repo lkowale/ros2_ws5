@@ -268,17 +268,19 @@ private:
     const Swath * sw = nearest_swath(rx, ry, ryaw);
     if (!sw) return;
 
-    // Refresh gz_offset every tick from live Gazebo pose.
-    // gz_offset = map_pose - gz_world_pose, so: gz_world = map - gz_offset.
+    // Refresh gz_offset and gz_yaw_offset every tick from live Gazebo pose.
+    // gz_offset = map_pose - gz_world_pose  (XY translation)
+    // gz_yaw_offset = gz_yaw - map_yaw      (yaw rotation to apply to spawned box)
     {
-      double gx, gy, gyaw;
-      if (!gz_model_pose(robot_model_, gx, gy, gyaw)) {
+      double gx, gy, gyaw_gz;
+      if (!gz_model_pose(robot_model_, gx, gy, gyaw_gz)) {
         RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
           "Cannot get Gazebo pose of '%s' — skipping spawn", robot_model_.c_str());
         return;
       }
-      gz_offset_x_ = rx - gx;
-      gz_offset_y_ = ry - gy;
+      gz_offset_x_   = rx - gx;
+      gz_offset_y_   = ry - gy;
+      gz_yaw_offset_ = gyaw_gz - ryaw;   // radians; wrap not needed, used in trig
     }
 
     if (sw != current_swath_) {
@@ -324,15 +326,18 @@ private:
     int ctr;
     { std::lock_guard<std::mutex> lk(mtx_); ctr = counter_++; }
 
+    // Row yaw in Gazebo world frame = map-frame swath yaw + gz_yaw_offset
+    double gz_row_yaw = sw->yaw + gz_yaw_offset_;
+
     for (int sign : {+1, -1}) {
-      // Convert map-frame spawn position to Gazebo world frame using calibrated offset
+      // Convert map-frame spawn position to Gazebo world frame
       double wx = (seg_cx + sign * sw->offset * sw->px) - gz_offset_x_;
       double wy = (seg_cy + sign * sw->offset * sw->py) - gz_offset_y_;
       std::string name = "gcr_" + std::to_string(ctr) + (sign > 0 ? "_L" : "_R");
 
       gz::msgs::EntityFactory req;
       req.set_name(name);
-      req.set_sdf(make_sdf(name, wx, wy, sw->yaw, seg_len_, width_));
+      req.set_sdf(make_sdf(name, wx, wy, gz_row_yaw, seg_len_, width_));
       gz::msgs::Boolean rep;
       bool result = false;
       if (gz_node_.Request(spawn_srv_, req, 500, rep, result) && rep.data()) {
@@ -351,18 +356,19 @@ private:
     double robot_yaw_deg = ryaw * 180.0 / M_PI;
     RCLCPP_INFO(get_logger(),
       "[DIAG] swath=%d along=%.2f perp=%.3f travel_sign=%.0f "
-      "robot_map=(%.3f,%.3f,%.1f°) sw_yaw=%.1f° dot=%.3f "
-      "spawn_map=(%.3f,%.3f) spawn_gz=(%.3f,%.3f) gz_offset=(%.3f,%.3f)",
+      "robot_map=(%.3f,%.3f,%.1f°) sw_yaw=%.1f° gz_row_yaw=%.1f° dot=%.3f "
+      "spawn_gz=(%.3f,%.3f) gz_offset=(%.3f,%.3f) gz_yaw_off=%.1f°",
       si, a, perp, travel_sign,
-      rx, ry, robot_yaw_deg, sw_yaw_deg, dot,
-      seg_cx, seg_cy,
+      rx, ry, robot_yaw_deg, sw_yaw_deg,
+      gz_row_yaw * 180.0 / M_PI, dot,
       seg_cx - gz_offset_x_, seg_cy - gz_offset_y_,
-      gz_offset_x_, gz_offset_y_);
+      gz_offset_x_, gz_offset_y_,
+      gz_yaw_offset_ * 180.0 / M_PI);
   }
 
   std::string field_file_, world_, robot_model_, spawn_srv_, remove_srv_;
   double ahead_, behind_, row_offset_, width_, seg_len_, min_move_;
-  double gz_offset_x_ = 0.0, gz_offset_y_ = 0.0;
+  double gz_offset_x_ = 0.0, gz_offset_y_ = 0.0, gz_yaw_offset_ = 0.0;
   std::vector<Swath> swaths_;
   std::unordered_map<std::string, Segment> spawned_;
   std::mutex mtx_;
