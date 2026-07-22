@@ -406,9 +406,9 @@
 </joint>
 
 <gazebo reference="oakd_link">
-  <sensor name="oakd_rgb" type="rgbd_camera">
+  <sensor name="oakd_rgb" type="camera">
     <always_on>1</always_on>
-    <update_rate>10</update_rate>
+    <update_rate>5</update_rate>
     <camera>
       <!-- OAK-D Lite RGB: 81° HFOV -->
       <horizontal_fov>1.414</horizontal_fov>

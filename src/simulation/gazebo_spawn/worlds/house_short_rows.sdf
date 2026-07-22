@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='ASCII'?>
 <sdf version='1.7'>
   <world name='house_short_crop_rows'>
-    <physics name="1ms" type="ode">
-      <max_step_size>0.001</max_step_size>
-      <real_time_update_rate>2000.0</real_time_update_rate>
+    <physics name="2ms" type="ode">
+      <max_step_size>0.002</max_step_size>
+      <real_time_update_rate>500</real_time_update_rate>
       <real_time_factor>1.0</real_time_factor>
     </physics>
     <plugin filename="gz-sim-physics-system"           name="gz::sim::systems::Physics"/>
