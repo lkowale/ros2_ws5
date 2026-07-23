@@ -77,10 +77,6 @@ public:
     declare_parameter("row_width_m", 0.06);
     declare_parameter("segment_length_m", 2.0);
     declare_parameter("min_move_m", 1.5);
-    // GPS antenna is 1.65m ahead of rear axle (real robot measurement).
-    // EKF map frame is anchored to the GPS antenna; Gazebo model origin is at the rear axle.
-    // This offset corrects for that lever arm when converting between frames.
-    declare_parameter("gps_fwd_offset_m", 1.65);
 
     field_file_   = get_parameter("field_file").as_string();
     world_        = get_parameter("world_name").as_string();
@@ -90,7 +86,6 @@ public:
     width_        = get_parameter("row_width_m").as_double();
     seg_len_      = get_parameter("segment_length_m").as_double();
     min_move_     = get_parameter("min_move_m").as_double();
-    gps_fwd_      = get_parameter("gps_fwd_offset_m").as_double();
 
     if (field_file_.empty()) {
       RCLCPP_ERROR(get_logger(), "field_file parameter not set");
@@ -253,18 +248,21 @@ private:
     const Swath * sw = nearest_swath(rx, ry, ryaw);
     if (!sw) return;
 
-    // Refresh gz_offset and gz_yaw_offset from the latest bridged Gazebo odometry.
-    // gz_offset = map_pose - gz_world_pose  (XY translation)
-    // gz_yaw_offset = gz_yaw - map_yaw      (yaw rotation to apply to spawned box)
+    // gz_offset = map_pose − gz_pose, constant world-frame translation between frames.
+    // gz_yaw_offset = gz_yaw − map_yaw, refreshed every tick (typically ~0).
     if (!gz_pose_valid_.load()) {
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
         "No Gazebo odometry yet on '%s' — skipping spawn",
         get_parameter("gz_odom_topic").as_string().c_str());
       return;
     }
+    double gz_x, gz_y;
     {
-      double gyw = gz_pose_yaw_.load();
-      gz_yaw_offset_ = gyw - ryaw;
+      gz_x           = gz_pose_x_.load();
+      gz_y           = gz_pose_y_.load();
+      gz_yaw_offset_ = gz_pose_yaw_.load() - ryaw;
+      gz_offset_x_   = rx - gz_x;
+      gz_offset_y_   = ry - gz_y;
     }
 
     if (sw != current_swath_) {
@@ -310,32 +308,14 @@ private:
     int ctr;
     { std::lock_guard<std::mutex> lk(mtx_); ctr = counter_++; }
 
-    // Row yaw in Gazebo world frame = map-frame swath yaw - gz_yaw_offset
-    // gz_yaw_offset = gz_yaw - map_yaw, so gz_yaw = map_yaw + gz_yaw_offset
-    // The row's map-frame yaw must be expressed in gz world frame the same way.
+    // gz_offset is the constant world-frame translation: map_pos − gz_pos.
+    // Subtract it from the map-frame spawn position to get the gz world position.
+    // gz_yaw_offset is applied to the row box orientation (typically ~0).
     double gz_row_yaw = sw->yaw + gz_yaw_offset_;
 
-    // gz_pose_* gives the Gazebo model-origin (rear axle) position.
-    // EKF map frame is anchored to the GPS antenna (gps_fwd_ ahead of axle in body frame).
-    // Subtract the lever arm from the map-frame robot pose to get the axle position in map frame,
-    // so both reference points are the same body point before computing displacements.
-    double gx_robot = gz_pose_x_.load();
-    double gy_robot = gz_pose_y_.load();
-    double cos_ryaw = std::cos(ryaw);
-    double sin_ryaw = std::sin(ryaw);
-    double rx_axle  = rx - gps_fwd_ * cos_ryaw;
-    double ry_axle  = ry - gps_fwd_ * sin_ryaw;
-    double cos_off  = std::cos(gz_yaw_offset_);
-    double sin_off  = std::sin(gz_yaw_offset_);
-
     for (int sign : {+1, -1}) {
-      // Displacement from axle to spawn point in map frame
-      double dx_map = (seg_cx + sign * sw->offset * sw->px) - rx_axle;
-      double dy_map = (seg_cy + sign * sw->offset * sw->py) - ry_axle;
-      // Rotate displacement by gz_yaw_offset_ to express it in gz world frame,
-      // then add gz axle position.
-      double wx = gx_robot + cos_off * dx_map - sin_off * dy_map;
-      double wy = gy_robot + sin_off * dx_map + cos_off * dy_map;
+      double wx = (seg_cx + sign * sw->offset * sw->px) - gz_offset_x_;
+      double wy = (seg_cy + sign * sw->offset * sw->py) - gz_offset_y_;
       std::string name = "gcr_" + std::to_string(ctr) + (sign > 0 ? "_L" : "_R");
 
       gz::msgs::EntityFactory req;
@@ -360,17 +340,19 @@ private:
     RCLCPP_INFO(get_logger(),
       "[DIAG] swath=%d along=%.2f perp=%.3f travel_sign=%.0f "
       "robot_map=(%.3f,%.3f,%.1f°) robot_gz=(%.3f,%.3f) "
-      "sw_yaw=%.1f° gz_row_yaw=%.1f° dot=%.3f gz_yaw_off=%.1f°",
+      "sw_yaw=%.1f° gz_row_yaw=%.1f° dot=%.3f "
+      "gz_off=(%.3f,%.3f) gz_yaw_off=%.1f°",
       si, a, perp, travel_sign,
       rx, ry, robot_yaw_deg,
-      gx_robot, gy_robot,
+      gz_x, gz_y,
       sw_yaw_deg, gz_row_yaw * 180.0 / M_PI, dot,
+      gz_offset_x_, gz_offset_y_,
       gz_yaw_offset_ * 180.0 / M_PI);
   }
 
   std::string field_file_, world_, spawn_srv_, remove_srv_;
-  double ahead_, behind_, row_offset_, width_, seg_len_, min_move_, gps_fwd_;
-  double gz_yaw_offset_ = 0.0;
+  double ahead_, behind_, row_offset_, width_, seg_len_, min_move_;
+  double gz_offset_x_ = 0.0, gz_offset_y_ = 0.0, gz_yaw_offset_ = 0.0;
   // Cached Gazebo world pose from bridged odometry topic (lock-free)
   std::atomic<double> gz_pose_x_{0.0}, gz_pose_y_{0.0}, gz_pose_yaw_{0.0};
   std::atomic<bool>   gz_pose_valid_{false};
