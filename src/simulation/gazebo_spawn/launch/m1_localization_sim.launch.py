@@ -74,9 +74,10 @@ def generate_launch_description():
             'datum_lat': 53.5204991,
             'datum_lon': 17.8258532,
             'datum_alt': 100.0,
-            # base_footprint is now at the rear axle; front GPS (gps_link) is
-            # wheelbase/2 + 0.35 + (wheel_radius offset) = 1.35m ahead.
-            'antenna_x': 1.35,
+            # base_footprint is at the rear axle; gps_link is wheelbase/2 + 0.35 = 1.00m
+            # ahead of base_link, which is wheelbase/2 = 0.65m ahead of base_footprint.
+            # Total: 0.65 + 1.00 = 1.65m ahead of base_footprint.
+            'antenna_x': 1.65,
             'antenna_y': 0.0,
             'rate_hz': 10.0,
         }],
