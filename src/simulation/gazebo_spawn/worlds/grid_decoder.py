@@ -3,24 +3,43 @@
 grid_decoder.py — decode robot gz_world position from downward camera image via QR code.
 
 Grid: 68 cols x 48 rows, cell=0.5m, origin=(-4.0,-18.0).
-Each floor cell contains a QR code encoding "col,row".
+Each floor cell contains a QR code encoding "col,row" where col is the X index (0..COLS-1)
+and row is the Y index (0..ROWS-1).
 
-Ogre2 UV mapping for a box top face swaps the texture axes relative to world XY:
-  QR col (texture U) maps to world Y; QR row (texture V) maps to world X.
-  The U axis is also inverted: col=0 is world Y_max, col=COLS-1 is world Y_min.
+Ogre2 UV mapping on the box top face inverts the U axis:
+  col=0 → world X_max (east), col=COLS-1 → world X_min (west)
+  row=0 → world Y_max (north), row=ROWS-1 → world Y_min (south)
+
+Formula (empirically verified):
+  gz_world_x = GRID_X0 + (COLS-1-col)*CELL + CELL/2
+  gz_world_y = GRID_Y0 + (ROWS-1-row)*CELL + CELL/2
+
+Camera correction (oakd_link at +0.5m forward, 0.8m height, rpy="0 pi/2 0"):
+  The camera looks backward. The centre of what it sees is ~1.21m behind and ~0.67m
+  to the right of base_footprint (body frame). Pass yaw_deg to decode_position() for
+  a heading-corrected robot position estimate; omit for a west-heading static fallback.
 
 Usage:
     from grid_decoder import decode_position
     gz_world_x, gz_world_y, confidence = decode_position(bgr_image)
 """
 
-import cv2, numpy as np
+import cv2, math, numpy as np
 
 GRID_X0 = -4.0
 GRID_Y0 = -18.0
 CELL    = 0.5
 COLS    = 68
 ROWS    = 48
+
+# Camera look-behind in body frame (empirical, record13 west swath n=11896).
+# The camera (rpy="0 pi/2 0") looks backward. The decoded tile centre is ~1.2m
+# behind base_footprint (+X is forward, so negative = behind) and ~0.67m to the right.
+# Signed convention: positive X = forward, positive Y = left (ROS body frame).
+# tile_world = robot_world + R(yaw) * [CAM_BODY_X, CAM_BODY_Y]
+# → robot_world = tile_world − R(yaw) * [CAM_BODY_X, CAM_BODY_Y]
+_CAM_BODY_X = -1.21   # metres behind base_footprint  (negative = backward)
+_CAM_BODY_Y = +0.67   # metres to the right (negative Y in standard ROS = right)
 
 try:
     import zxingcpp as _zxing
@@ -60,9 +79,20 @@ def _try_decode(img):
     return ''
 
 
-def decode_position(bgr):
+def _tile_to_world(col, row):
+    """Return floor-tile centre in Gazebo world frame (no camera correction)."""
+    gz_x = GRID_X0 + (COLS - 1 - col) * CELL + CELL / 2.0
+    gz_y = GRID_Y0 + (ROWS - 1 - row) * CELL + CELL / 2.0
+    return gz_x, gz_y
+
+
+def decode_position(bgr, yaw_deg=None):
     """
-    Returns (gz_world_x, gz_world_y, confidence) in Gazebo world frame.
+    Returns (gz_world_x, gz_world_y, confidence) — estimated robot position.
+
+    yaw_deg: robot heading in degrees (0=east, 90=north). When supplied the
+             camera body-frame offset is rotated to world frame and subtracted.
+             When None the west-heading world offset is used as a fallback.
     confidence=1.0 on success, 0.0 on failure.
     """
     val = _try_decode(bgr)
@@ -73,9 +103,18 @@ def decode_position(bgr):
             pass
         else:
             if 0 <= col < COLS and 0 <= row < ROWS:
-                gz_world_x = GRID_X0 + row * CELL + CELL / 2.0
-                gz_world_y = GRID_Y0 + (ROWS - 1 - col) * CELL + CELL / 2.0
-                return gz_world_x, gz_world_y, 1.0
+                tile_x, tile_y = _tile_to_world(col, row)
+                if yaw_deg is not None:
+                    yr = math.radians(yaw_deg)
+                    # The camera looks backward; tile is behind the robot.
+                    # tile_world = robot_world − R(yaw) * cam_body
+                    # → robot_world = tile_world + R(yaw) * cam_body
+                    off_x = _CAM_BODY_X * math.cos(yr) - _CAM_BODY_Y * math.sin(yr)
+                    off_y = _CAM_BODY_X * math.sin(yr) + _CAM_BODY_Y * math.cos(yr)
+                    return tile_x + off_x, tile_y + off_y, 1.0
+                else:
+                    # Static fallback (assumes west heading, yaw≈180°)
+                    return tile_x - _CAM_BODY_X, tile_y - _CAM_BODY_Y, 1.0
     return None, None, 0.0
 
 

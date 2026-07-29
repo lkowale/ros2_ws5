@@ -145,11 +145,16 @@ DECODER = f'''\
 grid_decoder.py — decode robot gz_world position from downward camera image via QR code.
 
 Grid: {COLS} cols x {ROWS} rows, cell={CELL}m, origin=({GRID_X0},{GRID_Y0}).
-Each floor cell contains a QR code encoding "col,row".
+Each floor cell contains a QR code encoding "col,row" where col is the X index (0..COLS-1)
+and row is the Y index (0..ROWS-1).
 
-Ogre2 UV mapping for a box top face swaps the texture axes relative to world XY:
-  QR col (texture U) maps to world Y; QR row (texture V) maps to world X.
-  The U axis is also inverted: col=0 is world Y_max, col=COLS-1 is world Y_min.
+Ogre2 UV mapping on the box top face inverts the U axis:
+  col=0 → world X_max (east), col=COLS-1 → world X_min (west)
+  row=0 → world Y_max (north), row=ROWS-1 → world Y_min (south)
+
+Formula (empirically verified):
+  gz_world_x = GRID_X0 + (COLS-1-col)*CELL + CELL/2
+  gz_world_y = GRID_Y0 + (ROWS-1-row)*CELL + CELL/2
 
 Usage:
     from grid_decoder import decode_position
@@ -215,8 +220,8 @@ def decode_position(bgr):
             pass
         else:
             if 0 <= col < COLS and 0 <= row < ROWS:
-                gz_world_x = GRID_X0 + row * CELL + CELL / 2.0
-                gz_world_y = GRID_Y0 + (ROWS - 1 - col) * CELL + CELL / 2.0
+                gz_world_x = GRID_X0 + (COLS - 1 - col) * CELL + CELL / 2.0
+                gz_world_y = GRID_Y0 + (ROWS - 1 - row) * CELL + CELL / 2.0
                 return gz_world_x, gz_world_y, 1.0
     return None, None, 0.0
 
