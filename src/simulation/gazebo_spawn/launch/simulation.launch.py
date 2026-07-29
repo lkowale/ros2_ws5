@@ -13,9 +13,10 @@ from launch.actions import (
     IncludeLaunchDescription,
     OpaqueFunction,
     RegisterEventHandler,
+    TimerAction,
 )
 from launch.conditions import IfCondition
-from launch.event_handlers import OnShutdown
+from launch.event_handlers import OnProcessExit, OnShutdown
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration, PythonExpression
 from launch_ros.parameter_descriptions import ParameterValue
@@ -133,13 +134,20 @@ def generate_launch_description():
         cmd=['xacro', '-o', world_sdf, ['headless:=', headless], world]
     )
 
-    # Gazebo server
-    gazebo_server = IncludeLaunchDescription(
+    # Gazebo server — wrapped in a RegisterEventHandler so it starts only AFTER
+    # the xacro process writes the temp SDF, avoiding the race that causes exit 255.
+    gazebo_server_include = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(get_package_share_directory('ros_gz_sim'), 'launch',
                          'gz_sim.launch.py')),
         launch_arguments={'gz_args': ['-r -s ', world_sdf]}.items(),
         condition=IfCondition(use_simulator)
+    )
+    gazebo_server = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=world_sdf_xacro,
+            on_exit=[gazebo_server_include],
+        )
     )
 
     # Cleanup temp file on shutdown

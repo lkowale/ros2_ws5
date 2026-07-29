@@ -39,18 +39,36 @@
       <direction>0 0 -1</direction>
     </light>
 
+    <!-- Ground plane: collision only -->
     <model name='ground_plane'>
       <static>true</static>
       <link name='link'>
         <collision name='collision'>
           <geometry><plane><normal>0 0 1</normal><size>200 200</size></plane></geometry>
         </collision>
+      </link>
+    </model>
+
+    <!-- QR-code floor: single textured plane covering the entire grid (visual only, no collision) -->
+    <model name='qr_floor'>
+      <static>true</static>
+      <pose>9.000 -6.000 0.001 0 0 0</pose>
+      <link name='link'>
         <visual name='visual'>
-          <geometry><plane><normal>0 0 1</normal><size>200 200</size></plane></geometry>
+          <geometry>
+            <box><size>26.000 24.000 0.0001</size></box>
+          </geometry>
           <material>
-            <ambient>0.40 0.26 0.13 1</ambient>
-            <diffuse>0.40 0.26 0.13 1</diffuse>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
             <specular>0 0 0 1</specular>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/aa/ros2_ws5/src/simulation/gazebo_spawn/worlds/grid_floor.png</albedo_map>
+                <metalness>0</metalness>
+                <roughness>1</roughness>
+              </metal>
+            </pbr>
           </material>
         </visual>
       </link>

@@ -66,11 +66,19 @@
   gz_type_name: "gz.msgs.Twist"
   direction: ROS_TO_GZ
 
-# Gazebo odometry (from Ackermann plugin)
+# Gazebo odometry (from Ackermann plugin) — odom frame, used by EKF
 - ros_topic_name: "odometry/gazebo"
   gz_topic_name: "/model/solbot5/odometry"
   ros_type_name: "nav_msgs/msg/Odometry"
   gz_type_name: "gz.msgs.Odometry"
+  direction: GZ_TO_ROS
+
+# Gazebo world-frame poses for all models (true world frame, not odom)
+# Bridges as TFMessage; extract solbot5 entry for ground-truth world position
+- ros_topic_name: "/gz/world_poses"
+  gz_topic_name: "/world/house_short_crop_rows/dynamic_pose/info"
+  ros_type_name: "tf2_msgs/msg/TFMessage"
+  gz_type_name: "gz.msgs.Pose_V"
   direction: GZ_TO_ROS
 
 # TF from Gazebo - DISABLED when using robot_localization

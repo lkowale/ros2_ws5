@@ -8,6 +8,7 @@ find_package(rclpy REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(robot_localization REQUIRED)
 
 set(CMAKE_PREFIX_PATH
@@ -31,6 +32,7 @@ ament_target_dependencies(crop_row_spawner
   tf2_ros
   geometry_msgs
   nav_msgs
+  std_msgs
   robot_localization
 )
 

@@ -3,6 +3,7 @@
 #include <tf2_ros/transform_listener.h>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include <std_msgs/msg/string.hpp>
 #include <robot_localization/srv/from_ll.hpp>
 
 #include <gz/transport/Node.hh>
@@ -38,10 +39,25 @@ static double quat_yaw(double x, double y, double z, double w) {
   return std::atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z));
 }
 
+// 8 colors cycling per segment index.
+static const float kSegColors[8][3] = {
+  {0.13f, 0.55f, 0.13f},  // 0 green   (baseline)
+  {0.80f, 0.00f, 0.00f},  // 1 red
+  {0.00f, 0.20f, 0.90f},  // 2 blue
+  {0.85f, 0.85f, 0.00f},  // 3 yellow
+  {0.80f, 0.00f, 0.80f},  // 4 magenta
+  {0.00f, 0.80f, 0.80f},  // 5 cyan
+  {0.90f, 0.45f, 0.00f},  // 6 orange
+  {0.50f, 0.00f, 0.90f},  // 7 violet
+};
+
+// Single-box SDF used by the rolling spawner (non-spawn_all mode).
 static std::string make_sdf(const std::string & name,
                              double x, double y, double yaw,
-                             double length, double width)
+                             double length, double width,
+                             int index)
 {
+  const float * c = kSegColors[index % 8];
   char buf[2048];
   std::snprintf(buf, sizeof(buf),
     "<sdf version=\"1.7\">"
@@ -52,16 +68,56 @@ static std::string make_sdf(const std::string & name,
     "<visual name=\"visual\">"
     "<geometry><box><size>%.4f %.4f 0.01</size></box></geometry>"
     "<material>"
-    "<ambient>0.13 0.55 0.13 1</ambient>"
-    "<diffuse>0.13 0.55 0.13 1</diffuse>"
+    "<ambient>%.2f %.2f %.2f 1</ambient>"
+    "<diffuse>%.2f %.2f %.2f 1</diffuse>"
     "<specular>0 0 0 1</specular>"
     "</material>"
     "</visual>"
     "</link>"
     "</model>"
     "</sdf>",
-    name.c_str(), x, y, yaw, length, width);
+    name.c_str(), x, y, yaw, length, width,
+    c[0], c[1], c[2], c[0], c[1], c[2]);
   return buf;
+}
+
+// Multi-link swath SDF: one model containing all L/R segment boxes for one swath.
+// Each segment link is positioned relative to the model origin (gz world frame origin).
+// The model pose is identity (0,0,0) so link poses are absolute gz-world coordinates.
+static std::string make_swath_sdf(
+  const std::string & model_name,
+  const std::vector<std::tuple<std::string, double, double, double, double, double, int>> & boxes,
+  double length, double width)
+{
+  // boxes: vector of (link_name, gz_x, gz_y, gz_yaw, length, width, seg_index)
+  std::string sdf;
+  sdf.reserve(boxes.size() * 512 + 256);
+  sdf += "<sdf version=\"1.7\"><model name=\"";
+  sdf += model_name;
+  sdf += "\"><static>true</static><pose>0 0 0 0 0 0</pose>";
+
+  for (auto & [lname, lx, ly, lyaw, llen, lwid, lidx] : boxes) {
+    const float * c = kSegColors[lidx % 8];
+    char buf[768];
+    std::snprintf(buf, sizeof(buf),
+      "<link name=\"%s\">"
+      "<pose>%.4f %.4f 0.005 0 0 %.6f</pose>"
+      "<visual name=\"visual\">"
+      "<geometry><box><size>%.4f %.4f 0.01</size></box></geometry>"
+      "<material>"
+      "<ambient>%.2f %.2f %.2f 1</ambient>"
+      "<diffuse>%.2f %.2f %.2f 1</diffuse>"
+      "<specular>0 0 0 1</specular>"
+      "</material>"
+      "</visual>"
+      "</link>",
+      lname.c_str(), lx, ly, lyaw, llen, lwid,
+      c[0], c[1], c[2], c[0], c[1], c[2]);
+    sdf += buf;
+  }
+  sdf += "</model></sdf>";
+  return sdf;
+  (void)length; (void)width;
 }
 
 class CropRowSpawner : public rclcpp::Node {
@@ -77,6 +133,7 @@ public:
     declare_parameter("row_width_m", 0.06);
     declare_parameter("segment_length_m", 2.0);
     declare_parameter("min_move_m", 1.5);
+    declare_parameter("spawn_all", false);
 
     field_file_   = get_parameter("field_file").as_string();
     world_        = get_parameter("world_name").as_string();
@@ -86,6 +143,7 @@ public:
     width_        = get_parameter("row_width_m").as_double();
     seg_len_      = get_parameter("segment_length_m").as_double();
     min_move_     = get_parameter("min_move_m").as_double();
+    spawn_all_    = get_parameter("spawn_all").as_bool();
 
     if (field_file_.empty()) {
       RCLCPP_ERROR(get_logger(), "field_file parameter not set");
@@ -99,6 +157,9 @@ public:
 
     spawn_srv_  = "/world/" + world_ + "/create";
     remove_srv_ = "/world/" + world_ + "/remove";
+
+    event_pub_ = create_publisher<std_msgs::msg::String>(
+      "crop_row_spawner/events", rclcpp::QoS(50));
 
     // Subscribe to Gazebo odometry bridge — provides robot world pose with no subprocess cost
     gz_odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
@@ -191,9 +252,95 @@ private:
     }
     RCLCPP_INFO(get_logger(), "Loaded %zu swaths (map-frame coords via /fromLL)",
                 swaths_.size());
-    timer_ = create_wall_timer(
-      std::chrono::milliseconds(500),
-      std::bind(&CropRowSpawner::update, this));
+
+    if (spawn_all_) {
+      // Wait for gz odom so we can compute the map→gz offset, then spawn everything.
+      spawn_all_pending_timer_ = create_wall_timer(
+        std::chrono::milliseconds(200),
+        std::bind(&CropRowSpawner::try_spawn_all, this));
+    } else {
+      timer_ = create_wall_timer(
+        std::chrono::milliseconds(500),
+        std::bind(&CropRowSpawner::update, this));
+    }
+  }
+
+  void try_spawn_all() {
+    if (!gz_pose_valid_.load()) return;
+    spawn_all_pending_timer_->cancel();
+    spawn_all_swaths();
+  }
+
+  void spawn_all_swaths() {
+    // Compute map→gz offset from current odom vs TF.
+    double rx, ry, ryaw;
+    if (!get_transforms(rx, ry, ryaw)) {
+      RCLCPP_WARN(get_logger(), "spawn_all: TF not ready, retrying...");
+      spawn_all_pending_timer_ = create_wall_timer(
+        std::chrono::milliseconds(500),
+        std::bind(&CropRowSpawner::try_spawn_all, this));
+      return;
+    }
+    double gz_x = gz_pose_x_.load();
+    double gz_y = gz_pose_y_.load();
+    double gz_yaw = gz_pose_yaw_.load();
+    gz_offset_x_   = rx - gz_x;
+    gz_offset_y_   = ry - gz_y;
+    gz_yaw_offset_ = gz_yaw - ryaw;
+
+    RCLCPP_INFO(get_logger(),
+      "spawn_all: gz_offset=(%.3f, %.3f) gz_yaw_off=%.2f°",
+      gz_offset_x_, gz_offset_y_, gz_yaw_offset_ * 180.0 / M_PI);
+
+    // Spawn one multi-link model per swath (16 spawns instead of 448).
+    // All segment links live inside one SDF model — far fewer scene graph entries.
+    int sw_idx = 0;
+    int total_models = 0;
+    int total_links = 0;
+    int ctr = 0;
+    for (auto & sw : swaths_) {
+      double gz_row_yaw = sw.yaw + gz_yaw_offset_;
+      double start = -sw.length / 2.0 + seg_len_ / 2.0;
+      double end   =  sw.length / 2.0;
+
+      using BoxTuple = std::tuple<std::string, double, double, double, double, double, int>;
+      std::vector<BoxTuple> boxes;
+      int seg_ctr = ctr;
+      for (double a = start; a < end; a += seg_len_, ++seg_ctr) {
+        double seg_cx = sw.cx + a * sw.ux;
+        double seg_cy = sw.cy + a * sw.uy;
+        for (int sign : {+1, -1}) {
+          double wx = (seg_cx + sign * sw.offset * sw.px) - gz_offset_x_;
+          double wy = (seg_cy + sign * sw.offset * sw.py) - gz_offset_y_;
+          std::string lname = "seg" + std::to_string(seg_ctr) + (sign > 0 ? "_L" : "_R");
+          boxes.emplace_back(lname, wx, wy, gz_row_yaw, seg_len_, width_, seg_ctr);
+        }
+      }
+
+      std::string model_name = "gcr_sw" + std::to_string(sw_idx);
+      gz::msgs::EntityFactory req;
+      req.set_name(model_name);
+      req.set_sdf(make_swath_sdf(model_name, boxes, seg_len_, width_));
+      gz::msgs::Boolean rep;
+      bool result = false;
+      if (gz_node_.Request(spawn_srv_, req, 2000, rep, result) && rep.data()) {
+        // Record the model name so remove_all() can clean it up if ever needed.
+        std::lock_guard<std::mutex> lk(mtx_);
+        spawned_[model_name] = {0.0};
+        ++total_models;
+        total_links += static_cast<int>(boxes.size());
+      } else {
+        RCLCPP_WARN(get_logger(), "spawn_all: failed to spawn swath model %s", model_name.c_str());
+      }
+
+      // Advance the global counter past all segments in this swath.
+      for (double a = start; a < end; a += seg_len_) { ++ctr; }
+      ++sw_idx;
+    }
+    RCLCPP_INFO(get_logger(),
+      "spawn_all: spawned %d swath models (%d links) across %zu swaths",
+      total_models, total_links, swaths_.size());
+    // No rolling timer needed — all boxes stay until node shuts down.
   }
 
   bool get_transforms(double & rx, double & ry, double & ryaw) {
@@ -236,6 +383,10 @@ private:
       gz::msgs::Boolean rep;
       bool result = false;
       gz_node_.Request(remove_srv_, req, 500, rep, result);
+      char buf[128];
+      std::snprintf(buf, sizeof(buf), "{\"ev\":\"remove\",\"name\":\"%s\"}", name.c_str());
+      std_msgs::msg::String emsg; emsg.data = buf;
+      event_pub_->publish(emsg);
     }
     spawned_.clear();
     last_spawn_along_.reset();
@@ -286,6 +437,12 @@ private:
           gz::msgs::Boolean rep;
           bool result = false;
           gz_node_.Request(remove_srv_, req, 500, rep, result);
+          {
+            char buf[128];
+            std::snprintf(buf, sizeof(buf), "{\"ev\":\"remove\",\"name\":\"%s\"}", it->first.c_str());
+            std_msgs::msg::String emsg; emsg.data = buf;
+            event_pub_->publish(emsg);
+          }
           it = spawned_.erase(it);
         } else { ++it; }
       }
@@ -320,13 +477,27 @@ private:
 
       gz::msgs::EntityFactory req;
       req.set_name(name);
-      req.set_sdf(make_sdf(name, wx, wy, gz_row_yaw, seg_len_, width_));
+      req.set_sdf(make_sdf(name, wx, wy, gz_row_yaw, seg_len_, width_, ctr));
       gz::msgs::Boolean rep;
       bool result = false;
       if (gz_node_.Request(spawn_srv_, req, 500, rep, result) && rep.data()) {
         std::lock_guard<std::mutex> lk(mtx_);
         spawned_[name] = {spawn_a};
         RCLCPP_DEBUG(get_logger(), "Spawned %s at gz=(%.2f,%.2f)", name.c_str(), wx, wy);
+        // Publish spawn event for recorder
+        double map_x = seg_cx + sign * sw->offset * sw->px;
+        double map_y = seg_cy + sign * sw->offset * sw->py;
+        char buf[512];
+        std::snprintf(buf, sizeof(buf),
+          "{\"ev\":\"spawn\",\"name\":\"%s\","
+          "\"map_x\":%.4f,\"map_y\":%.4f,"
+          "\"gz_x\":%.4f,\"gz_y\":%.4f,"
+          "\"yaw\":%.4f,\"len\":%.3f,\"wid\":%.3f}",
+          name.c_str(), map_x, map_y, wx, wy,
+          gz_row_yaw, seg_len_, width_);
+        std_msgs::msg::String emsg;
+        emsg.data = buf;
+        event_pub_->publish(emsg);
       } else {
         RCLCPP_WARN(get_logger(), "Failed to spawn %s", name.c_str());
       }
@@ -352,6 +523,7 @@ private:
 
   std::string field_file_, world_, spawn_srv_, remove_srv_;
   double ahead_, behind_, row_offset_, width_, seg_len_, min_move_;
+  bool spawn_all_ = false;
   double gz_offset_x_ = 0.0, gz_offset_y_ = 0.0, gz_yaw_offset_ = 0.0;
   // Cached Gazebo world pose from bridged odometry topic (lock-free)
   std::atomic<double> gz_pose_x_{0.0}, gz_pose_y_{0.0}, gz_pose_yaw_{0.0};
@@ -371,11 +543,13 @@ private:
 
   rclcpp::Client<robot_localization::srv::FromLL>::SharedPtr from_ll_cli_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr gz_odom_sub_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr event_pub_;
   gz::transport::Node gz_node_;
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
   rclcpp::TimerBase::SharedPtr init_timer_;
   rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::TimerBase::SharedPtr spawn_all_pending_timer_;
 };
 
 int main(int argc, char ** argv) {

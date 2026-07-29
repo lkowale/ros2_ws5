@@ -2,84 +2,99 @@
 """
 gz_rl_recorder — synchronised Gazebo-world vs RL diagnostic recorder.
 
-Records one CSV row every 0.5 s containing:
+Records one CSV row every tick containing:
 
-  Gazebo world frame (from bridged odometry/gazebo topic — zero subprocess cost):
-    robot_gz_x/y/yaw       — solbot5 world pose
-    cam_gz_x/y             — camera ground-footprint centre
+  Gazebo TRUE world frame (from /gz/world_poses TFMessage — dynamic_pose/info bridge):
+    robot_gz_x/y/yaw_deg   — solbot5 world pose (ground truth)
 
-  ROS RL / map frame (EKF truth):
-    robot_map_x/y/yaw      — map→base_footprint TF
-    robot_odom_x/y/yaw     — odom→base_footprint TF
-    cam_map_x/y            — camera footprint in map frame
+  Gazebo odom frame (from odometry/gazebo — Ackermann plugin):
+    robot_odom_gz_x/y/yaw_deg — robot in gz odom frame (what spawner uses)
 
-  Derived divergence:
-    map_vs_gz_x/y/dist     — per-axis and Euclidean map vs gz divergence
-    odom_vs_map_x/y        — should be 0 (map==odom)
-    map_gz_yaw_diff_deg    — heading divergence between frames
+  ROS map frame (EKF):
+    robot_map_x/y/yaw_deg  — map→base_footprint TF
+
+  Spawned crop row boxes (from crop_row_spawner/events JSON topic):
+    last_spawn_name         — name of most recently spawned box
+    last_spawn_map_x/y     — box centre in map frame
+    last_spawn_gz_x/y      — box centre in gz world frame (as placed)
+    last_spawn_yaw_deg      — box orientation in gz frame
+    active_box_count        — number of currently alive boxes
+
+  Camera:
+    Images saved as /tmp/gz_rl_frames/<timestamp_ms>.jpg when image arrives
+
+  Derived:
+    map_vs_gz_world_x/y    — map position minus gz world position
+    gz_odom_vs_world_x/y   — gz odom position minus gz world position
+    map_gz_yaw_diff_deg     — map yaw minus gz world yaw
 
 Parameters:
-  world_name   (str)   Gazebo world name          default: house_short_crop_rows
-  robot_model  (str)   Gazebo model name (unused) default: solbot5
-  gz_odom_topic (str)  bridged gz odometry topic  default: odometry/gazebo
-  cam_fwd_m    (float) camera fwd offset in body  default: 0.5
-  out_csv      (str)   output file path           default: /tmp/gz_rl_record.csv
-  rate_hz      (float) recording rate             default: 2.0
+  out_csv       str   output CSV path           default: /tmp/gz_rl_record2.csv
+  img_dir       str   camera frame output dir   default: /tmp/gz_rl_frames
+  gz_odom_topic str   bridged odom topic        default: odometry/gazebo
+  gz_pose_topic str   world pose TF topic       default: /gz/world_poses
+  robot_model   str   gz model name             default: solbot5
+  rate_hz       float recording rate            default: 4.0
 
 Run:
   ros2 run gazebo_crop_rows gz_rl_recorder --ros-args \\
-    -p world_name:=house_short_crop_rows \\
-    -p out_csv:=/tmp/gz_rl_record.csv
+    -p out_csv:=/tmp/gz_rl_record2.csv \\
+    -p img_dir:=/tmp/gz_rl_frames
 """
 
 import csv
+import json
 import math
+import os
 import time
 
+import cv2
+import numpy as np
 import rclpy
-from rclpy.node import Node
+from cv_bridge import CvBridge
 from nav_msgs.msg import Odometry
+from rclpy.node import Node
+from sensor_msgs.msg import Image
+from std_msgs.msg import String
+from tf2_msgs.msg import TFMessage
 from tf2_ros import Buffer, TransformListener, LookupException, ConnectivityException, ExtrapolationException
 
 
 def quat_yaw(q):
     return math.atan2(
         2.0 * (q[3] * q[2] + q[0] * q[1]),
-        1.0 - 2.0 * (q[1] ** 2 + q[2] ** 2)
-    )
+        1.0 - 2.0 * (q[1] ** 2 + q[2] ** 2))
 
 
 def tf_pose(buf, parent, child):
-    """Return (x, y, yaw_rad) from TF or None."""
     try:
         t = buf.lookup_transform(parent, child, rclpy.time.Time())
         tr = t.transform.translation
         ro = t.transform.rotation
-        yaw = quat_yaw((ro.x, ro.y, ro.z, ro.w))
-        return tr.x, tr.y, yaw
+        return tr.x, tr.y, quat_yaw((ro.x, ro.y, ro.z, ro.w))
     except (LookupException, ConnectivityException, ExtrapolationException):
         return None
 
 
-def camera_ground_xy(robot_x, robot_y, robot_yaw, cam_fwd_m):
-    cx = robot_x + cam_fwd_m * math.cos(robot_yaw)
-    cy = robot_y + cam_fwd_m * math.sin(robot_yaw)
-    return cx, cy
-
-
 FIELDS = [
     'time_s',
-    # Gazebo world frame (from bridged odometry topic)
-    'robot_gz_x', 'robot_gz_y', 'robot_gz_yaw_deg',
-    'cam_gz_x', 'cam_gz_y',
-    # RL / map frame
+    # True Gazebo world frame (from dynamic_pose/info via TFMessage bridge)
+    'robot_gz_world_x', 'robot_gz_world_y', 'robot_gz_world_yaw_deg',
+    # Gz odom frame (from Ackermann plugin — what spawner uses)
+    'robot_gz_odom_x', 'robot_gz_odom_y', 'robot_gz_odom_yaw_deg',
+    # EKF map frame
     'robot_map_x', 'robot_map_y', 'robot_map_yaw_deg',
-    'robot_odom_x', 'robot_odom_y', 'robot_odom_yaw_deg',
-    'cam_map_x', 'cam_map_y',
-    # Divergence
-    'map_vs_gz_x', 'map_vs_gz_y', 'map_vs_gz_dist',
-    'odom_vs_map_x', 'odom_vs_map_y',
+    # Spawned box info (most recent)
+    'last_spawn_name',
+    'last_spawn_map_x', 'last_spawn_map_y',
+    'last_spawn_gz_x', 'last_spawn_gz_y', 'last_spawn_yaw_deg',
+    'active_box_count',
+    # Derived divergence
+    'map_vs_gz_world_x', 'map_vs_gz_world_y',
+    'gz_odom_vs_world_x', 'gz_odom_vs_world_y',
     'map_gz_yaw_diff_deg',
+    # Camera frame filename (basename only)
+    'img_file',
 ]
 
 
@@ -87,109 +102,192 @@ class GzRlRecorder(Node):
     def __init__(self):
         super().__init__('gz_rl_recorder')
 
-        self.declare_parameter('world_name',    'house_short_crop_rows')
-        self.declare_parameter('robot_model',   'solbot5')
+        self.declare_parameter('out_csv',       '/tmp/gz_rl_record2.csv')
+        self.declare_parameter('img_dir',       '/tmp/gz_rl_frames')
         self.declare_parameter('gz_odom_topic', 'odometry/gazebo')
-        self.declare_parameter('cam_fwd_m',     0.5)
-        self.declare_parameter('out_csv',       '/tmp/gz_rl_record.csv')
-        self.declare_parameter('rate_hz',       2.0)
+        self.declare_parameter('gz_pose_topic', '/gz/world_poses')
+        self.declare_parameter('robot_model',   'solbot5')
+        self.declare_parameter('rate_hz',       4.0)
 
-        self._cam_fwd  = self.get_parameter('cam_fwd_m').value
-        self._out_csv  = self.get_parameter('out_csv').value
-        rate_hz        = self.get_parameter('rate_hz').value
-        gz_odom_topic  = self.get_parameter('gz_odom_topic').value
+        self._out_csv    = self.get_parameter('out_csv').value
+        self._img_dir    = self.get_parameter('img_dir').value
+        self._robot_model = self.get_parameter('robot_model').value
+        rate_hz          = self.get_parameter('rate_hz').value
 
-        # Latest Gazebo odometry (bridged from /model/solbot5/odometry)
-        self._gz_pose = None
-        self.create_subscription(Odometry, gz_odom_topic, self._gz_odom_cb, 10)
+        os.makedirs(self._img_dir, exist_ok=True)
+
+        # State
+        self._gz_odom_pose  = None   # (x, y, yaw) from Ackermann odometry
+        self._gz_world_pose = None   # (x, y, yaw) from dynamic_pose/info TF bridge
+        self._last_image    = None   # (cv2_bgr, timestamp_ms)
+        self._spawn_events: dict[str, dict] = {}  # name → {map_x, map_y, gz_x, gz_y, yaw}
+        self._last_spawn    = None   # most recent spawn event dict
+
+        self._bridge = CvBridge()
+
+        # Subscriptions
+        self.create_subscription(
+            Odometry, self.get_parameter('gz_odom_topic').value,
+            self._gz_odom_cb, 10)
+
+        self.create_subscription(
+            TFMessage, self.get_parameter('gz_pose_topic').value,
+            self._gz_world_pose_cb, rclpy.qos.QoSProfile(
+                depth=10,
+                reliability=rclpy.qos.ReliabilityPolicy.BEST_EFFORT))
+
+        self.create_subscription(
+            String, 'crop_row_spawner/events',
+            self._spawn_event_cb, 50)
+
+        self.create_subscription(
+            Image, '/oakd/rgb/image',
+            self._image_cb, rclpy.qos.QoSProfile(
+                depth=2,
+                reliability=rclpy.qos.ReliabilityPolicy.BEST_EFFORT))
 
         self._tf_buf = Buffer()
         self._tf_lst = TransformListener(self._tf_buf, self)
 
         self._csv_file = open(self._out_csv, 'w', newline='')
-        self._writer = csv.DictWriter(self._csv_file, fieldnames=FIELDS)
+        self._writer   = csv.DictWriter(self._csv_file, fieldnames=FIELDS)
         self._writer.writeheader()
         self._csv_file.flush()
-        self._t0 = time.time()
+        self._t0       = time.time()
         self._row_count = 0
 
-        period = 1.0 / rate_hz
-        self._timer = self.create_timer(period, self._tick)
+        self.create_timer(1.0 / rate_hz, self._tick)
         self.get_logger().info(
-            f'Recording to {self._out_csv} at {rate_hz} Hz '
-            f'(gz pose from {gz_odom_topic})')
+            f'Recording to {self._out_csv}, images to {self._img_dir}/ at {rate_hz} Hz')
+
+    # ── callbacks ──────────────────────────────────────────────────────────
 
     def _gz_odom_cb(self, msg):
         p = msg.pose.pose.position
         o = msg.pose.pose.orientation
-        yaw = quat_yaw((o.x, o.y, o.z, o.w))
-        self._gz_pose = (p.x, p.y, yaw)
+        self._gz_odom_pose = (p.x, p.y, quat_yaw((o.x, o.y, o.z, o.w)))
+
+    def _gz_world_pose_cb(self, msg: TFMessage):
+        # gz.msgs.Pose_V → TFMessage bridge leaves frame_id/child_frame_id empty.
+        # Identify the robot entry by matching position to the odom pose (odom≈world in sim).
+        # The robot body is at z≈0.2m; filter out wheel/link entries at other heights.
+        odom = self._gz_odom_pose
+        if not odom:
+            return
+        best = None
+        best_score = 1.0  # combined position+yaw distance threshold
+        for tf in msg.transforms:
+            tr = tf.transform.translation
+            ro = tf.transform.rotation
+            # Robot chassis z ≈ 0.15–0.25m; spawned flat boxes z ≈ 0.005m; skip non-robot heights
+            if tr.z < 0.05 or tr.z > 1.0:
+                continue
+            pos_dist = math.hypot(tr.x - odom[0], tr.y - odom[1])
+            yaw_dist = abs(math.atan2(math.sin(quat_yaw((ro.x, ro.y, ro.z, ro.w)) - odom[2]),
+                                      math.cos(quat_yaw((ro.x, ro.y, ro.z, ro.w)) - odom[2])))
+            score = pos_dist + 0.5 * yaw_dist
+            if score < best_score:
+                best_score = score
+                best = (tr.x, tr.y, quat_yaw((ro.x, ro.y, ro.z, ro.w)))
+        if best:
+            self._gz_world_pose = best
+
+    def _spawn_event_cb(self, msg: String):
+        try:
+            ev = json.loads(msg.data)
+        except Exception:
+            return
+        name = ev.get('name', '')
+        if ev.get('ev') == 'spawn':
+            self._spawn_events[name] = ev
+            self._last_spawn = ev
+        elif ev.get('ev') == 'remove':
+            self._spawn_events.pop(name, None)
+
+    def _image_cb(self, msg: Image):
+        try:
+            bgr = self._bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+            ts_ms = int(time.time() * 1000)
+            self._last_image = (bgr, ts_ms)
+        except Exception as e:
+            self.get_logger().warn(f'Image convert error: {e}', throttle_duration_sec=5.0)
+
+    # ── tick ───────────────────────────────────────────────────────────────
 
     def _tick(self):
         now = time.time() - self._t0
         row = {f: '' for f in FIELDS}
-        row['time_s'] = f'{now:.2f}'
+        row['time_s'] = f'{now:.3f}'
 
-        # ── Gazebo world pose ───────────────────────────────────────────────
-        gz_pose = self._gz_pose
-        if gz_pose:
-            gx, gy, gyaw = gz_pose
-            row['robot_gz_x']       = f'{gx:.4f}'
-            row['robot_gz_y']       = f'{gy:.4f}'
-            row['robot_gz_yaw_deg'] = f'{math.degrees(gyaw):.2f}'
-            cgx, cgy = camera_ground_xy(gx, gy, gyaw, self._cam_fwd)
-            row['cam_gz_x'] = f'{cgx:.4f}'
-            row['cam_gz_y'] = f'{cgy:.4f}'
-        else:
-            gx = gy = gyaw = None
+        # True gz world pose
+        gwp = self._gz_world_pose
+        if gwp:
+            row['robot_gz_world_x']       = f'{gwp[0]:.4f}'
+            row['robot_gz_world_y']       = f'{gwp[1]:.4f}'
+            row['robot_gz_world_yaw_deg'] = f'{math.degrees(gwp[2]):.2f}'
 
-        # ── TF: map and odom frame poses ────────────────────────────────────
-        map_pose  = tf_pose(self._tf_buf, 'map',  'base_footprint')
-        odom_pose = tf_pose(self._tf_buf, 'odom', 'base_footprint')
+        # Gz odom pose (what spawner uses)
+        gop = self._gz_odom_pose
+        if gop:
+            row['robot_gz_odom_x']       = f'{gop[0]:.4f}'
+            row['robot_gz_odom_y']       = f'{gop[1]:.4f}'
+            row['robot_gz_odom_yaw_deg'] = f'{math.degrees(gop[2]):.2f}'
 
-        if map_pose:
-            mx, my, myaw = map_pose
-            row['robot_map_x']       = f'{mx:.4f}'
-            row['robot_map_y']       = f'{my:.4f}'
-            row['robot_map_yaw_deg'] = f'{math.degrees(myaw):.2f}'
-            cmx, cmy = camera_ground_xy(mx, my, myaw, self._cam_fwd)
-            row['cam_map_x'] = f'{cmx:.4f}'
-            row['cam_map_y'] = f'{cmy:.4f}'
-        else:
-            mx = my = myaw = None
+        # EKF map pose
+        mp = tf_pose(self._tf_buf, 'map', 'base_footprint')
+        if mp:
+            row['robot_map_x']       = f'{mp[0]:.4f}'
+            row['robot_map_y']       = f'{mp[1]:.4f}'
+            row['robot_map_yaw_deg'] = f'{math.degrees(mp[2]):.2f}'
 
-        if odom_pose:
-            ox, oy, oyaw = odom_pose
-            row['robot_odom_x']       = f'{ox:.4f}'
-            row['robot_odom_y']       = f'{oy:.4f}'
-            row['robot_odom_yaw_deg'] = f'{math.degrees(oyaw):.2f}'
+        # Spawn events
+        row['active_box_count'] = str(len(self._spawn_events))
+        ls = self._last_spawn
+        if ls:
+            row['last_spawn_name']    = ls.get('name', '')
+            row['last_spawn_map_x']   = f"{ls.get('map_x', ''):.4f}" if 'map_x' in ls else ''
+            row['last_spawn_map_y']   = f"{ls.get('map_y', ''):.4f}" if 'map_y' in ls else ''
+            row['last_spawn_gz_x']    = f"{ls.get('gz_x', ''):.4f}"  if 'gz_x'  in ls else ''
+            row['last_spawn_gz_y']    = f"{ls.get('gz_y', ''):.4f}"  if 'gz_y'  in ls else ''
+            row['last_spawn_yaw_deg'] = f"{math.degrees(ls.get('yaw', 0)):.2f}" if 'yaw' in ls else ''
 
-        # ── Divergence metrics ──────────────────────────────────────────────
-        if gx is not None and mx is not None:
-            dvx = mx - gx
-            dvy = my - gy
-            row['map_vs_gz_x']    = f'{dvx:.4f}'
-            row['map_vs_gz_y']    = f'{dvy:.4f}'
-            row['map_vs_gz_dist'] = f'{math.hypot(dvx, dvy):.4f}'
+        # Divergence
+        if gwp and mp:
+            dx = mp[0] - gwp[0]
+            dy = mp[1] - gwp[1]
+            row['map_vs_gz_world_x'] = f'{dx:.4f}'
+            row['map_vs_gz_world_y'] = f'{dy:.4f}'
             yaw_diff = math.degrees(math.atan2(
-                math.sin(myaw - gyaw), math.cos(myaw - gyaw)))
-            row['map_gz_yaw_diff_deg'] = f'{yaw_diff:.2f}'
+                math.sin(mp[2] - gwp[2]), math.cos(mp[2] - gwp[2])))
+            row['map_gz_yaw_diff_deg'] = f'{yaw_diff:.3f}'
 
-        if odom_pose and map_pose:
-            row['odom_vs_map_x'] = f'{ox - mx:.4f}'
-            row['odom_vs_map_y'] = f'{oy - my:.4f}'
+        if gwp and gop:
+            row['gz_odom_vs_world_x'] = f'{gop[0] - gwp[0]:.4f}'
+            row['gz_odom_vs_world_y'] = f'{gop[1] - gwp[1]:.4f}'
+
+        # Camera image — save latest frame if available
+        img_data = self._last_image
+        if img_data:
+            bgr, ts_ms = img_data
+            fname = f'{ts_ms}.jpg'
+            fpath = os.path.join(self._img_dir, fname)
+            if not os.path.exists(fpath):
+                cv2.imwrite(fpath, bgr, [cv2.IMWRITE_JPEG_QUALITY, 85])
+            row['img_file'] = fname
+            self._last_image = None  # consume so we only write new frames
 
         self._writer.writerow(row)
         self._csv_file.flush()
         self._row_count += 1
 
-        if self._row_count % 10 == 0:
-            dvd = row.get('map_vs_gz_dist', '?')
+        if self._row_count % 20 == 0:
             self.get_logger().info(
-                f't={now:.0f}s  map_vs_gz={dvd}m  '
-                f'map=({row.get("robot_map_x","?")},{row.get("robot_map_y","?")})  '
-                f'gz=({row.get("robot_gz_x","?")},{row.get("robot_gz_y","?")})'
-            )
+                f't={now:.0f}s  rows={self._row_count}  '
+                f'boxes={row["active_box_count"]}  '
+                f'gz_world={row.get("robot_gz_world_x","?")},'
+                f'{row.get("robot_gz_world_y","?")}  '
+                f'map={row.get("robot_map_x","?")},{row.get("robot_map_y","?")}  '
+                f'map_vs_world=({row.get("map_vs_gz_world_x","?")},{row.get("map_vs_gz_world_y","?")})')
 
     def destroy_node(self):
         self._csv_file.close()

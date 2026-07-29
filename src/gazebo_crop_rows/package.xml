@@ -12,6 +12,7 @@
   <depend>tf2_ros</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
+  <depend>std_msgs</depend>
   <depend>robot_localization</depend>
   <depend>rclpy</depend>
 

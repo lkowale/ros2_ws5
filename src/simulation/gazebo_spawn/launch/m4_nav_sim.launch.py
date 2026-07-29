@@ -15,10 +15,15 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
-    DeclareLaunchArgument, IncludeLaunchDescription, LogInfo, TimerAction)
+    DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, LogInfo, TimerAction)
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+
+FIELDS_DIR = os.path.join(os.path.expanduser('~'), 'ros2_ws5', 'src', 'fields')
+FIELD_FILE  = os.path.join(
+    FIELDS_DIR, 'house_short',
+    'house_short_lines_0.77m_directed_turns.geojson')
 
 
 def generate_launch_description():
@@ -77,14 +82,14 @@ def generate_launch_description():
     )
 
     nav2_cmd = TimerAction(
-        period=8.0,
+        period=20.0,
         actions=[IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
                 os.path.join(nav2_dir, 'launch', 'navigation.launch.py')),
             launch_arguments={
                 'use_sim_time': use_sim_time,
                 'autostart': 'true',
-                'use_composition': 'True',
+                'use_composition': 'False',
                 'params_file': os.path.join(
                     nav2_dir, 'params', 'nav2_params_m4.yaml'),
             }.items(),
@@ -149,6 +154,54 @@ def generate_launch_description():
         }],
     )
 
+    # Spawn all crop row boxes at startup, keep them for the whole run.
+    # Delayed 15 s to let /fromLL and EKF settle.
+    crop_row_spawner = TimerAction(
+        period=15.0,
+        actions=[Node(
+            package='gazebo_crop_rows',
+            executable='crop_row_spawner',
+            name='crop_row_spawner',
+            output='screen',
+            parameters=[{
+                'field_file':        FIELD_FILE,
+                'world_name':        'house_short_crop_rows',
+                'spawn_all':         True,
+                'row_offset_m':      0.18,
+                'row_width_m':       0.06,
+                'segment_length_m':  2.0,
+            }],
+        )]
+    )
+
+    gz_rl_recorder = TimerAction(
+        period=15.0,
+        actions=[Node(
+            package='gazebo_crop_rows',
+            executable='gz_rl_recorder',
+            name='gz_rl_recorder',
+            output='screen',
+            parameters=[{
+                'out_csv': '/tmp/gz_rl_record6.csv',
+                'img_dir': '/tmp/gz_rl_frames6',
+                'rate_hz': 4.0,
+            }],
+        )]
+    )
+
+    # Send run_field goal after Nav2 is fully active (Nav2 timer=20s + 50s for activation)
+    send_field_goal = TimerAction(
+        period=70.0,
+        actions=[ExecuteProcess(
+            cmd=[
+                'ros2', 'action', 'send_goal', '/run_field',
+                'solbot5_msgs/action/RunField',
+                '{field_name: house_short, start_line_index: 0}',
+            ],
+            output='screen',
+        )]
+    )
+
     return LaunchDescription([
         declare_use_sim_time_cmd,
         declare_headless_cmd,
@@ -164,4 +217,7 @@ def generate_launch_description():
         tool_slider_controller,
         tool_actuator_sim,
         web_video_server,
+        crop_row_spawner,
+        gz_rl_recorder,
+        send_field_goal,
     ])
