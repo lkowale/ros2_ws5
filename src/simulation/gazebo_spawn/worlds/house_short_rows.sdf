@@ -49,14 +49,14 @@
       </link>
     </model>
 
-    <!-- QR-code floor: single textured plane covering the entire grid (visual only, no collision) -->
+    <!-- QR-code floor: single textured plane covering the entire grid -->
     <model name='qr_floor'>
       <static>true</static>
-      <pose>9.000 -6.000 0.001 0 0 0</pose>
+      <pose>13.000 -6.000 0.001 0 0 0</pose>
       <link name='link'>
         <visual name='visual'>
           <geometry>
-            <box><size>26.000 24.000 0.0001</size></box>
+            <box><size>34.000 24.000 0.002</size></box>
           </geometry>
           <material>
             <ambient>1 1 1 1</ambient>

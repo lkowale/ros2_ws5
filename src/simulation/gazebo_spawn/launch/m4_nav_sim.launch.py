@@ -182,8 +182,8 @@ def generate_launch_description():
             name='gz_rl_recorder',
             output='screen',
             parameters=[{
-                'out_csv': '/tmp/gz_rl_record6.csv',
-                'img_dir': '/tmp/gz_rl_frames6',
+                'out_csv': '/tmp/gz_rl_record13.csv',
+                'img_dir': '/tmp/gz_rl_frames13',
                 'rate_hz': 4.0,
             }],
         )]
@@ -217,7 +217,7 @@ def generate_launch_description():
         tool_slider_controller,
         tool_actuator_sim,
         web_video_server,
-        crop_row_spawner,
+        # crop_row_spawner disabled: boxes occlude QR floor from downward camera
         gz_rl_recorder,
         send_field_goal,
     ])

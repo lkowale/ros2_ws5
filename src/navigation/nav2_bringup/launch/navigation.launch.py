@@ -167,6 +167,7 @@ def generate_launch_description():
                 arguments=['--ros-args', '--log-level', log_level],
                 parameters=[{'use_sim_time': use_sim_time,
                              'autostart': autostart,
+                             'bond_timeout': 30.0,
                              'node_names': lifecycle_nodes}]),
         ]
     )

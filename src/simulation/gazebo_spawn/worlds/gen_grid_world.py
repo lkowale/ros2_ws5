@@ -17,9 +17,10 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 GRID_X0 = -4.0
 GRID_Y0 = -18.0   # covers robot path Y: -17 to +5m
 CELL    = 0.5      # 0.5m cells → camera covers ~2.8 cells → always ≥1 complete QR
-COLS    = 52       # X: -4 to +22m  (26m / 0.5m)
+COLS    = 68       # X: -4 to +30m  (34m / 0.5m) — field reaches ~26m east
 ROWS    = 48       # Y: -18 to +6m  (24m / 0.5m)
-PX      = 64       # texture pixels per cell (50px QR + 7px margin each side)
+PX      = 64       # texture pixels per cell
+QUIET   = 4        # white quiet-zone pixels each side (QR spec min=4 modules)
 
 # ── Texture ───────────────────────────────────────────────────────────────
 import cv2, numpy as np
@@ -29,8 +30,7 @@ tex_h = ROWS * PX
 tex = np.ones((tex_h, tex_w, 3), np.uint8) * 255   # white background
 
 qr_enc = cv2.QRCodeEncoder.create()
-QR_PX  = 50       # 50px QR in 64px cell → 7px margin each side
-MARGIN = (PX - QR_PX) // 2
+QR_PX  = PX - 2 * QUIET   # QR fills cell minus quiet zone margins
 
 for row in range(ROWS):
     for col in range(COLS):
@@ -39,13 +39,9 @@ for row in range(ROWS):
         qr_bgr = cv2.cvtColor(qr_resized, cv2.COLOR_GRAY2BGR)
         # Image row 0 = grid row ROWS-1 (OpenGL UV origin at bottom-left)
         ir = ROWS - 1 - row
-        y0 = ir * PX + MARGIN
-        x0 = col * PX + MARGIN
+        y0 = ir * PX + QUIET
+        x0 = col * PX + QUIET
         tex[y0:y0+QR_PX, x0:x0+QR_PX] = qr_bgr
-        # Thin coloured border for visual orientation
-        hue_cv = int(col * 90 / max(COLS-1, 1))
-        bc = cv2.cvtColor(np.array([[[hue_cv, 200, 180]]], np.uint8), cv2.COLOR_HSV2BGR)[0,0].tolist()
-        cv2.rectangle(tex, (col*PX, ir*PX), (col*PX+PX-1, ir*PX+PX-1), bc, 2)
 
 tex_path = os.path.join(SCRIPT_DIR, 'grid_floor.png')
 cv2.imwrite(tex_path, tex)
@@ -169,14 +165,28 @@ COLS    = {COLS}
 ROWS    = {ROWS}
 
 try:
+    import zxingcpp as _zxing
+    _HAS_ZXING = True
+except ImportError:
+    _HAS_ZXING = False
+
+try:
     _wechat = cv2.wechat_qrcode_WeChatQRCode()
 except Exception:
     _wechat = None
 _detector = cv2.QRCodeDetector()
 
+
 def _try_decode(img):
+    big = cv2.resize(img, (img.shape[1]*4, img.shape[0]*4), interpolation=cv2.INTER_LINEAR)
+    if _HAS_ZXING:
+        try:
+            results = _zxing.read_barcodes(big)
+            if results:
+                return results[0].text
+        except Exception:
+            pass
     if _wechat is not None:
-        big = cv2.resize(img, (img.shape[1]*4, img.shape[0]*4), interpolation=cv2.INTER_LINEAR)
         try:
             results, _ = _wechat.detectAndDecode(big)
             if results:
@@ -184,29 +194,26 @@ def _try_decode(img):
         except Exception:
             pass
     try:
-        val, pts, _ = _detector.detectAndDecode(img)
+        val, pts, _ = _detector.detectAndDecode(big)
         if val:
             return val
     except cv2.error:
         pass
     return ''
 
+
 def decode_position(bgr):
     """
     Returns (gz_world_x, gz_world_y, confidence) in Gazebo world frame.
     confidence=1.0 on success, 0.0 on failure.
     """
-    h, w = bgr.shape[:2]
-    rois = [bgr, bgr[:70, :], bgr[105:, :], bgr[105:195, :]]
-    for roi in rois:
-        if roi.size == 0:
-            continue
-        val = _try_decode(roi)
-        if val:
-            try:
-                col, row = map(int, val.split(','))
-            except ValueError:
-                continue
+    val = _try_decode(bgr)
+    if val:
+        try:
+            col, row = map(int, val.split(','))
+        except ValueError:
+            pass
+        else:
             if 0 <= col < COLS and 0 <= row < ROWS:
                 gz_world_x = GRID_X0 + row * CELL + CELL / 2.0
                 gz_world_y = GRID_Y0 + (ROWS - 1 - col) * CELL + CELL / 2.0
