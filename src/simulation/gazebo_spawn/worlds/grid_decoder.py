@@ -15,9 +15,9 @@ Formula (empirically verified):
   gz_world_y = GRID_Y0 + (ROWS-1-row)*CELL + CELL/2
 
 Camera correction (oakd_link at +0.5m forward, 0.8m height, rpy="0 pi/2 0"):
-  The camera looks backward. The centre of what it sees is ~1.21m behind and ~0.67m
-  to the right of base_footprint (body frame). Pass yaw_deg to decode_position() for
-  a heading-corrected robot position estimate; omit for a west-heading static fallback.
+  The decoded tile centre is ~1.92m ahead and ~1.67m left of base_footprint (body frame,
+  empirical from record13 n=11868 west-heading frames). Pass yaw_deg to decode_position()
+  for a heading-corrected robot position estimate; omit for a west-heading static fallback.
 
 Usage:
     from grid_decoder import decode_position
@@ -32,14 +32,11 @@ CELL    = 0.5
 COLS    = 68
 ROWS    = 48
 
-# Camera look-behind in body frame (empirical, record13 west swath n=11896).
-# The camera (rpy="0 pi/2 0") looks backward. The decoded tile centre is ~1.2m
-# behind base_footprint (+X is forward, so negative = behind) and ~0.67m to the right.
-# Signed convention: positive X = forward, positive Y = left (ROS body frame).
-# tile_world = robot_world + R(yaw) * [CAM_BODY_X, CAM_BODY_Y]
-# → robot_world = tile_world − R(yaw) * [CAM_BODY_X, CAM_BODY_Y]
-_CAM_BODY_X = -1.21   # metres behind base_footprint  (negative = backward)
-_CAM_BODY_Y = +0.67   # metres to the right (negative Y in standard ROS = right)
+# Camera offset: robot is _CAM_BODY_X ahead (+X) and _CAM_BODY_Y left (+Y)
+# of the decoded tile centre, in body frame (empirical, record13 n=11868 west swath).
+# tile = robot - R(yaw)*cam_body  →  robot = tile + R(yaw)*cam_body
+_CAM_BODY_X = +1.92   # metres ahead of tile (robot is this far in front of tile)
+_CAM_BODY_Y = +1.67   # metres left  of tile
 
 try:
     import zxingcpp as _zxing
@@ -106,15 +103,14 @@ def decode_position(bgr, yaw_deg=None):
                 tile_x, tile_y = _tile_to_world(col, row)
                 if yaw_deg is not None:
                     yr = math.radians(yaw_deg)
-                    # The camera looks backward; tile is behind the robot.
-                    # tile_world = robot_world − R(yaw) * cam_body
-                    # → robot_world = tile_world + R(yaw) * cam_body
+                    # The tile is behind the robot: tile = robot - R(yaw)*cam_body
+                    # → robot = tile + R(yaw)*cam_body
                     off_x = _CAM_BODY_X * math.cos(yr) - _CAM_BODY_Y * math.sin(yr)
                     off_y = _CAM_BODY_X * math.sin(yr) + _CAM_BODY_Y * math.cos(yr)
                     return tile_x + off_x, tile_y + off_y, 1.0
                 else:
-                    # Static fallback (assumes west heading, yaw≈180°)
-                    return tile_x - _CAM_BODY_X, tile_y - _CAM_BODY_Y, 1.0
+                    # Static fallback: west-heading (yaw≈180°) world offset
+                    return tile_x + 2.26, tile_y + 1.15, 1.0
     return None, None, 0.0
 
 
