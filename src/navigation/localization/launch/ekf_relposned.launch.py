@@ -26,10 +26,12 @@ from launch_ros.actions import Node
 def generate_launch_description():
     pkg_dir = get_package_share_directory('localization')
     params_file = os.path.join(pkg_dir, 'config', 'ekf_relposned_params.yaml')
+    empty_params_file = os.path.join(pkg_dir, 'config', 'empty_params.yaml')
 
     use_sim_time = LaunchConfiguration('use_sim_time')
     heading_offset_deg = LaunchConfiguration('heading_offset_deg')
     gps_odom_topic = LaunchConfiguration('gps_odom_topic')
+    extra_params = LaunchConfiguration('extra_params')
 
     declare_use_sim_time_cmd = DeclareLaunchArgument(
         'use_sim_time', default_value='false',
@@ -43,6 +45,10 @@ def generate_launch_description():
         'gps_odom_topic', default_value='odometry/gps',
         description='navsat_transform odometry output topic (use odometry/gps_raw in sim)')
 
+    declare_extra_params_cmd = DeclareLaunchArgument(
+        'extra_params', default_value=empty_params_file,
+        description='Optional second params file merged on top of ekf_relposned_params.yaml')
+
     relposned_heading_node = Node(
         package='localization',
         executable='relposned_heading.py',
@@ -54,12 +60,15 @@ def generate_launch_description():
         }],
     )
 
+    # extra_params is a second yaml file merged after params_file. When empty
+    # (real robot), robot_localization silently skips it; when set (sim), it
+    # overrides predict_to_current_time and transform_timeout.
     navsat_transform_node = Node(
         package='robot_localization',
         executable='navsat_transform_node',
         name='navsat_transform',
         output='screen',
-        parameters=[params_file, {'use_sim_time': use_sim_time}],
+        parameters=[params_file, extra_params, {'use_sim_time': use_sim_time}],
         remappings=[
             ('imu/data', 'imu'),
             ('gps/fix', 'gps/fix'),
@@ -82,7 +91,7 @@ def generate_launch_description():
         executable='ekf_node',
         name='ekf_filter_node_odom',
         output='screen',
-        parameters=[params_file, {'use_sim_time': use_sim_time}],
+        parameters=[params_file, extra_params, {'use_sim_time': use_sim_time}],
         remappings=[
             ('odometry/filtered', 'odom'),
         ],
@@ -100,6 +109,7 @@ def generate_launch_description():
         declare_use_sim_time_cmd,
         declare_heading_offset_cmd,
         declare_gps_odom_topic_cmd,
+        declare_extra_params_cmd,
         relposned_heading_node,
         navsat_transform_node,
         navsat_init_node,

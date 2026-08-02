@@ -49,14 +49,12 @@ import os
 import time
 
 import cv2
-import numpy as np
 import rclpy
 from cv_bridge import CvBridge
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
-from tf2_msgs.msg import TFMessage
 from tf2_ros import Buffer, TransformListener, LookupException, ConnectivityException, ExtrapolationException
 
 
@@ -102,17 +100,17 @@ class GzRlRecorder(Node):
     def __init__(self):
         super().__init__('gz_rl_recorder')
 
-        self.declare_parameter('out_csv',       '/tmp/gz_rl_record2.csv')
-        self.declare_parameter('img_dir',       '/tmp/gz_rl_frames')
-        self.declare_parameter('gz_odom_topic', 'odometry/gazebo')
-        self.declare_parameter('gz_pose_topic', '/gz/world_poses')
-        self.declare_parameter('robot_model',   'solbot5')
-        self.declare_parameter('rate_hz',       4.0)
+        self.declare_parameter('out_csv',              '/tmp/gz_rl_record2.csv')
+        self.declare_parameter('img_dir',              '/tmp/gz_rl_frames')
+        self.declare_parameter('gz_odom_topic',        'odometry/gazebo')
+        self.declare_parameter('gz_world_odom_topic',  '/gz/robot_world_odom')
+        self.declare_parameter('robot_model',          'solbot5')
+        self.declare_parameter('rate_hz',              4.0)
 
-        self._out_csv    = self.get_parameter('out_csv').value
-        self._img_dir    = self.get_parameter('img_dir').value
+        self._out_csv     = self.get_parameter('out_csv').value
+        self._img_dir     = self.get_parameter('img_dir').value
         self._robot_model = self.get_parameter('robot_model').value
-        rate_hz          = self.get_parameter('rate_hz').value
+        rate_hz           = self.get_parameter('rate_hz').value
 
         os.makedirs(self._img_dir, exist_ok=True)
 
@@ -130,11 +128,11 @@ class GzRlRecorder(Node):
             Odometry, self.get_parameter('gz_odom_topic').value,
             self._gz_odom_cb, 10)
 
+        # True world-frame position from OdometryPublisher (odom_frame=world).
+        # Replaces the broken Pose_V TFMessage approach (child_frame_id always empty).
         self.create_subscription(
-            TFMessage, self.get_parameter('gz_pose_topic').value,
-            self._gz_world_pose_cb, rclpy.qos.QoSProfile(
-                depth=10,
-                reliability=rclpy.qos.ReliabilityPolicy.BEST_EFFORT))
+            Odometry, self.get_parameter('gz_world_odom_topic').value,
+            self._gz_world_odom_cb, 10)
 
         self.create_subscription(
             String, 'crop_row_spawner/events',
@@ -167,30 +165,10 @@ class GzRlRecorder(Node):
         o = msg.pose.pose.orientation
         self._gz_odom_pose = (p.x, p.y, quat_yaw((o.x, o.y, o.z, o.w)))
 
-    def _gz_world_pose_cb(self, msg: TFMessage):
-        # gz.msgs.Pose_V → TFMessage bridge leaves frame_id/child_frame_id empty.
-        # Identify the robot entry by matching position to the odom pose (odom≈world in sim).
-        # The robot body is at z≈0.2m; filter out wheel/link entries at other heights.
-        odom = self._gz_odom_pose
-        if not odom:
-            return
-        best = None
-        best_score = 1.0  # combined position+yaw distance threshold
-        for tf in msg.transforms:
-            tr = tf.transform.translation
-            ro = tf.transform.rotation
-            # Robot chassis z ≈ 0.15–0.25m; spawned flat boxes z ≈ 0.005m; skip non-robot heights
-            if tr.z < 0.05 or tr.z > 1.0:
-                continue
-            pos_dist = math.hypot(tr.x - odom[0], tr.y - odom[1])
-            yaw_dist = abs(math.atan2(math.sin(quat_yaw((ro.x, ro.y, ro.z, ro.w)) - odom[2]),
-                                      math.cos(quat_yaw((ro.x, ro.y, ro.z, ro.w)) - odom[2])))
-            score = pos_dist + 0.5 * yaw_dist
-            if score < best_score:
-                best_score = score
-                best = (tr.x, tr.y, quat_yaw((ro.x, ro.y, ro.z, ro.w)))
-        if best:
-            self._gz_world_pose = best
+    def _gz_world_odom_cb(self, msg: Odometry):
+        p = msg.pose.pose.position
+        o = msg.pose.pose.orientation
+        self._gz_world_pose = (p.x, p.y, quat_yaw((o.x, o.y, o.z, o.w)))
 
     def _spawn_event_cb(self, msg: String):
         try:

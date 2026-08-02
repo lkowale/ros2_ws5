@@ -81,6 +81,14 @@
   gz_type_name: "gz.msgs.Pose_V"
   direction: GZ_TO_ROS
 
+# Robot world-frame odometry from OdometryPublisher (odom_frame=world → ground truth position).
+# Used by sim_gps_fix_publisher as GPS source instead of drifted Ackermann wheel odometry.
+- ros_topic_name: "/gz/robot_world_odom"
+  gz_topic_name: "/model/solbot5/world_odometry"
+  ros_type_name: "nav_msgs/msg/Odometry"
+  gz_type_name: "gz.msgs.Odometry"
+  direction: GZ_TO_ROS
+
 # TF from Gazebo - DISABLED when using robot_localization
 # The EKF provides odom->base_footprint transform
 # - ros_topic_name: "/tf"

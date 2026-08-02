@@ -182,8 +182,8 @@ def generate_launch_description():
             name='gz_rl_recorder',
             output='screen',
             parameters=[{
-                'out_csv': '/tmp/gz_rl_record13.csv',
-                'img_dir': '/tmp/gz_rl_frames13',
+                'out_csv': '/tmp/gz_rl_record17.csv',
+                'img_dir': '/tmp/gz_rl_frames17',
                 'rate_hz': 4.0,
             }],
         )]

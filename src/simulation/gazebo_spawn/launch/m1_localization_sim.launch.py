@@ -32,6 +32,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     sim_dir = get_package_share_directory('gazebo_spawn')
     loc_dir = get_package_share_directory('localization')
+    sim_ekf_params = os.path.join(loc_dir, 'config', 'ekf_relposned_sim_params.yaml')
 
     use_sim_time = LaunchConfiguration('use_sim_time')
     headless = LaunchConfiguration('headless')
@@ -74,11 +75,12 @@ def generate_launch_description():
             'datum_lat': 53.5204991,
             'datum_lon': 17.8258532,
             'datum_alt': 100.0,
-            # base_footprint is at the rear axle; gps_link is wheelbase/2 + 0.35 = 1.00m
-            # ahead of base_link, which is wheelbase/2 = 0.65m ahead of base_footprint.
-            # Total: 0.65 + 1.00 = 1.65m ahead of base_footprint.
-            'antenna_x': 1.65,
+            # Publish at base_footprint so navsat_transform datum is anchored at
+            # base_footprint ENU, aligning map frame with the Gazebo odom frame.
+            # (Real robot: antenna_x=1.65, frame_id=gps_link)
+            'antenna_x': 0.0,
             'antenna_y': 0.0,
+            'frame_id': 'base_footprint',
             'rate_hz': 10.0,
         }],
     )
@@ -97,11 +99,12 @@ def generate_launch_description():
         }],
     )
 
-    # Localization (delayed to let Gazebo + bridge publish first messages).
+    # Localization (delayed to let Gazebo + bridge publish first messages and
+    # for any stale TF messages from previous runs to drain out of the middleware).
     # navsat_init now lives inside ekf_relposned.launch.py so it re-sets the
     # datum on a standalone localization restart.
     localization_cmd = TimerAction(
-        period=4.0,
+        period=12.0,
         actions=[IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
                 os.path.join(loc_dir, 'launch', 'ekf_relposned.launch.py')),
@@ -109,6 +112,7 @@ def generate_launch_description():
                 'use_sim_time': use_sim_time,
                 'heading_offset_deg': heading_offset_deg,
                 'gps_odom_topic': 'odometry/gps_raw',
+                'extra_params': sim_ekf_params,
             }.items(),
         )]
     )

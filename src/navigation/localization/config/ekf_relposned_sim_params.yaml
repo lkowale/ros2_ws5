@@ -1,0 +1,30 @@
+# Sim overrides for ekf_relposned_params.yaml.
+# Merged on top of the base file in ekf_relposned.launch.py when use_sim_time=true.
+#
+# predict_to_current_time: false — prevents NaN when stale TF messages from
+# a previous Gazebo run arrive with old sim timestamps, trigger a TF buffer
+# clear ("jump back in time"), and leave the EKF with nothing to integrate over.
+# On real hardware this is fine to leave true; in sim it causes divergence.
+
+ekf_filter_node_odom:
+  ros__parameters:
+    predict_to_current_time: false
+    transform_timeout: 0.5
+
+navsat_transform:
+  ros__parameters:
+    frequency: 15.0
+    delay: 0.0
+    magnetic_declination_radians: 0.0
+    yaw_offset: 0.0
+    zero_altitude: true
+    broadcast_cartesian_transform: false
+    publish_filtered_gps: true
+    use_odometry_yaw: false
+    wait_for_datum: true
+    world_frame: odom
+    base_link_frame: base_footprint
+    qos_overrides:
+      /gps/fix:
+        subscription:
+          reliability: best_effort
