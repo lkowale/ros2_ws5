@@ -9,12 +9,15 @@
       1. SetRsPlannerConstraints — constrain RS planner to headland side
       2. ComputeHeadlandPose — compute 90° arc endpoint from swath end
       3. ComputePathToPose (GridBased) to headland_pose + FollowPath
-      4. ClearRsPlannerConstraints
-    Phase 2 — RS hop to next swath start:
-      5. NextFieldLine — advance index, get next swath geo_points
-      6. ConvertGeoPoints + GetPoseFromPoses → turn_goal_pose
+    Phase 2 — RS hop to next swath start (same headland, short hop):
+      4. NextFieldLine — advance index, get next swath geo_points
+      5. ConvertGeoPoints → map_points (next swath)
+      6. GetPoseFromPoses → turn_goal_pose (next swath start, same headland)
       7. ComputePathToPose (GridBased) to turn_goal_pose + FollowPath
-      8. SetStage("approach") + SaveFieldProgress
+      8. ClearRsPlannerConstraints
+      9. SetStage("approach") + SaveFieldProgress
+  Note: the geojson encodes alternating swath directions so consecutive swaths
+  in the skip-pass order always start on the same headland where the prior turn ends.
 
   After turn the line index is already advanced — "Move to next line" is removed
   to avoid the double-advance bug that skipped swath 1 in the original design.
@@ -125,9 +128,12 @@
                       <FollowPath path="{arc_path}" controller_id="FollowPath"
                                   goal_checker_id="arc_goal_checker"
                                   error_code_id="{arc_follow_error}"/>
-                      <ClearRsPlannerConstraints/>
 
-                      <!-- Phase 2: RS hop to next swath start -->
+                      <!-- Phase 2: advance to next swath and drive to its start -->
+                      <!-- Clear RS constraint before Phase 2 so the planner can reverse -->
+                      <!-- along the headland (next swath start is behind the robot after -->
+                      <!-- the Phase 1 arc, so fwd_first constraint would force a detour). -->
+                      <ClearRsPlannerConstraints/>
                       <NextFieldLine
                           field_lines="{field_lines}"
                           current_line_index="{current_line_index}"
@@ -138,6 +144,10 @@
                           all_lines_completed="{all_lines_completed}"/>
                       <ConvertGeoPoints geo_points="{geo_points}" map_points="{map_points}"/>
                       <GetPoseFromPoses poses="{map_points}" pose="{turn_goal_pose}" index="0"/>
+                      <OverridePoseOrientation
+                          target_pose="{turn_goal_pose}"
+                          orient_from_pose="{headland_pose}"
+                          result_pose="{turn_goal_pose}"/>
                       <ComputePathToPose goal="{turn_goal_pose}" path="{turn_path}"
                                          planner_id="GridBased"
                                          error_code_id="{turn_compute_error}"/>

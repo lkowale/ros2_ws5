@@ -6,6 +6,7 @@
 //   GetPoseFromPoses            — extracts one PoseStamped from map_points by index
 //   SetRsPlannerConstraints     — publishes turn_side to /rs_planner_constraints (latched)
 //   ClearRsPlannerConstraints   — clears the constraint (publishes empty string)
+//   OverridePoseOrientation     — copy XY from target_pose, orientation from orient_from_pose
 
 #include <cmath>
 #include <algorithm>
@@ -325,6 +326,40 @@ private:
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_;
 };
 
+// ── OverridePoseOrientation ───────────────────────────────────────────────────
+// Build a PoseStamped whose XY position comes from target_pose and whose
+// orientation comes from orient_from_pose. Useful when the goal checker ignores
+// yaw — lets the RS planner plan a simple forward arc rather than a complex
+// multi-segment path caused by a large heading difference.
+
+class OverridePoseOrientation : public BT::SyncActionNode
+{
+public:
+  OverridePoseOrientation(const std::string & name, const BT::NodeConfiguration & config)
+  : BT::SyncActionNode(name, config) {}
+
+  static BT::PortsList providedPorts()
+  {
+    return {
+      BT::InputPort<geometry_msgs::msg::PoseStamped>("target_pose"),
+      BT::InputPort<geometry_msgs::msg::PoseStamped>("orient_from_pose"),
+      BT::OutputPort<geometry_msgs::msg::PoseStamped>("result_pose"),
+    };
+  }
+
+  BT::NodeStatus tick() override
+  {
+    geometry_msgs::msg::PoseStamped target, orient_src;
+    if (!getInput("target_pose", target) || !getInput("orient_from_pose", orient_src)) {
+      return BT::NodeStatus::FAILURE;
+    }
+    geometry_msgs::msg::PoseStamped result = target;
+    result.pose.orientation = orient_src.pose.orientation;
+    setOutput("result_pose", result);
+    return BT::NodeStatus::SUCCESS;
+  }
+};
+
 // ── Registration ─────────────────────────────────────────────────────────────
 
 BT_REGISTER_NODES(factory)
@@ -336,4 +371,5 @@ BT_REGISTER_NODES(factory)
   factory.registerNodeType<GetPoseFromPoses>("GetPoseFromPoses");
   factory.registerNodeType<SetRsPlannerConstraints>("SetRsPlannerConstraints");
   factory.registerNodeType<ClearRsPlannerConstraints>("ClearRsPlannerConstraints");
+  factory.registerNodeType<OverridePoseOrientation>("OverridePoseOrientation");
 }

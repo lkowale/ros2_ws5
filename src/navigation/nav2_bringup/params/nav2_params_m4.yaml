@@ -47,6 +47,7 @@ bt_navigator:
       - next_field_line_bt_node
       - get_turn_sequence_bt_node
       - compute_headland_pose_bt_node
+      - compute_headland_entry_bt_node
       - pause_condition_bt_node
       - clear_one_line_progress_bt_node
       - publish_path_bt_node
@@ -81,12 +82,12 @@ controller_server:
       stateful: True
       plugin: "nav2_controller::SimpleGoalChecker"
       xy_goal_tolerance: 0.1
-      yaw_goal_tolerance: 0.524
+      yaw_goal_tolerance: 3.14
 
     swath_goal_checker:
       stateful: True
       plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.05
+      xy_goal_tolerance: 0.5
       yaw_goal_tolerance: 3.14
 
     SwathFollow:
@@ -94,7 +95,7 @@ controller_server:
       gps_frame_id: gps_link
       desired_linear_vel: 0.7
       max_linear_vel: 0.7
-      min_linear_vel: 0.4
+      min_linear_vel: 0.1
       max_angular_vel: 1.0
       transform_tolerance: 0.1
       kp_near: 1.0
@@ -108,7 +109,7 @@ controller_server:
       kd_cross_track: 0.3
       tool_lateral_offset: 0.0
       approach_velocity_scaling_dist: 0.3
-      approach_min_velocity: 0.5
+      approach_min_velocity: 0.1
 
     FollowPath:
       plugin: "rs_path_controller/RsPathController"
