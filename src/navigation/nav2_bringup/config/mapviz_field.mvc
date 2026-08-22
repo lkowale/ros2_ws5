@@ -111,7 +111,7 @@ displays:
       color: "#f66151"
       draw_style: points
       position_tolerance: 0.050000000000000003
-      buffer_size: 500
+      buffer_size: 5000
       show_laps: false
       show_covariance: false
       show_all_covariances: false
