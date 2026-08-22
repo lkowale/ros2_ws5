@@ -6,3 +6,16 @@ logs/
 __pycache__/
 *.pyc
 src/fields/*/field_progress.json
+
+# Debian source packages built locally
+ros-jazzy-*/
+*.debian.tar.xz
+*.orig.tar.gz
+*.dsc
+
+# Debug/analysis images from sim runs
+*.png
+cyclone_dds.xml
+
+# Uncommitted summary docs
+STACK.md

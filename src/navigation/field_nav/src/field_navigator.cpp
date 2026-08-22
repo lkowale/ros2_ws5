@@ -321,28 +321,13 @@ void FieldNavigator::onLoop()
 
 void FieldNavigator::onPreempt(ActionT::Goal::ConstSharedPtr goal)
 {
-  RCLCPP_INFO(logger_, "Received goal preemption request");
+  // Must accept the pending goal to clear the preempt_requested_ flag.
+  // Without this, the BT loop calls onPreempt every tick for the lifetime
+  // of the action (the flag is only cleared by accept_pending_goal()).
+  bt_action_server_->acceptPendingGoal();
 
-  // Re-initialize with new goal
-  if (!goal->field_name.empty()) {
-    loadDirectedLinesFromFile(goal->field_name, field_lines_);
-    loadSwathOffsets(goal->field_name, field_lines_);
-    total_lines_ = static_cast<int32_t>(field_lines_.size());
-
-    auto blackboard = bt_action_server_->getBlackboard();
-    blackboard->set<std::vector<FieldLine>>("field_lines", field_lines_);
-    blackboard->set<int32_t>("total_lines", total_lines_);
-    blackboard->set<int32_t>("current_line_index", 0);
-
-    if (total_lines_ > 0) {
-      std::vector<geographic_msgs::msg::GeoPoint> geo_points = {
-        field_lines_[0].start,
-        field_lines_[0].end
-      };
-      blackboard->set<std::vector<geographic_msgs::msg::GeoPoint>>("geo_points", geo_points);
-      blackboard->set<std::string>("turn_direction", field_lines_[0].turn);
-    }
-  }
+  RCLCPP_INFO(logger_, "Preempt: accepted pending goal for field '%s', preserving progress",
+    goal->field_name.c_str());
 }
 
 void FieldNavigator::goalCompleted(

@@ -24,11 +24,11 @@ source /opt/ros/jazzy/setup.bash
 source /home/aa/ros2_ws5/install/setup.bash
 
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-# Use the SAME DDS discovery as the sim launch (which sets no CYCLONEDDS_URI =
-# default multicast on localhost). A custom URI here changed discovery and made
-# Mapviz see topic names but receive NO data ("No messages received" on every
-# display). Match the sim: leave CYCLONEDDS_URI unset.
-unset CYCLONEDDS_URI
+# Match the sim launch's DDS config so participant slots are shared.
+# The sim is launched with CYCLONEDDS_URI pointing at cyclone_dds.xml
+# (MaxAutoParticipantIndex=200). Mapviz must use the same URI or it lands
+# on a different participant table and gets "no free participant index".
+export CYCLONEDDS_URI=file://${HOME}/ros2_ws5/cyclone_dds.xml
 
 # Remove snap paths to avoid the libpthread conflict.
 export LD_LIBRARY_PATH=$(echo "${LD_LIBRARY_PATH:-}" | tr ':' '\n' | grep -v snap | tr '\n' ':')

@@ -15,7 +15,7 @@ The conversion is the exact inverse of relposned_heading:
 of relposned_heading's ``heading_offset_deg`` can be exercised in sim. Set both
 to 0 for a clean baseline.
 
-Subscribes: /odometry/gazebo  (nav_msgs/Odometry, ground-truth pose)
+Subscribes: /gz/robot_world_odom  (nav_msgs/Odometry, ground-truth world pose)
 Publishes:  /ubx_nav_rel_pos_ned  (ublox_ubx_msgs/UBXNavRelPosNED)
 """
 
@@ -53,7 +53,7 @@ class SimRelPosNed(Node):
             UBXNavRelPosNED, '/ubx_nav_rel_pos_ned', best_effort)
 
         self._last_yaw = None
-        self.create_subscription(Odometry, '/odometry/gazebo', self._cb, 10)
+        self.create_subscription(Odometry, '/gz/robot_world_odom', self._cb, 10)
         self.create_timer(1.0 / self._rate_hz, self._tick)
 
         self.get_logger().info(
