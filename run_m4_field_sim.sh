@@ -14,6 +14,17 @@
 # Environment:
 #   HEADLESS=True|False       Gazebo GUI   (default: True)
 #   HEADING_OFFSET=<deg>      GPS antenna heading offset (default: 0.0)
+#   SPAWN_FIELD=<field_name>  Spawn robot at a swath start instead of (0,0,0).
+#   SPAWN_LINE=<line_index>   Swath (geojson feature) index to spawn at, e.g.
+#                             SPAWN_FIELD=house_short SPAWN_LINE=6 bash run_m4_field_sim.sh
+#                             Pose is computed by spawn_at_swath.py using the
+#                             same lat/lon->world projection sim_gps_fix_publisher.py
+#                             uses at runtime, so it matches where the EKF/GPS
+#                             pipeline will itself place the robot on that swath
+#                             — not Gazebo's separate (unfused) wheel odometry.
+#                             After spawning, send the mission with the matching
+#                             start_line so the BT resumes at the same swath:
+#                             bash run_m4_field_sim.sh field house_short 6
 
 set -e
 
@@ -70,6 +81,16 @@ fi
 HEADLESS="${HEADLESS:-True}"
 HEADING_OFFSET="${HEADING_OFFSET:-0.0}"
 
+SPAWN_ARGS=()
+if [[ -n "${SPAWN_FIELD:-}" && -n "${SPAWN_LINE:-}" ]]; then
+    read -r X_POSE Y_POSE YAW < <(
+        python3 "$HOME/ros2_ws5/spawn_at_swath.py" "$SPAWN_FIELD" "$SPAWN_LINE" \
+            | tail -1 | sed 's/x_pose:=//; s/y_pose:=//; s/yaw:=//'
+    )
+    echo "Spawning at $SPAWN_FIELD line $SPAWN_LINE: x=$X_POSE y=$Y_POSE yaw=$YAW"
+    SPAWN_ARGS=("x_pose:=$X_POSE" "y_pose:=$Y_POSE" "yaw:=$YAW")
+fi
+
 export LD_LIBRARY_PATH=$(echo "$LD_LIBRARY_PATH" | tr ':' '\n' | grep -v snap | tr '\n' ':')
 
 echo "Cleaning up existing sim/nav processes..."
@@ -121,4 +142,5 @@ echo "Started field_nav_logger (PID: $LOGGER_PID) → $LOG_DIR/"
 ros2 launch gazebo_spawn m4_nav_sim.launch.py \
     headless:=$HEADLESS \
     heading_offset_deg:=$HEADING_OFFSET \
+    "${SPAWN_ARGS[@]}" \
     2>&1 | tee -a "$LOG_FILE"

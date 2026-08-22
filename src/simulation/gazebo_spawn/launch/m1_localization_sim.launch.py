@@ -38,6 +38,9 @@ def generate_launch_description():
     headless = LaunchConfiguration('headless')
     heading_offset_deg = LaunchConfiguration('heading_offset_deg')
     world = LaunchConfiguration('world')
+    x_pose = LaunchConfiguration('x_pose')
+    y_pose = LaunchConfiguration('y_pose')
+    yaw = LaunchConfiguration('yaw')
 
     declare_use_sim_time_cmd = DeclareLaunchArgument(
         'use_sim_time', default_value='true')
@@ -51,6 +54,17 @@ def generate_launch_description():
         'world',
         default_value=os.path.join(sim_dir, 'worlds', 'empty.sdf'),
         description='Full path to Gazebo world SDF file')
+    declare_x_pose_cmd = DeclareLaunchArgument(
+        'x_pose', default_value='0.00',
+        description='Gazebo world-frame spawn X (map/EKF frame is identical to '
+                     'Gazebo world frame in sim, since /gps/fix is derived from '
+                     'Gazebo ground truth about a fixed datum)')
+    declare_y_pose_cmd = DeclareLaunchArgument(
+        'y_pose', default_value='0.00',
+        description='Gazebo world-frame spawn Y')
+    declare_yaw_cmd = DeclareLaunchArgument(
+        'yaw', default_value='0.00',
+        description='Gazebo world-frame spawn yaw [rad]')
 
     # Gazebo + robot + gz bridge + covariance injectors + ackermann preprocessor.
     simulation_cmd = IncludeLaunchDescription(
@@ -60,6 +74,9 @@ def generate_launch_description():
             'use_sim_time': use_sim_time,
             'headless': headless,
             'world': world,
+            'x_pose': x_pose,
+            'y_pose': y_pose,
+            'yaw': yaw,
         }.items(),
     )
 
@@ -122,6 +139,9 @@ def generate_launch_description():
         declare_headless_cmd,
         declare_heading_offset_cmd,
         declare_world_cmd,
+        declare_x_pose_cmd,
+        declare_y_pose_cmd,
+        declare_yaw_cmd,
         simulation_cmd,
         sim_gps_fix,
         sim_relposned,

@@ -126,7 +126,7 @@ public:
     declare_parameter("field_file", "");
     declare_parameter("world_name", "house_short_crop_rows");
     declare_parameter("robot_model", "solbot5");
-    declare_parameter("gz_odom_topic", "odometry/gazebo");
+    declare_parameter("gz_odom_topic", "/gz/robot_world_odom");
     declare_parameter("spawn_ahead_m", 4.0);
     declare_parameter("remove_behind_m", 3.0);
     declare_parameter("row_offset_m", 0.18);
@@ -161,7 +161,8 @@ public:
     event_pub_ = create_publisher<std_msgs::msg::String>(
       "crop_row_spawner/events", rclcpp::QoS(50));
 
-    // Subscribe to Gazebo odometry bridge — provides robot world pose with no subprocess cost
+    // Subscribe to ground-truth world-frame odometry (NOT the drifting Ackermann
+    // wheel odom on odometry/gazebo) so the map<->gz offset stays correct.
     gz_odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
       get_parameter("gz_odom_topic").as_string(), 10,
       [this](nav_msgs::msg::Odometry::ConstSharedPtr msg) {

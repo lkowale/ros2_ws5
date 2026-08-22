@@ -33,6 +33,9 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time')
     headless = LaunchConfiguration('headless')
     heading_offset_deg = LaunchConfiguration('heading_offset_deg')
+    x_pose = LaunchConfiguration('x_pose')
+    y_pose = LaunchConfiguration('y_pose')
+    yaw = LaunchConfiguration('yaw')
 
     declare_use_sim_time_cmd = DeclareLaunchArgument(
         'use_sim_time', default_value='true')
@@ -41,6 +44,15 @@ def generate_launch_description():
         description='Run Gazebo without GUI')
     declare_heading_offset_cmd = DeclareLaunchArgument(
         'heading_offset_deg', default_value='0.0')
+    declare_x_pose_cmd = DeclareLaunchArgument(
+        'x_pose', default_value='0.00',
+        description='Gazebo world-frame spawn X (== map/EKF frame in sim)')
+    declare_y_pose_cmd = DeclareLaunchArgument(
+        'y_pose', default_value='0.00',
+        description='Gazebo world-frame spawn Y (== map/EKF frame in sim)')
+    declare_yaw_cmd = DeclareLaunchArgument(
+        'yaw', default_value='0.00',
+        description='Gazebo world-frame spawn yaw [rad]')
 
     bt_xml = os.path.join(
         os.path.expanduser('~'), 'ros2_ws5', 'src',
@@ -55,6 +67,9 @@ def generate_launch_description():
             'headless': headless,
             'heading_offset_deg': heading_offset_deg,
             'world': os.path.join(sim_dir, 'worlds', 'house_short_rows.sdf'),
+            'x_pose': x_pose,
+            'y_pose': y_pose,
+            'yaw': yaw,
         }.items(),
     )
 
@@ -206,6 +221,9 @@ def generate_launch_description():
         declare_use_sim_time_cmd,
         declare_headless_cmd,
         declare_heading_offset_cmd,
+        declare_x_pose_cmd,
+        declare_y_pose_cmd,
+        declare_yaw_cmd,
         log_bt,
         m1_cmd,
         origin_publisher,
