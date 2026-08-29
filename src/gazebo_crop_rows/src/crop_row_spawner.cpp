@@ -39,16 +39,9 @@ static double quat_yaw(double x, double y, double z, double w) {
   return std::atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z));
 }
 
-// 8 colors cycling per segment index.
-static const float kSegColors[8][3] = {
-  {0.13f, 0.55f, 0.13f},  // 0 green   (baseline)
-  {0.80f, 0.00f, 0.00f},  // 1 red
-  {0.00f, 0.20f, 0.90f},  // 2 blue
-  {0.85f, 0.85f, 0.00f},  // 3 yellow
-  {0.80f, 0.00f, 0.80f},  // 4 magenta
-  {0.00f, 0.80f, 0.80f},  // 5 cyan
-  {0.90f, 0.45f, 0.00f},  // 6 orange
-  {0.50f, 0.00f, 0.90f},  // 7 violet
+// All segments render green.
+static const float kSegColors[1][3] = {
+  {0.13f, 0.55f, 0.13f},  // green
 };
 
 // Single-box SDF used by the rolling spawner (non-spawn_all mode).
@@ -57,7 +50,7 @@ static std::string make_sdf(const std::string & name,
                              double length, double width,
                              int index)
 {
-  const float * c = kSegColors[index % 8];
+  const float * c = kSegColors[0];
   char buf[2048];
   std::snprintf(buf, sizeof(buf),
     "<sdf version=\"1.7\">"
@@ -97,7 +90,7 @@ static std::string make_swath_sdf(
   sdf += "\"><static>true</static><pose>0 0 0 0 0 0</pose>";
 
   for (auto & [lname, lx, ly, lyaw, llen, lwid, lidx] : boxes) {
-    const float * c = kSegColors[lidx % 8];
+    const float * c = kSegColors[0];
     char buf[768];
     std::snprintf(buf, sizeof(buf),
       "<link name=\"%s\">"

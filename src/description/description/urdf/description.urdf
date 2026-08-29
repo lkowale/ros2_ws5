@@ -279,9 +279,91 @@
   <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
 </joint>
 
-<!-- tool_bar, tool_bar_joint, implement_* REMOVED temporarily for QR localization testing.
-     The toolbar bisects the downward camera view, blocking QR decode.
-     Restore from git when done. -->
+<!--              tool_bar                   -->
+<!-- Laterally sliding toolbar, centred on tool_link.
+     In simulation the dynamic TF (tool_link → tool_bar) is broadcast by
+     tool_actuator_sim; this static joint is the zero-position fallback for
+     robot_state_publisher when the sim nodes are not running. -->
+<link name="tool_bar">
+  <visual>
+    <geometry>
+      <box size="0.05 0.80 0.05"/>
+    </geometry>
+    <material name="tool_bar_color">
+      <color rgba="0.8 0.4 0.0 1.0"/>
+    </material>
+  </visual>
+  <collision>
+    <geometry>
+      <box size="0.05 0.80 0.05"/>
+    </geometry>
+  </collision>
+  <inertial>
+    <mass value="3.0"/>
+    <inertia ixx="0.016" ixy="0.0" ixz="0.0"
+             iyy="0.001" iyz="0.0" izz="0.016"/>
+  </inertial>
+</link>
+
+<joint name="tool_bar_joint" type="prismatic">
+  <parent link="tool_link"/>
+  <child link="tool_bar"/>
+  <origin xyz="0.6 0.0 0.4" rpy="0 0 0"/>
+  <axis xyz="0 1 0"/>
+  <limit lower="-0.10" upper="0.10" effort="100" velocity="0.5"/>
+</joint>
+
+<!--              implements (3 × red tines on tool_bar)           -->
+<link name="implement_center">
+  <visual>
+    <geometry><box size="0.03 0.02 0.01"/></geometry>
+    <material name="implement_red"><color rgba="1.0 0.0 0.0 1.0"/></material>
+  </visual>
+  <collision><geometry><box size="0.03 0.02 0.01"/></geometry></collision>
+  <inertial>
+    <mass value="0.5"/>
+    <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+  </inertial>
+</link>
+<joint name="implement_center_joint" type="fixed">
+  <parent link="tool_bar"/>
+  <child link="implement_center"/>
+  <origin xyz="-0.20 0.0 0.0" rpy="0 0 0"/>
+</joint>
+
+<link name="implement_left">
+  <visual>
+    <geometry><box size="0.03 0.02 0.01"/></geometry>
+    <material name="implement_red"/>
+  </visual>
+  <collision><geometry><box size="0.03 0.02 0.01"/></geometry></collision>
+  <inertial>
+    <mass value="0.5"/>
+    <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+  </inertial>
+</link>
+<joint name="implement_left_joint" type="fixed">
+  <parent link="tool_bar"/>
+  <child link="implement_left"/>
+  <origin xyz="-0.20 0.36 0.0" rpy="0 0 0"/>
+</joint>
+
+<link name="implement_right">
+  <visual>
+    <geometry><box size="0.03 0.02 0.01"/></geometry>
+    <material name="implement_red"/>
+  </visual>
+  <collision><geometry><box size="0.03 0.02 0.01"/></geometry></collision>
+  <inertial>
+    <mass value="0.5"/>
+    <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+  </inertial>
+</link>
+<joint name="implement_right_joint" type="fixed">
+  <parent link="tool_bar"/>
+  <child link="implement_right"/>
+  <origin xyz="-0.20 -0.36 0.0" rpy="0 0 0"/>
+</joint>
 
 <!--              OAK-D Lite camera           -->
 <!-- Forward-facing, mounted on base_link 50 cm above ground centre,
@@ -384,6 +466,7 @@
         <joint_name>front_right_wheel</joint_name>
         <joint_name>front_left_steering</joint_name>
         <joint_name>front_right_steering</joint_name>
+        <joint_name>tool_bar_joint</joint_name>
         <topic>joint_states</topic>
         <update_rate>30</update_rate>
       </plugin>
@@ -401,7 +484,15 @@
         <dimensions>2D</dimensions>
       </plugin>
 
-      <!-- JointPositionController for tool_bar_joint removed with toolbar -->
+      <plugin
+        filename="gz-sim-joint-position-controller-system"
+        name="gz::sim::systems::JointPositionController">
+        <joint_name>tool_bar_joint</joint_name>
+        <topic>/tool_bar_joint/cmd_pos</topic>
+        <p_gain>100</p_gain>
+        <i_gain>0</i_gain>
+        <d_gain>10</d_gain>
+      </plugin>
 
   </gazebo>
 </robot>
