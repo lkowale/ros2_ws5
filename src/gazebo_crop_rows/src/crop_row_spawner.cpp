@@ -1,4 +1,5 @@
 #include <rclcpp/rclcpp.hpp>
+#include <tf2/exceptions.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 #include <geometry_msgs/msg/transform_stamped.hpp>
@@ -228,6 +229,30 @@ private:
   }
 
   void finish_swath_load() {
+    // /fromLL serves as soon as navsat_transform is up, but returns (0,0) for
+    // every point until wait_for_datum's datum is actually set — silently
+    // poisoning every swath with len=0/NaN forever (this function only runs
+    // once). Detect that degenerate case and retry the whole load instead of
+    // committing to it.
+    bool degenerate = true;
+    for (size_t i = 0; i < pending_raw_.size() && degenerate; ++i) {
+      double dx = converted_[2*i+1].x - converted_[2*i].x;
+      double dy = converted_[2*i+1].y - converted_[2*i].y;
+      if (std::hypot(dx, dy) > 1e-3) degenerate = false;
+    }
+    if (degenerate) {
+      RCLCPP_WARN(get_logger(),
+        "/fromLL returned degenerate points for every swath (datum not set "
+        "yet?) — retrying load in 2s");
+      swath_load_retry_timer_ = create_wall_timer(
+        std::chrono::milliseconds(2000),
+        [this]() {
+          swath_load_retry_timer_->cancel();
+          load_swath_points();
+        });
+      return;
+    }
+
     for (size_t i = 0; i < pending_raw_.size(); ++i) {
       double x0 = converted_[2*i].x,   y0 = converted_[2*i].y;
       double x1 = converted_[2*i+1].x, y1 = converted_[2*i+1].y;
@@ -243,6 +268,9 @@ private:
       sw.cx = (x0+x1)/2; sw.cy = (y0+y1)/2;
       sw.length = len; sw.offset = row_offset_;
       swaths_.push_back(sw);
+      RCLCPP_INFO(get_logger(),
+        "  swath[%zu]: (%.2f,%.2f)->(%.2f,%.2f) len=%.2f yaw=%.1f° ux=%.3f uy=%.3f",
+        i, x0, y0, x1, y1, len, sw.yaw * 180.0 / M_PI, sw.ux, sw.uy);
     }
     RCLCPP_INFO(get_logger(), "Loaded %zu swaths (map-frame coords via /fromLL)",
                 swaths_.size());
@@ -346,7 +374,9 @@ private:
       ry   = tr.transform.translation.y;
       ryaw = quat_yaw(tr.transform.rotation.x, tr.transform.rotation.y,
                       tr.transform.rotation.z, tr.transform.rotation.w);
-    } catch (...) {
+    } catch (const tf2::TransformException & e) {
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
+        "TF lookup map->base_footprint failed: %s", e.what());
       return false;
     }
     return true;
@@ -391,7 +421,13 @@ private:
     if (!get_transforms(rx, ry, ryaw)) return;
 
     const Swath * sw = nearest_swath(rx, ry, ryaw);
-    if (!sw) return;
+    if (!sw) {
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
+        "No swath matches robot pose (%.3f,%.3f,%.1f°) — heading not aligned "
+        "with any swath axis (need |dot|>=0.5)",
+        rx, ry, ryaw * 180.0 / M_PI);
+      return;
+    }
 
     // gz_offset = map_pose − gz_pose, constant world-frame translation between frames.
     // gz_yaw_offset = gz_yaw − map_yaw, refreshed every tick (typically ~0).
@@ -544,6 +580,7 @@ private:
   rclcpp::TimerBase::SharedPtr init_timer_;
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::TimerBase::SharedPtr spawn_all_pending_timer_;
+  rclcpp::TimerBase::SharedPtr swath_load_retry_timer_;
 };
 
 int main(int argc, char ** argv) {

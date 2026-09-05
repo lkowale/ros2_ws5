@@ -16,6 +16,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, LogInfo, TimerAction)
+from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
@@ -53,6 +54,17 @@ def generate_launch_description():
     declare_yaw_cmd = DeclareLaunchArgument(
         'yaw', default_value='0.00',
         description='Gazebo world-frame spawn yaw [rad]')
+    use_vision_detector = LaunchConfiguration('use_vision_detector')
+    declare_use_vision_detector_cmd = DeclareLaunchArgument(
+        'use_vision_detector', default_value='false',
+        description='true: crop_row_vision_node (real camera-based row/implement '
+                     'detection). false (default, M4): plant_row_detector_sim '
+                     '(fake sine-wave offset).')
+    vision_debug_publish = LaunchConfiguration('vision_debug_publish')
+    declare_vision_debug_publish_cmd = DeclareLaunchArgument(
+        'vision_debug_publish', default_value='false',
+        description='crop_row_vision_node: publish annotated debug image on '
+                     'crop_row_vision/debug_image')
 
     bt_xml = os.path.join(
         os.path.expanduser('~'), 'ros2_ws5', 'src',
@@ -112,6 +124,7 @@ def generate_launch_description():
     )
 
     plant_row_detector = Node(
+        condition=UnlessCondition(use_vision_detector),
         package='tool_slider',
         executable='plant_row_detector_sim',
         name='plant_row_detector_sim',
@@ -121,6 +134,20 @@ def generate_launch_description():
             'mode': 'sine',
             'sine_amplitude': 0.04,
             'sine_period_s': 8.0,
+        }],
+    )
+
+    crop_row_vision = Node(
+        condition=IfCondition(use_vision_detector),
+        package='crop_row_vision',
+        executable='crop_row_vision_node',
+        name='crop_row_vision_node',
+        output='screen',
+        parameters=[{
+            'use_sim_time': use_sim_time,
+            'camera_height_m': 0.80,
+            'camera_hfov_rad': 1.414,
+            'debug_publish': vision_debug_publish,
         }],
     )
 
@@ -134,6 +161,18 @@ def generate_launch_description():
             'cal_offset_m': 0.0,
             'slider_limit_m': 0.10,
             'row_lost_timeout_s': 0.5,
+            # PID gains tuned live against crop_row_vision_node + M5 field nav
+            # (see tool_slider_logger data): kp=0.5 (old feedforward-equivalent
+            # default) saturated the slider every tick and self-oscillated.
+            # kp=0.15/ki=0.02/kd=0.02 tracked a real ~0.09m offset swing with
+            # zero limit-saturation and zero oscillation; kp=0.4 reproduced the
+            # oscillation (16 sign flips / 200 samples, 44 at the limit), so
+            # this is a deliberately conservative margin below that. Tune live
+            # with `ros2 param set /tool_slider_controller kp <val>` etc.
+            'kp': 0.15,
+            'ki': 0.02,
+            'kd': 0.02,
+            'integral_limit_m': 0.05,
         }],
     )
 
@@ -224,6 +263,8 @@ def generate_launch_description():
         declare_x_pose_cmd,
         declare_y_pose_cmd,
         declare_yaw_cmd,
+        declare_use_vision_detector_cmd,
+        declare_vision_debug_publish_cmd,
         log_bt,
         m1_cmd,
         origin_publisher,
@@ -232,6 +273,7 @@ def generate_launch_description():
         pause_manager,
         nav2_cmd,
         plant_row_detector,
+        crop_row_vision,
         tool_slider_controller,
         tool_actuator_sim,
         web_video_server,

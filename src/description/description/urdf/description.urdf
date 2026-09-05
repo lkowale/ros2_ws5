@@ -313,11 +313,17 @@
   <limit lower="-0.10" upper="0.10" effort="100" velocity="0.5"/>
 </joint>
 
-<!--              implements (3 × red tines on tool_bar)           -->
+<!--              implements (center tine on tool_bar)           -->
+<!-- implement_center is blue, distinct from implement_left/right's red, so
+     crop_row_vision_node can identify it unambiguously by color instead of
+     picking "nearest to image center" among 3 visually-identical red blobs
+     (that heuristic flip-flopped between markers frame-to-frame — see
+     tool_slider oscillation investigation). DO NOT make this red again
+     without also updating crop_row_vision_node's HSV thresholds. -->
 <link name="implement_center">
   <visual>
     <geometry><box size="0.03 0.02 0.01"/></geometry>
-    <material name="implement_red"><color rgba="1.0 0.0 0.0 1.0"/></material>
+    <material name="implement_center_color"><color rgba="0.0 0.2 1.0 1.0"/></material>
   </visual>
   <collision><geometry><box size="0.03 0.02 0.01"/></geometry></collision>
   <inertial>

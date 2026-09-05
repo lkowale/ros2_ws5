@@ -14,6 +14,10 @@
 # Environment:
 #   HEADLESS=True|False       Gazebo GUI   (default: True)
 #   HEADING_OFFSET=<deg>      GPS antenna heading offset (default: 0.0)
+#   VISION_DEBUG=True|False   Publish crop_row_vision_node's annotated debug
+#                             image on crop_row_vision/debug_image (default: False)
+#                             View with: ros2 run image_view image_view --ros-args \
+#                               -r image:=/crop_row_vision/debug_image
 #   SPAWN_FIELD=<field_name>  Spawn robot at a swath start instead of (0,0,0).
 #   SPAWN_LINE=<line_index>   Swath (geojson feature) index to spawn at, e.g.
 #                             SPAWN_FIELD=house_short SPAWN_LINE=6 bash run_m4_field_sim.sh
@@ -78,8 +82,16 @@ if [[ "${1:-}" == "cancel" ]]; then
 fi
 
 # ── Launch ────────────────────────────────────────────────────────────────────
+# Apply the same CycloneDDS participant-index override the field/cancel CLI
+# helpers use — the main launch tree spawns many nodes (nav2 container, tool
+# slider, crop row spawner, loggers, ...) and without this the default
+# participant pool can run out ("Failed to find a free participant index"),
+# which is what silently killed a later `field` mission-send in the past.
+_set_cli_cyclone
+
 HEADLESS="${HEADLESS:-True}"
 HEADING_OFFSET="${HEADING_OFFSET:-0.0}"
+VISION_DEBUG="${VISION_DEBUG:-False}"
 
 SPAWN_ARGS=()
 if [[ -n "${SPAWN_FIELD:-}" && -n "${SPAWN_LINE:-}" ]]; then
@@ -98,7 +110,7 @@ pkill -9 -f "gz sim|ruby.*gz" 2>/dev/null || true
 pkill -9 -f "ekf_node|ekf_filter_node_odom|navsat_transform|relposned_heading" 2>/dev/null || true
 pkill -9 -f "sim_relposned|sim_gps_fix|navsat_init|covariance_injector|parameter_bridge|robot_state_pub" 2>/dev/null || true
 pkill -9 -f "controller_server|planner_server|bt_navigator|behavior_server|smoother_server|velocity_smoother|waypoint_follower|lifecycle_manager|nav2_container" 2>/dev/null || true
-pkill -f "plant_row_detector_sim\|tool_slider_controller\|tool_actuator_sim\|field_nav_logger.py\|crop_row_spawner" 2>/dev/null || true
+pkill -f "plant_row_detector_sim\|tool_slider_controller\|tool_actuator_sim\|field_nav_logger.py\|tool_slider_logger.py\|crop_row_spawner" 2>/dev/null || true
 sleep 2
 
 LOG_DIR="$HOME/ros2_ws5/logs/m5_field_sim"
@@ -111,6 +123,7 @@ echo "  solbot5 M4 — Field Navigator + Tool Slider Sim"
 echo "=========================================="
 echo "  Headless       : $HEADLESS"
 echo "  Heading offset : $HEADING_OFFSET deg"
+echo "  Vision debug   : $VISION_DEBUG  (crop_row_vision/debug_image)"
 echo "  Log            : $LOG_FILE"
 echo ""
 echo "  Send mission : bash run_m4_field_sim.sh field <field_name> [start_line]"
@@ -129,9 +142,11 @@ echo "=========================================="
 
 cleanup() {
     echo ""
-    echo "Shutting down field-nav logger and crop row spawner..."
+    echo "Shutting down field-nav logger, tool-slider logger, and crop row spawner..."
     kill "$LOGGER_PID" 2>/dev/null || true
     wait "$LOGGER_PID" 2>/dev/null || true
+    kill "$TOOL_SLIDER_LOGGER_PID" 2>/dev/null || true
+    wait "$TOOL_SLIDER_LOGGER_PID" 2>/dev/null || true
     kill "$CROP_ROW_PID" 2>/dev/null || true
     wait "$CROP_ROW_PID" 2>/dev/null || true
     pkill -f "crop_row_spawner" 2>/dev/null || true
@@ -141,6 +156,10 @@ trap cleanup EXIT
 python3 "$HOME/ros2_ws5/field_nav_logger.py" &
 LOGGER_PID=$!
 echo "Started field_nav_logger (PID: $LOGGER_PID) → $LOG_DIR/"
+
+python3 "$HOME/ros2_ws5/tool_slider_logger.py" &
+TOOL_SLIDER_LOGGER_PID=$!
+echo "Started tool_slider_logger (PID: $TOOL_SLIDER_LOGGER_PID) → logs/tool_slider/"
 
 # Rolling crop-row spawner: keeps one row segment under the robot's camera on
 # its current swath, spawned ahead and removed once passed. Waits for /fromLL
@@ -164,5 +183,7 @@ echo "Started rolling crop_row_spawner (PID: $CROP_ROW_PID, rolling window)"
 ros2 launch gazebo_spawn m4_nav_sim.launch.py \
     headless:=$HEADLESS \
     heading_offset_deg:=$HEADING_OFFSET \
+    use_vision_detector:=true \
+    vision_debug_publish:=$VISION_DEBUG \
     "${SPAWN_ARGS[@]}" \
     2>&1 | tee -a "$LOG_FILE"
