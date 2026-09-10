@@ -128,6 +128,13 @@ public:
     declare_parameter("segment_length_m", 2.0);
     declare_parameter("min_move_m", 1.5);
     declare_parameter("spawn_all", false);
+    // Simulated GPS/chassis imperfection: both rows in a swath's pair are
+    // shifted together (spacing between them is unaffected) by a bias that
+    // drifts by ±bias_step_m per spawned segment, bounded to ±bias_max_m and
+    // reversing direction at the bound (triangle wave). Set bias_step_m=0 to
+    // disable and restore the original perfectly-straight rows.
+    declare_parameter("bias_step_m", 0.02);
+    declare_parameter("bias_max_m", 0.05);
 
     field_file_   = get_parameter("field_file").as_string();
     world_        = get_parameter("world_name").as_string();
@@ -138,6 +145,8 @@ public:
     seg_len_      = get_parameter("segment_length_m").as_double();
     min_move_     = get_parameter("min_move_m").as_double();
     spawn_all_    = get_parameter("spawn_all").as_bool();
+    bias_step_    = get_parameter("bias_step_m").as_double();
+    bias_max_     = get_parameter("bias_max_m").as_double();
 
     if (field_file_.empty()) {
       RCLCPP_ERROR(get_logger(), "field_file parameter not set");
@@ -328,9 +337,19 @@ private:
       using BoxTuple = std::tuple<std::string, double, double, double, double, double, int>;
       std::vector<BoxTuple> boxes;
       int seg_ctr = ctr;
+      // Local triangle-wave bias, independent per swath and reset for each —
+      // simulated GPS/chassis imperfection shifts both rows in the pair
+      // together (spacing between them is unaffected).
+      double local_bias = 0.0;
+      double local_bias_dir = 1.0;
       for (double a = start; a < end; a += seg_len_, ++seg_ctr) {
-        double seg_cx = sw.cx + a * sw.ux;
-        double seg_cy = sw.cy + a * sw.uy;
+        if (bias_step_ > 0.0) {
+          local_bias += local_bias_dir * bias_step_;
+          if (local_bias > bias_max_) { local_bias = bias_max_; local_bias_dir = -1.0; }
+          else if (local_bias < -bias_max_) { local_bias = -bias_max_; local_bias_dir = 1.0; }
+        }
+        double seg_cx = sw.cx + a * sw.ux + local_bias * sw.px;
+        double seg_cy = sw.cy + a * sw.uy + local_bias * sw.py;
         for (int sign : {+1, -1}) {
           double wx = (seg_cx + sign * sw.offset * sw.px) - gz_offset_x_;
           double wy = (seg_cy + sign * sw.offset * sw.py) - gz_offset_y_;
@@ -398,6 +417,22 @@ private:
     return (rx - sw.cx) * sw.ux + (ry - sw.cy) * sw.uy;
   }
 
+  // Advance the rolling-mode triangle-wave lateral bias by one segment step,
+  // reversing direction at ±bias_max_. Returns the new bias value (metres,
+  // added to both rows' offset from swath centerline equally).
+  double next_bias() {
+    if (bias_step_ <= 0.0) return 0.0;
+    bias_current_ += bias_dir_ * bias_step_;
+    if (bias_current_ > bias_max_) {
+      bias_current_ = bias_max_;
+      bias_dir_ = -1.0;
+    } else if (bias_current_ < -bias_max_) {
+      bias_current_ = -bias_max_;
+      bias_dir_ = 1.0;
+    }
+    return bias_current_;
+  }
+
   void remove_all() {
     std::lock_guard<std::mutex> lk(mtx_);
     for (auto & [name, _] : spawned_) {
@@ -449,6 +484,8 @@ private:
     if (sw != current_swath_) {
       remove_all();
       current_swath_ = sw;
+      bias_current_ = 0.0;
+      bias_dir_ = 1.0;
     }
 
     double a = along(*sw, rx, ry);
@@ -488,9 +525,12 @@ private:
     if (last_spawn_along_ && std::abs(spawn_a - *last_spawn_along_) < min_move_) return;
     last_spawn_along_ = spawn_a;
 
-    // Foot of perpendicular on swath at spawn_a, in map frame
-    double seg_cx = sw->cx + spawn_a * sw->ux;
-    double seg_cy = sw->cy + spawn_a * sw->uy;
+    // Foot of perpendicular on swath at spawn_a, in map frame. bias shifts
+    // both rows together (simulated GPS/chassis imperfection) — spacing
+    // between the pair is unaffected.
+    double bias = next_bias();
+    double seg_cx = sw->cx + spawn_a * sw->ux + bias * sw->px;
+    double seg_cy = sw->cy + spawn_a * sw->uy + bias * sw->py;
 
     int ctr;
     { std::lock_guard<std::mutex> lk(mtx_); ctr = counter_++; }
@@ -553,6 +593,11 @@ private:
 
   std::string field_file_, world_, spawn_srv_, remove_srv_;
   double ahead_, behind_, row_offset_, width_, seg_len_, min_move_;
+  double bias_step_, bias_max_;
+  // Rolling-mode (update()) triangle-wave state: persists across ticks,
+  // reset whenever the tracked swath changes (see remove_all() callers).
+  double bias_current_ = 0.0;
+  double bias_dir_ = 1.0;
   bool spawn_all_ = false;
   double gz_offset_x_ = 0.0, gz_offset_y_ = 0.0, gz_yaw_offset_ = 0.0;
   // Cached Gazebo world pose from bridged odometry topic (lock-free)

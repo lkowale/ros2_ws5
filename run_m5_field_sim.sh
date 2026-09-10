@@ -18,6 +18,12 @@
 #                             image on crop_row_vision/debug_image (default: False)
 #                             View with: ros2 run image_view image_view --ros-args \
 #                               -r image:=/crop_row_vision/debug_image
+#   ROW_BIAS_STEP_M=<m>       Simulated GPS/chassis imperfection: both crop
+#                             rows in a pair drift together by ±this much per
+#                             spawned segment (triangle wave, bounded to
+#                             ±ROW_BIAS_MAX_M). Set to 0 for perfectly
+#                             straight rows. (default: 0.02)
+#   ROW_BIAS_MAX_M=<m>        Bound for the drift above. (default: 0.05)
 #   SPAWN_FIELD=<field_name>  Spawn robot at a swath start instead of (0,0,0).
 #   SPAWN_LINE=<line_index>   Swath (geojson feature) index to spawn at, e.g.
 #                             SPAWN_FIELD=house_short SPAWN_LINE=6 bash run_m4_field_sim.sh
@@ -175,7 +181,9 @@ echo "Started tool_slider_logger (PID: $TOOL_SLIDER_LOGGER_PID) → logs/tool_sl
         -p row_offset_m:=0.18 \
         -p row_width_m:=0.06 \
         -p segment_length_m:=2.0 \
-        -p min_move_m:=1.5
+        -p min_move_m:=1.5 \
+        -p bias_step_m:="${ROW_BIAS_STEP_M:-0.02}" \
+        -p bias_max_m:="${ROW_BIAS_MAX_M:-0.05}"
 ) >> "$LOG_FILE" 2>&1 &
 CROP_ROW_PID=$!
 echo "Started rolling crop_row_spawner (PID: $CROP_ROW_PID, rolling window)"
