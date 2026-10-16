@@ -1,0 +1,122 @@
+(kicad_sch
+  (version 20230121)
+  (generator eeschema)
+  (uuid "6046b54f-15d6-532b-ac4a-62e583313dc5")
+  (paper "A3")
+  (title_block
+    (title "solbot_main v2 - compact ESP32-S3 controller")
+    (date "2026-10-15")
+    (rev "v2 rev B")
+    (company "solbot")
+    (comment 1 "Main controller - ESP32-S3")
+    (comment 2 "Root sheet"))
+  (lib_symbols)
+  (text "solbot_main v2 rev B - compact ESP32-S3 main controller, JLCPCB basic parts\n\nESP32-S3-DevKitC-1 GPIO map\n  ADC1: POS A1..A4 = GPIO1, 2, 3, 4   IS A1..A4 = GPIO5, 6, 7, 8   BUS_VS = GPIO9   V12_SNS = GPIO10\n  PWM R/L (active-low into 74HC14): A1 = 11/12  A2 = 13/14  A3 = 15/16  A4 = 17/18\n  I2C (BNO085 0x4A): SDA = 41, SCL = 42      IMU_INT = 20, IMU_RST = 19\n  SSR1 (PV) = GPIO21   SSR2 = GPIO47   ACT_EN = 39 (through E-stop loop)   ESTOP_SENSE = 40   LED_ERR = 46\n\nIBT-2 IDC 2x5 (v3 pinout): 1 RPWM 2 LPWM 3 R_EN 4 L_EN (EN5 = E-stop gate) 5 R_IS 6 L_IS 7 VCC(+5V) 8 GND 9/10 n.c.\nPV switch: two DELIXI CDG1-1DD/25A DC SSRs, outputs in series back-to-back (- to -).\nThrough-hole parts are hand-soldered (not in the JLC assembly BOM).\n"
+    (at 20 25 0)
+    (effects
+      (font
+        (size 2 2))
+      (justify left bottom))
+    (uuid "84d7e74d-ffbb-5801-9d5a-35bc09f430fd"))
+  (sheet
+    (at 20.32 135)
+    (size 90 25)
+    (fields_autoplaced)
+    (stroke
+      (width 0.1524)
+      (type solid))
+    (fill
+      (color 0 0 0 0))
+    (uuid "3bd8ac40-a315-56c6-8a4b-346de9c27238")
+    (property "Sheetname" "power"
+      (at 20.32 134.3 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left bottom)))
+    (property "Sheetfile" "power.kicad_sch"
+      (at 20.32 160.6 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left top)))
+    (instances
+      (project "solbot_main_v2"
+        (path "/6046b54f-15d6-532b-ac4a-62e583313dc5"
+          (page "2")))))
+  (text "12 V input, 5 V / 3.3 V supplies, bus\nvoltage monitor, SSR drivers"
+    (at 23.32 147 0)
+    (effects
+      (font
+        (size 2 2))
+      (justify left bottom))
+    (uuid "76f183f5-d29a-5a1d-a397-cd1038d52ef6"))
+  (sheet
+    (at 130.32 135)
+    (size 90 25)
+    (fields_autoplaced)
+    (stroke
+      (width 0.1524)
+      (type solid))
+    (fill
+      (color 0 0 0 0))
+    (uuid "c61daf40-294c-5a63-a839-98c58da66b2b")
+    (property "Sheetname" "mcu"
+      (at 130.32 134.3 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left bottom)))
+    (property "Sheetfile" "mcu.kicad_sch"
+      (at 130.32 160.6 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left top)))
+    (instances
+      (project "solbot_main_v2"
+        (path "/6046b54f-15d6-532b-ac4a-62e583313dc5"
+          (page "3")))))
+  (text "ESP32-S3, IMU, E-stop"
+    (at 133.32 147 0)
+    (effects
+      (font
+        (size 2 2))
+      (justify left bottom))
+    (uuid "38ea6558-d3eb-52f5-87d9-a79cfc31f59e"))
+  (sheet
+    (at 20.32 175)
+    (size 90 25)
+    (fields_autoplaced)
+    (stroke
+      (width 0.1524)
+      (type solid))
+    (fill
+      (color 0 0 0 0))
+    (uuid "c058278c-fa35-5161-8e57-727f2002292b")
+    (property "Sheetname" "actuators"
+      (at 20.32 174.3 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left bottom)))
+    (property "Sheetfile" "actuators.kicad_sch"
+      (at 20.32 200.6 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left top)))
+    (instances
+      (project "solbot_main_v2"
+        (path "/6046b54f-15d6-532b-ac4a-62e583313dc5"
+          (page "4")))))
+  (text "Linear actuators: 4x IBT-2 (IDC 2x5),\nposition & current sense"
+    (at 23.32 187 0)
+    (effects
+      (font
+        (size 2 2))
+      (justify left bottom))
+    (uuid "2db16653-5dc8-5c06-a183-0363eb809853"))
+  (sheet_instances
+    (path "/"
+      (page "1"))))

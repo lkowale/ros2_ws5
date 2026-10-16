@@ -1,0 +1,155 @@
+(kicad_sch
+  (version 20230121)
+  (generator eeschema)
+  (uuid "4bd301c4-e34a-51f0-8ec8-b949bc9e00b1")
+  (paper "A3")
+  (title_block
+    (title "solbot_main v4 - ESP32-S3 main controller")
+    (date "2026-10-15")
+    (rev "v4.0")
+    (company "solbot")
+    (comment 1 "Main controller - ESP32-S3")
+    (comment 2 "Root sheet"))
+  (lib_symbols)
+  (text "solbot_main v4 - ESP32-S3 main controller\n\nESP32-S3-DevKitC-1 GPIO map\n  ADC1 (IBT-2 IS current):  GPIO1=A1  GPIO2=A2  GPIO4=A3  GPIO5=A4  GPIO6=A5  GPIO7=A6\n  PWM R/L:  A1=9/10  A2=11/12  A3=13/14  A4=15/16  A5=17/18  A6=21/47\n  I2C bus A (IMU + actuator ADS1115 0x48/0x49): SDA=41 SCL=42\n  I2C bus B (power ADS1115 0x48/0x49/0x4A, TCA9535 0x20, ext): SDA=19 SCL=20  (USB-OTG port unusable)\n  ACT_EN=39 (through E-stop loop)  ESTOP_SENSE=8  PV_EN=40  IMU_INT=3  LED_ERR=46\n  TCA9535: P00..P03=BAT1..4_EN  P04=IMU_RST  P05=PWR LED  P06..P17=EXP_IO0..9\n\nPower: up to 4 packs (populated: BAT1, BAT2) 10S..20S + PV, all channels rated 100 V\n  (FETs -100 V: for 20S use PV Voc <= 90 V; TVS SMCJ58A is for 10S - use SMCJ85A for 20S).\n  Pack fuses are external (fit one per pack, close to the pack).\n"
+    (at 20 25 0)
+    (effects
+      (font
+        (size 2 2))
+      (justify left bottom))
+    (uuid "44acc546-2755-5adb-8e5a-5359aa1f90f8"))
+  (sheet
+    (at 20.32 120)
+    (size 90 25)
+    (fields_autoplaced)
+    (stroke
+      (width 0.1524)
+      (type solid))
+    (fill
+      (color 0 0 0 0))
+    (uuid "4297fb73-af53-5713-a363-301e97b72b4c")
+    (property "Sheetname" "power_path"
+      (at 20.32 119.3 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left bottom)))
+    (property "Sheetfile" "power_path.kicad_sch"
+      (at 20.32 145.6 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left top)))
+    (instances
+      (project "solbot_main"
+        (path "/4bd301c4-e34a-51f0-8ec8-b949bc9e00b1"
+          (page "2")))))
+  (text "Power path: battery & PV channels, bus"
+    (at 23.32 132 0)
+    (effects
+      (font
+        (size 2 2))
+      (justify left bottom))
+    (uuid "f20c584f-5892-5a49-b26c-a6d1910fbab6"))
+  (sheet
+    (at 130.32 120)
+    (size 90 25)
+    (fields_autoplaced)
+    (stroke
+      (width 0.1524)
+      (type solid))
+    (fill
+      (color 0 0 0 0))
+    (uuid "bdd30543-243c-5206-aace-ef64be871284")
+    (property "Sheetname" "supply_sense"
+      (at 130.32 119.3 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left bottom)))
+    (property "Sheetfile" "supply_sense.kicad_sch"
+      (at 130.32 145.6 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left top)))
+    (instances
+      (project "solbot_main"
+        (path "/4bd301c4-e34a-51f0-8ec8-b949bc9e00b1"
+          (page "3")))))
+  (text "Logic supply, power ADCs, IO expander"
+    (at 133.32 132 0)
+    (effects
+      (font
+        (size 2 2))
+      (justify left bottom))
+    (uuid "d976bc82-15e5-5f00-92c5-a59d0795bdbd"))
+  (sheet
+    (at 20.32 160)
+    (size 90 25)
+    (fields_autoplaced)
+    (stroke
+      (width 0.1524)
+      (type solid))
+    (fill
+      (color 0 0 0 0))
+    (uuid "9a1e992a-a3ac-5a6e-b667-ec9b02aa553b")
+    (property "Sheetname" "mcu"
+      (at 20.32 159.3 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left bottom)))
+    (property "Sheetfile" "mcu.kicad_sch"
+      (at 20.32 185.6 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left top)))
+    (instances
+      (project "solbot_main"
+        (path "/4bd301c4-e34a-51f0-8ec8-b949bc9e00b1"
+          (page "4")))))
+  (text "ESP32-S3, IMU, E-stop"
+    (at 23.32 172 0)
+    (effects
+      (font
+        (size 2 2))
+      (justify left bottom))
+    (uuid "1243cc68-f2d5-5fd9-b17f-a418ebaac29c"))
+  (sheet
+    (at 130.32 160)
+    (size 90 25)
+    (fields_autoplaced)
+    (stroke
+      (width 0.1524)
+      (type solid))
+    (fill
+      (color 0 0 0 0))
+    (uuid "06eab743-9b71-5d2f-8b74-705f790d8491")
+    (property "Sheetname" "actuators"
+      (at 130.32 159.3 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left bottom)))
+    (property "Sheetfile" "actuators.kicad_sch"
+      (at 130.32 185.6 0)
+      (effects
+        (font
+          (size 1.27 1.27))
+        (justify left top)))
+    (instances
+      (project "solbot_main"
+        (path "/4bd301c4-e34a-51f0-8ec8-b949bc9e00b1"
+          (page "5")))))
+  (text "Linear actuators: 6x IBT-2, position &\ncurrent sense"
+    (at 133.32 172 0)
+    (effects
+      (font
+        (size 2 2))
+      (justify left bottom))
+    (uuid "7cc92e1c-d3c1-5f5d-9575-ec7fe64200fe"))
+  (sheet_instances
+    (path "/"
+      (page "1"))))
