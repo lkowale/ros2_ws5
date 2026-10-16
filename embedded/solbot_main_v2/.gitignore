@@ -1,0 +1,13 @@
+firmware/.pio/
+firmware/.vscode/
+hardware/gen/__pycache__/
+hardware/gen/placed.kicad_pcb
+hardware/*-backups/
+hardware/fp-info-cache
+hardware/*.kicad_prl
+hardware/solbot_main_v2_pass*.dsn
+hardware/solbot_main_v2_pass*.ses
+hardware/_autosave-*
+hardware/~*.lck
+hardware/production/backups/
+hardware/fabrication-toolkit-options.json

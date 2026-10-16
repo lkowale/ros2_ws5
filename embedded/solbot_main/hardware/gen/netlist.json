@@ -1,0 +1,4175 @@
+[
+ {
+  "ref": "J1",
+  "value": "BAT1+ (M4 lug)",
+  "footprint": "MountingHole:MountingHole_4.3mm_M4_Pad_Via",
+  "lib_id": "Mechanical:MountingHole_Pad",
+  "sheet": "power_path",
+  "block": "BAT1",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/fbd0f90a-8953-537e-b20e-75c2e062c2fa",
+  "pads": {
+   "1": "BAT1_IN"
+  }
+ },
+ {
+  "ref": "R1",
+  "value": "1m 1% WSK2512",
+  "footprint": "Resistor_SMD:R_Shunt_Vishay_WSK2512_6332Metric_T1.19mm",
+  "lib_id": "Device:R_Shunt",
+  "sheet": "power_path",
+  "block": "BAT1",
+  "dnp": false,
+  "fields": {
+   "MPN": "Vishay WSK25121L000FEA"
+  },
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/a55b7151-4eac-5872-99f9-3bcbcc8e807c",
+  "pads": {
+   "1": "BAT1_IN",
+   "2": "BAT1_SNP",
+   "3": "BAT1_SNN",
+   "4": "BAT1_SH"
+  }
+ },
+ {
+  "ref": "Q1",
+  "value": "SQM120P10_10M1L",
+  "footprint": "Package_TO_SOT_SMD:TO-263-2",
+  "lib_id": "Device:Q_PMOS_GDS",
+  "sheet": "power_path",
+  "block": "BAT1",
+  "dnp": false,
+  "fields": {
+   "MPN": "Vishay SQM120P10_10M1L (-100 V, 10 mOhm)"
+  },
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/a331d937-87d9-5bc1-8e57-9a473df98389",
+  "pads": {
+   "1": "BAT1_G",
+   "2": "BAT1_SH",
+   "3": "BAT1_COM"
+  }
+ },
+ {
+  "ref": "Q2",
+  "value": "SQM120P10_10M1L",
+  "footprint": "Package_TO_SOT_SMD:TO-263-2",
+  "lib_id": "Device:Q_PMOS_GDS",
+  "sheet": "power_path",
+  "block": "BAT1",
+  "dnp": false,
+  "fields": {
+   "MPN": "Vishay SQM120P10_10M1L (-100 V, 10 mOhm)"
+  },
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/79a052a1-4dd3-5c51-87cf-7b1002d15574",
+  "pads": {
+   "1": "BAT1_G",
+   "2": "BUS+",
+   "3": "BAT1_COM"
+  }
+ },
+ {
+  "ref": "R2",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT1",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/2e8c2067-3a5b-59db-b56d-89a45fc2f5be",
+  "pads": {
+   "1": "BAT1_G",
+   "2": "BAT1_COM"
+  }
+ },
+ {
+  "ref": "D1",
+  "value": "12V BZT52C12",
+  "footprint": "Diode_SMD:D_SOD-123",
+  "lib_id": "Device:D_Zener",
+  "sheet": "power_path",
+  "block": "BAT1",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/779ae27e-ffdc-5318-8fb9-485683510181",
+  "pads": {
+   "1": "BAT1_COM",
+   "2": "BAT1_G"
+  }
+ },
+ {
+  "ref": "Q3",
+  "value": "MMBTA42 (300 V)",
+  "footprint": "Package_TO_SOT_SMD:SOT-23",
+  "lib_id": "Device:Q_NPN_BEC",
+  "sheet": "power_path",
+  "block": "BAT1",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/fe27428d-40c5-5f23-8b1e-15f48bb2ed2d",
+  "pads": {
+   "1": "BAT1_B",
+   "2": "BAT1_E",
+   "3": "BAT1_G"
+  }
+ },
+ {
+  "ref": "R3",
+  "value": "1.2k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT1",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/bba7a8f6-21a6-589a-90dc-cb69ab2715bb",
+  "pads": {
+   "1": "BAT1_E",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R4",
+  "value": "1k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT1",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/96c7dbea-087b-5ade-a6d3-062d225ecaeb",
+  "pads": {
+   "1": "BAT1_EN",
+   "2": "BAT1_B"
+  }
+ },
+ {
+  "ref": "R5",
+  "value": "100k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT1",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/945febed-d088-5160-8c9d-6bbe7ad52d64",
+  "pads": {
+   "1": "BAT1_B",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R6",
+  "value": "499k",
+  "footprint": "Resistor_SMD:R_1206_3216Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT1",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/ae8d8044-18be-54d8-90e8-e6232d5e0a99",
+  "pads": {
+   "1": "BAT1_IN",
+   "2": "BAT1_VM"
+  }
+ },
+ {
+  "ref": "R7",
+  "value": "499k",
+  "footprint": "Resistor_SMD:R_1206_3216Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT1",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/e6817d15-1c55-5488-a02f-3fee1cd4e8ab",
+  "pads": {
+   "1": "BAT1_VM",
+   "2": "BAT1_VS"
+  }
+ },
+ {
+  "ref": "R8",
+  "value": "33k 0.1%",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT1",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/74202765-3c13-55c6-b837-aff1b6064175",
+  "pads": {
+   "1": "BAT1_VS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "C1",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "power_path",
+  "block": "BAT1",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/2d1fec48-4f48-5e0a-a6bd-2ebd94745c3e",
+  "pads": {
+   "1": "BAT1_VS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "U1",
+  "value": "INA241A2xD",
+  "footprint": "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",
+  "lib_id": "Amplifier_Current:INA241A2xD",
+  "sheet": "power_path",
+  "block": "BAT1",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/531562e2-3876-5689-868e-3dfe6bddc604",
+  "pads": {
+   "1": "BAT1_SNN",
+   "2": "GND",
+   "3": "GND",
+   "4": "GND",
+   "5": "BAT1_IO",
+   "6": "+3V3A",
+   "7": "+3V3A",
+   "8": "BAT1_SNP"
+  }
+ },
+ {
+  "ref": "C2",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "power_path",
+  "block": "BAT1",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/29a8daff-af4c-55c8-8d87-afa5c7d23fee",
+  "pads": {
+   "1": "+3V3A",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R9",
+  "value": "1k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT1",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/11f2e636-d85b-51ba-b67b-140808f23fc1",
+  "pads": {
+   "1": "BAT1_IO",
+   "2": "BAT1_IS"
+  }
+ },
+ {
+  "ref": "C3",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "power_path",
+  "block": "BAT1",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/b84d8189-ce88-5ff1-9c7b-7602d58e5f60",
+  "pads": {
+   "1": "BAT1_IS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "D2",
+  "value": "ES1D (200 V 1 A)",
+  "footprint": "Diode_SMD:D_SMA",
+  "lib_id": "Device:D",
+  "sheet": "power_path",
+  "block": "BAT1",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/384de40e-4a91-5e50-94af-bcee776fe98d",
+  "pads": {
+   "1": "VAUX",
+   "2": "BAT1_IN"
+  }
+ },
+ {
+  "ref": "J2",
+  "value": "BAT2+ (M4 lug)",
+  "footprint": "MountingHole:MountingHole_4.3mm_M4_Pad_Via",
+  "lib_id": "Mechanical:MountingHole_Pad",
+  "sheet": "power_path",
+  "block": "BAT2",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/73165aa1-8166-522e-9f0b-4d0b7ba7bdde",
+  "pads": {
+   "1": "BAT2_IN"
+  }
+ },
+ {
+  "ref": "R10",
+  "value": "1m 1% WSK2512",
+  "footprint": "Resistor_SMD:R_Shunt_Vishay_WSK2512_6332Metric_T1.19mm",
+  "lib_id": "Device:R_Shunt",
+  "sheet": "power_path",
+  "block": "BAT2",
+  "dnp": false,
+  "fields": {
+   "MPN": "Vishay WSK25121L000FEA"
+  },
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/5ce2a406-96cc-5b4f-946f-03d676a17570",
+  "pads": {
+   "1": "BAT2_IN",
+   "2": "BAT2_SNP",
+   "3": "BAT2_SNN",
+   "4": "BAT2_SH"
+  }
+ },
+ {
+  "ref": "Q4",
+  "value": "SQM120P10_10M1L",
+  "footprint": "Package_TO_SOT_SMD:TO-263-2",
+  "lib_id": "Device:Q_PMOS_GDS",
+  "sheet": "power_path",
+  "block": "BAT2",
+  "dnp": false,
+  "fields": {
+   "MPN": "Vishay SQM120P10_10M1L (-100 V, 10 mOhm)"
+  },
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/5638d6d8-323d-5ab2-82c4-4772e432bad0",
+  "pads": {
+   "1": "BAT2_G",
+   "2": "BAT2_SH",
+   "3": "BAT2_COM"
+  }
+ },
+ {
+  "ref": "Q5",
+  "value": "SQM120P10_10M1L",
+  "footprint": "Package_TO_SOT_SMD:TO-263-2",
+  "lib_id": "Device:Q_PMOS_GDS",
+  "sheet": "power_path",
+  "block": "BAT2",
+  "dnp": false,
+  "fields": {
+   "MPN": "Vishay SQM120P10_10M1L (-100 V, 10 mOhm)"
+  },
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/cc5e3d46-9612-5745-a88e-1738554fba6e",
+  "pads": {
+   "1": "BAT2_G",
+   "2": "BUS+",
+   "3": "BAT2_COM"
+  }
+ },
+ {
+  "ref": "R11",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT2",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/cb9e5548-4136-58d9-941f-692830cc48e0",
+  "pads": {
+   "1": "BAT2_G",
+   "2": "BAT2_COM"
+  }
+ },
+ {
+  "ref": "D3",
+  "value": "12V BZT52C12",
+  "footprint": "Diode_SMD:D_SOD-123",
+  "lib_id": "Device:D_Zener",
+  "sheet": "power_path",
+  "block": "BAT2",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/65607f78-2082-539d-b940-4c8a1098ef8d",
+  "pads": {
+   "1": "BAT2_COM",
+   "2": "BAT2_G"
+  }
+ },
+ {
+  "ref": "Q6",
+  "value": "MMBTA42 (300 V)",
+  "footprint": "Package_TO_SOT_SMD:SOT-23",
+  "lib_id": "Device:Q_NPN_BEC",
+  "sheet": "power_path",
+  "block": "BAT2",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/792c8db7-a39f-5581-a54b-1ac1b1219807",
+  "pads": {
+   "1": "BAT2_B",
+   "2": "BAT2_E",
+   "3": "BAT2_G"
+  }
+ },
+ {
+  "ref": "R12",
+  "value": "1.2k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT2",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/250f3d3d-3da9-5a01-a41b-c893f73b8fff",
+  "pads": {
+   "1": "BAT2_E",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R13",
+  "value": "1k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT2",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/eef76633-2618-5d5a-8c96-d375c854c425",
+  "pads": {
+   "1": "BAT2_EN",
+   "2": "BAT2_B"
+  }
+ },
+ {
+  "ref": "R14",
+  "value": "100k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT2",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/00d75e1e-90c4-54ac-8c83-4db2b1fb36d3",
+  "pads": {
+   "1": "BAT2_B",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R15",
+  "value": "499k",
+  "footprint": "Resistor_SMD:R_1206_3216Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT2",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/e321a157-8bff-5f1b-bad7-19700f25e8fc",
+  "pads": {
+   "1": "BAT2_IN",
+   "2": "BAT2_VM"
+  }
+ },
+ {
+  "ref": "R16",
+  "value": "499k",
+  "footprint": "Resistor_SMD:R_1206_3216Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT2",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/d8b0b8b6-8fe8-5437-89dc-41bc26c04650",
+  "pads": {
+   "1": "BAT2_VM",
+   "2": "BAT2_VS"
+  }
+ },
+ {
+  "ref": "R17",
+  "value": "33k 0.1%",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT2",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/fefb8e4e-17d4-5356-9fbf-a32a1e2a571a",
+  "pads": {
+   "1": "BAT2_VS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "C4",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "power_path",
+  "block": "BAT2",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/e2c3d941-679c-592c-8f54-ba3b4fe1f983",
+  "pads": {
+   "1": "BAT2_VS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "U2",
+  "value": "INA241A2xD",
+  "footprint": "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",
+  "lib_id": "Amplifier_Current:INA241A2xD",
+  "sheet": "power_path",
+  "block": "BAT2",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/b5c66b2a-2713-54a4-8110-a008150ebf55",
+  "pads": {
+   "1": "BAT2_SNN",
+   "2": "GND",
+   "3": "GND",
+   "4": "GND",
+   "5": "BAT2_IO",
+   "6": "+3V3A",
+   "7": "+3V3A",
+   "8": "BAT2_SNP"
+  }
+ },
+ {
+  "ref": "C5",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "power_path",
+  "block": "BAT2",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/a642f6a2-3327-51b4-a49b-0f72907b0e6d",
+  "pads": {
+   "1": "+3V3A",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R18",
+  "value": "1k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT2",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/564641c1-d1d0-5f1e-b429-7f608d511c1f",
+  "pads": {
+   "1": "BAT2_IO",
+   "2": "BAT2_IS"
+  }
+ },
+ {
+  "ref": "C6",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "power_path",
+  "block": "BAT2",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/0fda6de1-2ad5-5359-a36c-7c2f143bc269",
+  "pads": {
+   "1": "BAT2_IS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "D4",
+  "value": "ES1D (200 V 1 A)",
+  "footprint": "Diode_SMD:D_SMA",
+  "lib_id": "Device:D",
+  "sheet": "power_path",
+  "block": "BAT2",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/9d7fbcbd-e9a7-5f05-be85-bcc640638de2",
+  "pads": {
+   "1": "VAUX",
+   "2": "BAT2_IN"
+  }
+ },
+ {
+  "ref": "J3",
+  "value": "BAT3+ (M4 lug)",
+  "footprint": "MountingHole:MountingHole_4.3mm_M4_Pad_Via",
+  "lib_id": "Mechanical:MountingHole_Pad",
+  "sheet": "power_path",
+  "block": "BAT3",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/86b255fc-02b7-56bb-bcc3-b51a868e7532",
+  "pads": {
+   "1": "BAT3_IN"
+  }
+ },
+ {
+  "ref": "R19",
+  "value": "1m 1% WSK2512",
+  "footprint": "Resistor_SMD:R_Shunt_Vishay_WSK2512_6332Metric_T1.19mm",
+  "lib_id": "Device:R_Shunt",
+  "sheet": "power_path",
+  "block": "BAT3",
+  "dnp": false,
+  "fields": {
+   "MPN": "Vishay WSK25121L000FEA"
+  },
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/ce1eab2f-0056-5c70-a732-b07bccab7252",
+  "pads": {
+   "1": "BAT3_IN",
+   "2": "BAT3_SNP",
+   "3": "BAT3_SNN",
+   "4": "BAT3_SH"
+  }
+ },
+ {
+  "ref": "Q7",
+  "value": "SQM120P10_10M1L",
+  "footprint": "Package_TO_SOT_SMD:TO-263-2",
+  "lib_id": "Device:Q_PMOS_GDS",
+  "sheet": "power_path",
+  "block": "BAT3",
+  "dnp": false,
+  "fields": {
+   "MPN": "Vishay SQM120P10_10M1L (-100 V, 10 mOhm)"
+  },
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/10c75cf5-836a-563c-9483-2d8a4ba36f8e",
+  "pads": {
+   "1": "BAT3_G",
+   "2": "BAT3_SH",
+   "3": "BAT3_COM"
+  }
+ },
+ {
+  "ref": "Q8",
+  "value": "SQM120P10_10M1L",
+  "footprint": "Package_TO_SOT_SMD:TO-263-2",
+  "lib_id": "Device:Q_PMOS_GDS",
+  "sheet": "power_path",
+  "block": "BAT3",
+  "dnp": false,
+  "fields": {
+   "MPN": "Vishay SQM120P10_10M1L (-100 V, 10 mOhm)"
+  },
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/a76a7821-a965-5474-ab0f-9d3cb29abeda",
+  "pads": {
+   "1": "BAT3_G",
+   "2": "BUS+",
+   "3": "BAT3_COM"
+  }
+ },
+ {
+  "ref": "R20",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT3",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/b9ac71e3-641a-52a4-92af-5ce39c47739e",
+  "pads": {
+   "1": "BAT3_G",
+   "2": "BAT3_COM"
+  }
+ },
+ {
+  "ref": "D5",
+  "value": "12V BZT52C12",
+  "footprint": "Diode_SMD:D_SOD-123",
+  "lib_id": "Device:D_Zener",
+  "sheet": "power_path",
+  "block": "BAT3",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/edb17022-426e-5fa0-b8d9-5e1f57cddbfe",
+  "pads": {
+   "1": "BAT3_COM",
+   "2": "BAT3_G"
+  }
+ },
+ {
+  "ref": "Q9",
+  "value": "MMBTA42 (300 V)",
+  "footprint": "Package_TO_SOT_SMD:SOT-23",
+  "lib_id": "Device:Q_NPN_BEC",
+  "sheet": "power_path",
+  "block": "BAT3",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/8b7c3c7a-4402-594f-8fa1-d8c9102fe5a2",
+  "pads": {
+   "1": "BAT3_B",
+   "2": "BAT3_E",
+   "3": "BAT3_G"
+  }
+ },
+ {
+  "ref": "R21",
+  "value": "1.2k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT3",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/f768d9ae-14d4-5844-acc8-c6e160d7645d",
+  "pads": {
+   "1": "BAT3_E",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R22",
+  "value": "1k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT3",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/034657cc-c99e-5c94-aafd-be93d2728d51",
+  "pads": {
+   "1": "BAT3_EN",
+   "2": "BAT3_B"
+  }
+ },
+ {
+  "ref": "R23",
+  "value": "100k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT3",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/c078ea1e-b998-583b-80ef-3c33c7a7d011",
+  "pads": {
+   "1": "BAT3_B",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R24",
+  "value": "499k",
+  "footprint": "Resistor_SMD:R_1206_3216Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT3",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/079d7dae-f178-5084-90ff-e7a040d3c2c8",
+  "pads": {
+   "1": "BAT3_IN",
+   "2": "BAT3_VM"
+  }
+ },
+ {
+  "ref": "R25",
+  "value": "499k",
+  "footprint": "Resistor_SMD:R_1206_3216Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT3",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/333ad68a-8847-500e-92fb-700efd75559d",
+  "pads": {
+   "1": "BAT3_VM",
+   "2": "BAT3_VS"
+  }
+ },
+ {
+  "ref": "R26",
+  "value": "33k 0.1%",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT3",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/2a13d312-07a2-528a-a120-89e4ed616fc4",
+  "pads": {
+   "1": "BAT3_VS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "C7",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "power_path",
+  "block": "BAT3",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/efd058e8-da1b-5785-8f9a-b4528f11df41",
+  "pads": {
+   "1": "BAT3_VS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "U3",
+  "value": "INA241A2xD",
+  "footprint": "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",
+  "lib_id": "Amplifier_Current:INA241A2xD",
+  "sheet": "power_path",
+  "block": "BAT3",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/eda897dd-bb35-58f5-bd17-4e74dd5e41f2",
+  "pads": {
+   "1": "BAT3_SNN",
+   "2": "GND",
+   "3": "GND",
+   "4": "GND",
+   "5": "BAT3_IO",
+   "6": "+3V3A",
+   "7": "+3V3A",
+   "8": "BAT3_SNP"
+  }
+ },
+ {
+  "ref": "C8",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "power_path",
+  "block": "BAT3",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/76e66905-f394-57fa-9032-caf5bacf9d50",
+  "pads": {
+   "1": "+3V3A",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R27",
+  "value": "1k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT3",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/801f5ca7-f3d2-529b-90af-ea375680a097",
+  "pads": {
+   "1": "BAT3_IO",
+   "2": "BAT3_IS"
+  }
+ },
+ {
+  "ref": "C9",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "power_path",
+  "block": "BAT3",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/e8e1fdf8-e336-5bdb-a975-01d507b0a4ae",
+  "pads": {
+   "1": "BAT3_IS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "D6",
+  "value": "ES1D (200 V 1 A)",
+  "footprint": "Diode_SMD:D_SMA",
+  "lib_id": "Device:D",
+  "sheet": "power_path",
+  "block": "BAT3",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/7790602f-b12b-532f-9842-0fbd1c4ef49c",
+  "pads": {
+   "1": "VAUX",
+   "2": "BAT3_IN"
+  }
+ },
+ {
+  "ref": "J4",
+  "value": "BAT4+ (M4 lug)",
+  "footprint": "MountingHole:MountingHole_4.3mm_M4_Pad_Via",
+  "lib_id": "Mechanical:MountingHole_Pad",
+  "sheet": "power_path",
+  "block": "BAT4",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/30a3581b-38a0-5ae7-a4c0-17598073269b",
+  "pads": {
+   "1": "BAT4_IN"
+  }
+ },
+ {
+  "ref": "R28",
+  "value": "1m 1% WSK2512",
+  "footprint": "Resistor_SMD:R_Shunt_Vishay_WSK2512_6332Metric_T1.19mm",
+  "lib_id": "Device:R_Shunt",
+  "sheet": "power_path",
+  "block": "BAT4",
+  "dnp": false,
+  "fields": {
+   "MPN": "Vishay WSK25121L000FEA"
+  },
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/137e59b2-58ba-576b-923e-5c4ef90c46e4",
+  "pads": {
+   "1": "BAT4_IN",
+   "2": "BAT4_SNP",
+   "3": "BAT4_SNN",
+   "4": "BAT4_SH"
+  }
+ },
+ {
+  "ref": "Q10",
+  "value": "SQM120P10_10M1L",
+  "footprint": "Package_TO_SOT_SMD:TO-263-2",
+  "lib_id": "Device:Q_PMOS_GDS",
+  "sheet": "power_path",
+  "block": "BAT4",
+  "dnp": false,
+  "fields": {
+   "MPN": "Vishay SQM120P10_10M1L (-100 V, 10 mOhm)"
+  },
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/b263a366-49b1-5ede-a77a-35d7fd011f95",
+  "pads": {
+   "1": "BAT4_G",
+   "2": "BAT4_SH",
+   "3": "BAT4_COM"
+  }
+ },
+ {
+  "ref": "Q11",
+  "value": "SQM120P10_10M1L",
+  "footprint": "Package_TO_SOT_SMD:TO-263-2",
+  "lib_id": "Device:Q_PMOS_GDS",
+  "sheet": "power_path",
+  "block": "BAT4",
+  "dnp": false,
+  "fields": {
+   "MPN": "Vishay SQM120P10_10M1L (-100 V, 10 mOhm)"
+  },
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/b0d6efa0-fdf4-510c-ad84-653ee96f15aa",
+  "pads": {
+   "1": "BAT4_G",
+   "2": "BUS+",
+   "3": "BAT4_COM"
+  }
+ },
+ {
+  "ref": "R29",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT4",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/1751f0c4-c49c-5646-962f-ae512fba72ff",
+  "pads": {
+   "1": "BAT4_G",
+   "2": "BAT4_COM"
+  }
+ },
+ {
+  "ref": "D7",
+  "value": "12V BZT52C12",
+  "footprint": "Diode_SMD:D_SOD-123",
+  "lib_id": "Device:D_Zener",
+  "sheet": "power_path",
+  "block": "BAT4",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/58e4ab65-cd48-50e2-93d1-c1f2847c8fc3",
+  "pads": {
+   "1": "BAT4_COM",
+   "2": "BAT4_G"
+  }
+ },
+ {
+  "ref": "Q12",
+  "value": "MMBTA42 (300 V)",
+  "footprint": "Package_TO_SOT_SMD:SOT-23",
+  "lib_id": "Device:Q_NPN_BEC",
+  "sheet": "power_path",
+  "block": "BAT4",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/34559bc0-9dd2-5aa5-a248-78462699e48a",
+  "pads": {
+   "1": "BAT4_B",
+   "2": "BAT4_E",
+   "3": "BAT4_G"
+  }
+ },
+ {
+  "ref": "R30",
+  "value": "1.2k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT4",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/a4c9693d-6fae-5bb4-b7d6-a4ef70fb1c3f",
+  "pads": {
+   "1": "BAT4_E",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R31",
+  "value": "1k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT4",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/052b585e-83a4-5bfd-ac3c-456f05eb3505",
+  "pads": {
+   "1": "BAT4_EN",
+   "2": "BAT4_B"
+  }
+ },
+ {
+  "ref": "R32",
+  "value": "100k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT4",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/fe9eb64e-f8ec-573f-95d7-db7d56011e3f",
+  "pads": {
+   "1": "BAT4_B",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R33",
+  "value": "499k",
+  "footprint": "Resistor_SMD:R_1206_3216Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT4",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/66b6e868-f81f-57bc-899d-382ff7b386a0",
+  "pads": {
+   "1": "BAT4_IN",
+   "2": "BAT4_VM"
+  }
+ },
+ {
+  "ref": "R34",
+  "value": "499k",
+  "footprint": "Resistor_SMD:R_1206_3216Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT4",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/0c0d6d02-d396-51a1-84e3-1e7f58934918",
+  "pads": {
+   "1": "BAT4_VM",
+   "2": "BAT4_VS"
+  }
+ },
+ {
+  "ref": "R35",
+  "value": "33k 0.1%",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT4",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/d9d9eab4-abfa-51b9-85ab-c5dd568fda9b",
+  "pads": {
+   "1": "BAT4_VS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "C10",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "power_path",
+  "block": "BAT4",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/b61a2979-d274-5015-95eb-91236f7d5f07",
+  "pads": {
+   "1": "BAT4_VS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "U4",
+  "value": "INA241A2xD",
+  "footprint": "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",
+  "lib_id": "Amplifier_Current:INA241A2xD",
+  "sheet": "power_path",
+  "block": "BAT4",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/fe3edd83-565f-5201-b41c-c83141761277",
+  "pads": {
+   "1": "BAT4_SNN",
+   "2": "GND",
+   "3": "GND",
+   "4": "GND",
+   "5": "BAT4_IO",
+   "6": "+3V3A",
+   "7": "+3V3A",
+   "8": "BAT4_SNP"
+  }
+ },
+ {
+  "ref": "C11",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "power_path",
+  "block": "BAT4",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/64cb4ec5-7862-5048-a116-0ecc58afa5cc",
+  "pads": {
+   "1": "+3V3A",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R36",
+  "value": "1k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BAT4",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/87e8fc02-c29c-5e5f-8859-4dffbfa07d89",
+  "pads": {
+   "1": "BAT4_IO",
+   "2": "BAT4_IS"
+  }
+ },
+ {
+  "ref": "C12",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "power_path",
+  "block": "BAT4",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/46e9b8cb-2100-54c0-bd36-130a7323ce0e",
+  "pads": {
+   "1": "BAT4_IS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "D8",
+  "value": "ES1D (200 V 1 A)",
+  "footprint": "Diode_SMD:D_SMA",
+  "lib_id": "Device:D",
+  "sheet": "power_path",
+  "block": "BAT4",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/d3253a37-5c48-507b-8c20-a9fb2ff8f1c1",
+  "pads": {
+   "1": "VAUX",
+   "2": "BAT4_IN"
+  }
+ },
+ {
+  "ref": "J5",
+  "value": "PV+ (M4 lug)",
+  "footprint": "MountingHole:MountingHole_4.3mm_M4_Pad_Via",
+  "lib_id": "Mechanical:MountingHole_Pad",
+  "sheet": "power_path",
+  "block": "PV",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/85dc50cb-dadb-59aa-9b3a-eead30f42ce0",
+  "pads": {
+   "1": "PV_IN"
+  }
+ },
+ {
+  "ref": "R37",
+  "value": "1m 1% WSK2512",
+  "footprint": "Resistor_SMD:R_Shunt_Vishay_WSK2512_6332Metric_T1.19mm",
+  "lib_id": "Device:R_Shunt",
+  "sheet": "power_path",
+  "block": "PV",
+  "dnp": false,
+  "fields": {
+   "MPN": "Vishay WSK25121L000FEA"
+  },
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/7440075c-b107-5c4f-bf14-7e3c182f580f",
+  "pads": {
+   "1": "PV_IN",
+   "2": "PV_SNP",
+   "3": "PV_SNN",
+   "4": "PV_SH"
+  }
+ },
+ {
+  "ref": "Q13",
+  "value": "SQM120P10_10M1L",
+  "footprint": "Package_TO_SOT_SMD:TO-263-2",
+  "lib_id": "Device:Q_PMOS_GDS",
+  "sheet": "power_path",
+  "block": "PV",
+  "dnp": false,
+  "fields": {
+   "MPN": "Vishay SQM120P10_10M1L (-100 V, 10 mOhm)"
+  },
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/d26e16d9-db80-5617-a937-a3af1fe07153",
+  "pads": {
+   "1": "PV_G",
+   "2": "PV_SH",
+   "3": "PV_COM"
+  }
+ },
+ {
+  "ref": "Q14",
+  "value": "SQM120P10_10M1L",
+  "footprint": "Package_TO_SOT_SMD:TO-263-2",
+  "lib_id": "Device:Q_PMOS_GDS",
+  "sheet": "power_path",
+  "block": "PV",
+  "dnp": false,
+  "fields": {
+   "MPN": "Vishay SQM120P10_10M1L (-100 V, 10 mOhm)"
+  },
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/bcc2f140-b23f-55c7-a941-32894df67e44",
+  "pads": {
+   "1": "PV_G",
+   "2": "BUS+",
+   "3": "PV_COM"
+  }
+ },
+ {
+  "ref": "R38",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "PV",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/13fa8cff-cc7a-5d96-b5b9-b97aea022da6",
+  "pads": {
+   "1": "PV_G",
+   "2": "PV_COM"
+  }
+ },
+ {
+  "ref": "D9",
+  "value": "12V BZT52C12",
+  "footprint": "Diode_SMD:D_SOD-123",
+  "lib_id": "Device:D_Zener",
+  "sheet": "power_path",
+  "block": "PV",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/4238767a-90f2-56b6-9fae-d81d371cc65e",
+  "pads": {
+   "1": "PV_COM",
+   "2": "PV_G"
+  }
+ },
+ {
+  "ref": "Q15",
+  "value": "MMBTA42 (300 V)",
+  "footprint": "Package_TO_SOT_SMD:SOT-23",
+  "lib_id": "Device:Q_NPN_BEC",
+  "sheet": "power_path",
+  "block": "PV",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/4b1f957f-3a04-5067-948a-28d1df9cfb95",
+  "pads": {
+   "1": "PV_B",
+   "2": "PV_E",
+   "3": "PV_G"
+  }
+ },
+ {
+  "ref": "R39",
+  "value": "1.2k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "PV",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/e07bd099-dc3e-538a-968f-0716c04f57a2",
+  "pads": {
+   "1": "PV_E",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R40",
+  "value": "1k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "PV",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/a2e2718a-c6ba-5509-8374-8d4b2655c14c",
+  "pads": {
+   "1": "PV_EN",
+   "2": "PV_B"
+  }
+ },
+ {
+  "ref": "R41",
+  "value": "100k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "PV",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/fa0efaa8-c032-5a30-98b7-33d2cff5fd27",
+  "pads": {
+   "1": "PV_B",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R42",
+  "value": "499k",
+  "footprint": "Resistor_SMD:R_1206_3216Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "PV",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/ccda6200-4c70-52ab-a75e-7905e74c36a3",
+  "pads": {
+   "1": "PV_IN",
+   "2": "PV_VM"
+  }
+ },
+ {
+  "ref": "R43",
+  "value": "499k",
+  "footprint": "Resistor_SMD:R_1206_3216Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "PV",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/e7b78f65-04bf-534e-9474-89f6b658719f",
+  "pads": {
+   "1": "PV_VM",
+   "2": "PV_VS"
+  }
+ },
+ {
+  "ref": "R44",
+  "value": "33k 0.1%",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "PV",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/6aac3e18-7eea-5c32-99c6-efa1cab81f3e",
+  "pads": {
+   "1": "PV_VS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "C13",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "power_path",
+  "block": "PV",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/6462b281-0fdf-5f2a-87e1-64d66c87aed8",
+  "pads": {
+   "1": "PV_VS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "U5",
+  "value": "INA241A2xD",
+  "footprint": "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",
+  "lib_id": "Amplifier_Current:INA241A2xD",
+  "sheet": "power_path",
+  "block": "PV",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/f37d6859-fea1-5df1-a3cf-5612391a3075",
+  "pads": {
+   "1": "PV_SNN",
+   "2": "GND",
+   "3": "GND",
+   "4": "GND",
+   "5": "PV_IO",
+   "6": "+3V3A",
+   "7": "+3V3A",
+   "8": "PV_SNP"
+  }
+ },
+ {
+  "ref": "C14",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "power_path",
+  "block": "PV",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/2ab40cca-e651-5377-af11-1458e86ec016",
+  "pads": {
+   "1": "+3V3A",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R45",
+  "value": "1k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "PV",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/f8758457-7b80-5db5-8165-b02dac58d9ab",
+  "pads": {
+   "1": "PV_IO",
+   "2": "PV_IS"
+  }
+ },
+ {
+  "ref": "C15",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "power_path",
+  "block": "PV",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/47f6eecb-036e-56df-aae7-57a036030b45",
+  "pads": {
+   "1": "PV_IS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "D10",
+  "value": "ES1D (200 V 1 A)",
+  "footprint": "Diode_SMD:D_SMA",
+  "lib_id": "Device:D",
+  "sheet": "power_path",
+  "block": "PV",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/76aa1708-eee8-53fe-8b1b-1a967a0d8164",
+  "pads": {
+   "1": "VAUX",
+   "2": "PV_IN"
+  }
+ },
+ {
+  "ref": "D11",
+  "value": "SMCJ58A (TVS, reverse-PV clamp)",
+  "footprint": "Diode_SMD:D_SMC",
+  "lib_id": "Device:D_Zener",
+  "sheet": "power_path",
+  "block": "PV",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/76256b01-fce4-5783-8bd8-fab21e583936",
+  "pads": {
+   "1": "PV_IN",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "J6",
+  "value": "BUS+ (M4 lug)",
+  "footprint": "MountingHole:MountingHole_4.3mm_M4_Pad_Via",
+  "lib_id": "Mechanical:MountingHole_Pad",
+  "sheet": "power_path",
+  "block": "BUS",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/65fafdab-c064-56c9-b908-f1d33eddfcc8",
+  "pads": {
+   "1": "BUS+"
+  }
+ },
+ {
+  "ref": "J7",
+  "value": "BUS+ (M4 lug)",
+  "footprint": "MountingHole:MountingHole_4.3mm_M4_Pad_Via",
+  "lib_id": "Mechanical:MountingHole_Pad",
+  "sheet": "power_path",
+  "block": "BUS",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/9a1ca8ad-3180-522b-807c-2022d97c6715",
+  "pads": {
+   "1": "BUS+"
+  }
+ },
+ {
+  "ref": "J8",
+  "value": "GND (M4 lug)",
+  "footprint": "MountingHole:MountingHole_4.3mm_M4_Pad_Via",
+  "lib_id": "Mechanical:MountingHole_Pad",
+  "sheet": "power_path",
+  "block": "BUS",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/7f64d09a-482b-5c8c-944a-6353c06fb2c4",
+  "pads": {
+   "1": "GND"
+  }
+ },
+ {
+  "ref": "J9",
+  "value": "GND (M4 lug)",
+  "footprint": "MountingHole:MountingHole_4.3mm_M4_Pad_Via",
+  "lib_id": "Mechanical:MountingHole_Pad",
+  "sheet": "power_path",
+  "block": "BUS",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/d5db6ab4-96a2-5a4a-a5c1-d6bf1e4f9772",
+  "pads": {
+   "1": "GND"
+  }
+ },
+ {
+  "ref": "J10",
+  "value": "GND (M4 lug)",
+  "footprint": "MountingHole:MountingHole_4.3mm_M4_Pad_Via",
+  "lib_id": "Mechanical:MountingHole_Pad",
+  "sheet": "power_path",
+  "block": "BUS",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/7449312e-b16c-5563-8dc6-841ecf6b6743",
+  "pads": {
+   "1": "GND"
+  }
+ },
+ {
+  "ref": "C16",
+  "value": "100u 100V",
+  "footprint": "Capacitor_THT:CP_Radial_D12.5mm_P5.00mm",
+  "lib_id": "Device:C_Polarized",
+  "sheet": "power_path",
+  "block": "BUS",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/266bb2d3-3a9d-5fc1-b7b4-a0cac56e6924",
+  "pads": {
+   "1": "BUS+",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "C17",
+  "value": "100u 100V",
+  "footprint": "Capacitor_THT:CP_Radial_D12.5mm_P5.00mm",
+  "lib_id": "Device:C_Polarized",
+  "sheet": "power_path",
+  "block": "BUS",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/c81665ee-9ccb-548b-b76b-a45500caecba",
+  "pads": {
+   "1": "BUS+",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "C18",
+  "value": "1u 100V",
+  "footprint": "Capacitor_SMD:C_1210_3225Metric",
+  "lib_id": "Device:C",
+  "sheet": "power_path",
+  "block": "BUS",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/72482198-bd6b-5139-82b8-55292f0b66c1",
+  "pads": {
+   "1": "BUS+",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "C19",
+  "value": "1u 100V",
+  "footprint": "Capacitor_SMD:C_1210_3225Metric",
+  "lib_id": "Device:C",
+  "sheet": "power_path",
+  "block": "BUS",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/591d5a48-0885-540d-aa7d-8eaaf8f96cbc",
+  "pads": {
+   "1": "BUS+",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "D12",
+  "value": "SMCJ58A (TVS)",
+  "footprint": "Diode_SMD:D_SMC",
+  "lib_id": "Device:D_Zener",
+  "sheet": "power_path",
+  "block": "BUS",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/50fcf146-e3e8-5ad8-bf15-ab017e4d1ffd",
+  "pads": {
+   "1": "BUS+",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R46",
+  "value": "499k",
+  "footprint": "Resistor_SMD:R_1206_3216Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BUS",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/11f2080f-f3db-5ef6-8f62-68aeedb999f1",
+  "pads": {
+   "1": "BUS+",
+   "2": "BUS_VM"
+  }
+ },
+ {
+  "ref": "R47",
+  "value": "499k",
+  "footprint": "Resistor_SMD:R_1206_3216Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BUS",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/d3218da5-b893-59f2-beeb-442302411445",
+  "pads": {
+   "1": "BUS_VM",
+   "2": "BUS_VS"
+  }
+ },
+ {
+  "ref": "R48",
+  "value": "33k 0.1%",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "power_path",
+  "block": "BUS",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/609d6d79-ea2c-5ba8-b698-7aee7e408362",
+  "pads": {
+   "1": "BUS_VS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "C20",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "power_path",
+  "block": "BUS",
+  "dnp": false,
+  "fields": {},
+  "path": "/4297fb73-af53-5713-a363-301e97b72b4c/fff94e81-ab89-5431-9b72-a4e5cfce70e0",
+  "pads": {
+   "1": "BUS_VS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "C21",
+  "value": "22u 100V",
+  "footprint": "Capacitor_SMD:CP_Elec_8x10",
+  "lib_id": "Device:C_Polarized",
+  "sheet": "supply_sense",
+  "block": "BUCK",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/80806696-1311-51a3-a93d-1e8274285244",
+  "pads": {
+   "1": "VAUX",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "C22",
+  "value": "2.2u 100V",
+  "footprint": "Capacitor_SMD:C_1210_3225Metric",
+  "lib_id": "Device:C",
+  "sheet": "supply_sense",
+  "block": "BUCK",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/95da700b-d953-512b-abe5-67540b8a2598",
+  "pads": {
+   "1": "VAUX",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "C23",
+  "value": "2.2u 100V",
+  "footprint": "Capacitor_SMD:C_1210_3225Metric",
+  "lib_id": "Device:C",
+  "sheet": "supply_sense",
+  "block": "BUCK",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/cdb3bb49-ef5d-5c50-9001-3fcd0708b65f",
+  "pads": {
+   "1": "VAUX",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "U6",
+  "value": "LM5164DDAR",
+  "footprint": "Package_SO:HSOP-8-1EP_3.9x4.9mm_P1.27mm_EP2.41x3.1mm_ThermalVias",
+  "lib_id": "Regulator_Switching:LM5164DDA",
+  "sheet": "supply_sense",
+  "block": "BUCK",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/0768c8a5-8cb8-55cc-819d-aad80cfe8ca0",
+  "pads": {
+   "1": "GND",
+   "2": "VAUX",
+   "3": "BUCK_EN",
+   "4": "BUCK_RON",
+   "5": "BUCK_FB",
+   "7": "BUCK_BST",
+   "8": "BUCK_SW",
+   "9": "GND"
+  }
+ },
+ {
+  "ref": "R49",
+  "value": "1M",
+  "footprint": "Resistor_SMD:R_1206_3216Metric",
+  "lib_id": "Device:R",
+  "sheet": "supply_sense",
+  "block": "BUCK",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/8088f61c-4c2a-5e9d-ae93-91491e096841",
+  "pads": {
+   "1": "VAUX",
+   "2": "BUCK_EN"
+  }
+ },
+ {
+  "ref": "R50",
+  "value": "91k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "supply_sense",
+  "block": "BUCK",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/8c3d9b28-3f9f-502d-95cd-e47aac63193d",
+  "pads": {
+   "1": "BUCK_EN",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R51",
+  "value": "41.2k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "supply_sense",
+  "block": "BUCK",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/1dfe6026-2c0d-5469-b950-d8c712f8efb5",
+  "pads": {
+   "1": "BUCK_RON",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "C24",
+  "value": "2.2n 50V",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "supply_sense",
+  "block": "BUCK",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/20b8363e-c116-5bd2-b9a0-ceca5ff0daee",
+  "pads": {
+   "1": "BUCK_BST",
+   "2": "BUCK_SW"
+  }
+ },
+ {
+  "ref": "L1",
+  "value": "47u 1.5A SRN6045TA-470M",
+  "footprint": "Inductor_SMD:L_Bourns_SRN6045TA",
+  "lib_id": "Device:L",
+  "sheet": "supply_sense",
+  "block": "BUCK",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/3cfefc69-6070-5fb7-918b-75dd9ec93bd1",
+  "pads": {
+   "1": "BUCK_SW",
+   "2": "+5V"
+  }
+ },
+ {
+  "ref": "R52",
+  "value": "221k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "supply_sense",
+  "block": "BUCK",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/73eed248-e1fa-530a-9ba4-c4ff3711d721",
+  "pads": {
+   "1": "BUCK_SW",
+   "2": "BUCK_RA"
+  }
+ },
+ {
+  "ref": "C25",
+  "value": "3.3n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "supply_sense",
+  "block": "BUCK",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/01bc71f1-2771-526f-ade4-c592674134fd",
+  "pads": {
+   "1": "BUCK_RA",
+   "2": "+5V"
+  }
+ },
+ {
+  "ref": "C26",
+  "value": "180p",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "supply_sense",
+  "block": "BUCK",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/784f179b-3c84-53f7-af72-2965a34a7313",
+  "pads": {
+   "1": "BUCK_RA",
+   "2": "BUCK_FB"
+  }
+ },
+ {
+  "ref": "R53",
+  "value": "158k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "supply_sense",
+  "block": "BUCK",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/421b5126-ec27-52fc-b0f2-295d34003f97",
+  "pads": {
+   "1": "+5V",
+   "2": "BUCK_FB"
+  }
+ },
+ {
+  "ref": "R54",
+  "value": "49.9k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "supply_sense",
+  "block": "BUCK",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/55e6e1de-47bd-5b14-9b6e-f5173db8a917",
+  "pads": {
+   "1": "BUCK_FB",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "C27",
+  "value": "22u 25V",
+  "footprint": "Capacitor_SMD:C_1206_3216Metric",
+  "lib_id": "Device:C",
+  "sheet": "supply_sense",
+  "block": "BUCK",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/3aa1daee-356a-5602-988c-606625a2a733",
+  "pads": {
+   "1": "+5V",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "C28",
+  "value": "22u 25V",
+  "footprint": "Capacitor_SMD:C_1206_3216Metric",
+  "lib_id": "Device:C",
+  "sheet": "supply_sense",
+  "block": "BUCK",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/7ca83aec-7d88-5bce-8052-89e306774dd7",
+  "pads": {
+   "1": "+5V",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R55",
+  "value": "2.2k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "supply_sense",
+  "block": "BUCK",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/b5cef729-eee6-5ef4-9ea4-d3c17b9967a4",
+  "pads": {
+   "1": "+5V",
+   "2": "LED_5V"
+  }
+ },
+ {
+  "ref": "D13",
+  "value": "green 5V",
+  "footprint": "LED_SMD:LED_0603_1608Metric",
+  "lib_id": "Device:LED",
+  "sheet": "supply_sense",
+  "block": "BUCK",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/5b942bd5-20de-519d-9835-50ea4a6a8b7b",
+  "pads": {
+   "1": "GND",
+   "2": "LED_5V"
+  }
+ },
+ {
+  "ref": "C29",
+  "value": "2.2u",
+  "footprint": "Capacitor_SMD:C_0805_2012Metric",
+  "lib_id": "Device:C",
+  "sheet": "supply_sense",
+  "block": "LDO",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/6d101871-dbfe-59ce-a601-4da4d1a415f7",
+  "pads": {
+   "1": "+5V",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "U7",
+  "value": "AP2112K-3.3",
+  "footprint": "Package_TO_SOT_SMD:SOT-23-5",
+  "lib_id": "Regulator_Linear:AP2112K-3.3",
+  "sheet": "supply_sense",
+  "block": "LDO",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/54647d4e-d3c7-516f-8585-2a8e6a80de00",
+  "pads": {
+   "1": "+5V",
+   "2": "GND",
+   "3": "+5V",
+   "5": "+3V3A"
+  }
+ },
+ {
+  "ref": "C30",
+  "value": "2.2u",
+  "footprint": "Capacitor_SMD:C_0805_2012Metric",
+  "lib_id": "Device:C",
+  "sheet": "supply_sense",
+  "block": "LDO",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/01a39637-9969-5617-a1b5-1385bb0b9dd4",
+  "pads": {
+   "1": "+3V3A",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "U8",
+  "value": "ADS1115IDGS",
+  "footprint": "Package_SO:TSSOP-10_3x3mm_P0.5mm",
+  "lib_id": "Analog_ADC:ADS1115IDGS",
+  "sheet": "supply_sense",
+  "block": "PADC",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/fdd91408-fe39-5c46-9d40-276f1aa9ec4d",
+  "pads": {
+   "1": "GND",
+   "10": "SCL_B",
+   "3": "GND",
+   "4": "BAT1_VS",
+   "5": "BAT1_IS",
+   "6": "BAT2_VS",
+   "7": "BAT2_IS",
+   "8": "+3V3A",
+   "9": "SDA_B"
+  }
+ },
+ {
+  "ref": "C31",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "supply_sense",
+  "block": "PADC",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/4703cd41-82d4-51ce-82ec-5ced2fe501a4",
+  "pads": {
+   "1": "+3V3A",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "U9",
+  "value": "ADS1115IDGS",
+  "footprint": "Package_SO:TSSOP-10_3x3mm_P0.5mm",
+  "lib_id": "Analog_ADC:ADS1115IDGS",
+  "sheet": "supply_sense",
+  "block": "PADC",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/f7cfd708-5ae1-598a-ac71-be38590b02c5",
+  "pads": {
+   "1": "+3V3A",
+   "10": "SCL_B",
+   "3": "GND",
+   "4": "BAT3_VS",
+   "5": "BAT3_IS",
+   "6": "BAT4_VS",
+   "7": "BAT4_IS",
+   "8": "+3V3A",
+   "9": "SDA_B"
+  }
+ },
+ {
+  "ref": "C32",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "supply_sense",
+  "block": "PADC",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/3b3eb676-029a-51b8-83b9-695ec7b74240",
+  "pads": {
+   "1": "+3V3A",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "U10",
+  "value": "ADS1115IDGS",
+  "footprint": "Package_SO:TSSOP-10_3x3mm_P0.5mm",
+  "lib_id": "Analog_ADC:ADS1115IDGS",
+  "sheet": "supply_sense",
+  "block": "PADC",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/a515d404-1579-58f4-a50a-f97f614ec883",
+  "pads": {
+   "1": "SDA_B",
+   "10": "SCL_B",
+   "3": "GND",
+   "4": "PV_VS",
+   "5": "PV_IS",
+   "6": "BUS_VS",
+   "7": "TEMP",
+   "8": "+3V3A",
+   "9": "SDA_B"
+  }
+ },
+ {
+  "ref": "C33",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "supply_sense",
+  "block": "PADC",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/6d5a56e6-47c7-58e0-ab3a-ccad72675007",
+  "pads": {
+   "1": "+3V3A",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R56",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "supply_sense",
+  "block": "PADC",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/115db1bd-b2f2-506c-af64-f2f0a312e7bf",
+  "pads": {
+   "1": "+3V3A",
+   "2": "TEMP"
+  }
+ },
+ {
+  "ref": "TH1",
+  "value": "10k B3950 (place near FETs)",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:Thermistor_NTC",
+  "sheet": "supply_sense",
+  "block": "PADC",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/f1111986-e3fb-5744-8c97-f7b4f78c283f",
+  "pads": {
+   "1": "TEMP",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "C34",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "supply_sense",
+  "block": "PADC",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/0ca02fa4-1bf2-5c4b-a9e3-b7851c306d13",
+  "pads": {
+   "1": "TEMP",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "U11",
+  "value": "TCA9535PWR",
+  "footprint": "Package_SO:TSSOP-24_4.4x7.8mm_P0.65mm",
+  "lib_id": "Interface_Expansion:TCA9535PWR",
+  "sheet": "supply_sense",
+  "block": "EXP",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/6665f344-5fb5-5ee8-af79-8b03ce718dd2",
+  "pads": {
+   "1": "EXP_INT",
+   "10": "EXP_IO0",
+   "11": "EXP_IO1",
+   "12": "GND",
+   "13": "EXP_IO2",
+   "14": "EXP_IO3",
+   "15": "EXP_IO4",
+   "16": "EXP_IO5",
+   "17": "EXP_IO6",
+   "18": "EXP_IO7",
+   "19": "EXP_IO8",
+   "2": "GND",
+   "20": "EXP_IO9",
+   "21": "GND",
+   "22": "SCL_B",
+   "23": "SDA_B",
+   "24": "+3V3A",
+   "3": "GND",
+   "4": "BAT1_EN",
+   "5": "BAT2_EN",
+   "6": "BAT3_EN",
+   "7": "BAT4_EN",
+   "8": "IMU_RST",
+   "9": "LED_PWR_K"
+  }
+ },
+ {
+  "ref": "C35",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "supply_sense",
+  "block": "EXP",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/9e313d15-9a04-5a85-8bb6-37f0b0feb328",
+  "pads": {
+   "1": "+3V3A",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R57",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "supply_sense",
+  "block": "EXP",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/1094fceb-55d5-56af-b20d-bcee7846ff42",
+  "pads": {
+   "1": "+3V3A",
+   "2": "EXP_INT"
+  }
+ },
+ {
+  "ref": "R58",
+  "value": "1k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "supply_sense",
+  "block": "EXP",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/53f644ba-2c53-57a0-8dbd-6e07fdbea5c2",
+  "pads": {
+   "1": "+3V3A",
+   "2": "LED_PWR_A"
+  }
+ },
+ {
+  "ref": "D14",
+  "value": "yellow PWR-STAT",
+  "footprint": "LED_SMD:LED_0603_1608Metric",
+  "lib_id": "Device:LED",
+  "sheet": "supply_sense",
+  "block": "EXP",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/153937e6-e1ed-5045-b160-9d619d48626b",
+  "pads": {
+   "1": "LED_PWR_K",
+   "2": "LED_PWR_A"
+  }
+ },
+ {
+  "ref": "J11",
+  "value": "EXP IO",
+  "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x12_P2.54mm_Vertical",
+  "lib_id": "Connector_Generic:Conn_01x12",
+  "sheet": "supply_sense",
+  "block": "EXP",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/e7e57795-956d-5aaf-b95c-45408898f5ea",
+  "pads": {
+   "1": "+3V3A",
+   "10": "EXP_IO7",
+   "11": "EXP_IO8",
+   "12": "EXP_IO9",
+   "2": "GND",
+   "3": "EXP_IO0",
+   "4": "EXP_IO1",
+   "5": "EXP_IO2",
+   "6": "EXP_IO3",
+   "7": "EXP_IO4",
+   "8": "EXP_IO5",
+   "9": "EXP_IO6"
+  }
+ },
+ {
+  "ref": "R59",
+  "value": "4.7k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "supply_sense",
+  "block": "I2C",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/812345c9-55fd-55fd-8e19-0f7b7164e246",
+  "pads": {
+   "1": "+3V3A",
+   "2": "SDA_A"
+  }
+ },
+ {
+  "ref": "R60",
+  "value": "4.7k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "supply_sense",
+  "block": "I2C",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/b51eb38c-5faa-56f8-8717-5021e130b386",
+  "pads": {
+   "1": "+3V3A",
+   "2": "SCL_A"
+  }
+ },
+ {
+  "ref": "R61",
+  "value": "4.7k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "supply_sense",
+  "block": "I2C",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/d2d2f85c-cd6d-52a2-90a1-97036f8baa57",
+  "pads": {
+   "1": "+3V3A",
+   "2": "SDA_B"
+  }
+ },
+ {
+  "ref": "R62",
+  "value": "4.7k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "supply_sense",
+  "block": "I2C",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/cafe657c-6381-5a56-982a-d06267fddd81",
+  "pads": {
+   "1": "+3V3A",
+   "2": "SCL_B"
+  }
+ },
+ {
+  "ref": "J12",
+  "value": "I2C-B ext",
+  "footprint": "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical",
+  "lib_id": "Connector_Generic:Conn_01x04",
+  "sheet": "supply_sense",
+  "block": "I2C",
+  "dnp": false,
+  "fields": {},
+  "path": "/bdd30543-243c-5206-aace-ef64be871284/c68a82c5-09f2-5804-86d2-20cfced076c9",
+  "pads": {
+   "1": "+3V3A",
+   "2": "GND",
+   "3": "SDA_B",
+   "4": "SCL_B"
+  }
+ },
+ {
+  "ref": "U12",
+  "value": "ESP32-S3-DevKitC-1",
+  "footprint": "solbot:ESP32-S3-DevKitC-1_Socket",
+  "lib_id": "solbot:ESP32-S3-DevKitC-1",
+  "sheet": "mcu",
+  "block": "ESP",
+  "dnp": false,
+  "fields": {},
+  "path": "/9a1e992a-a3ac-5a6e-b667-ec9b02aa553b/4536f952-00e1-5e29-be15-705177fd33b8",
+  "pads": {
+   "4": "A3_ISA",
+   "5": "A4_ISA",
+   "6": "A5_ISA",
+   "7": "A6_ISA",
+   "8": "A4_RPWM",
+   "9": "A4_LPWM",
+   "10": "A5_RPWM",
+   "11": "A5_LPWM",
+   "12": "ESTOP_SENSE",
+   "13": "IMU_INT",
+   "14": "LED_ERR",
+   "15": "A1_RPWM",
+   "16": "A1_LPWM",
+   "17": "A2_RPWM",
+   "18": "A2_LPWM",
+   "19": "A3_RPWM",
+   "20": "A3_LPWM",
+   "21": "5V_ESP",
+   "22": "GND",
+   "23": "GND",
+   "26": "A1_ISA",
+   "27": "A2_ISA",
+   "28": "SCL_A",
+   "29": "SDA_A",
+   "30": "PV_EN",
+   "31": "ACT_EN",
+   "39": "A6_LPWM",
+   "40": "A6_RPWM",
+   "41": "SCL_B",
+   "42": "SDA_B",
+   "43": "GND",
+   "44": "GND"
+  }
+ },
+ {
+  "ref": "D15",
+  "value": "SS34 (blocks USB back-feed)",
+  "footprint": "Diode_SMD:D_SMA",
+  "lib_id": "Device:D_Schottky",
+  "sheet": "mcu",
+  "block": "ESP",
+  "dnp": false,
+  "fields": {},
+  "path": "/9a1e992a-a3ac-5a6e-b667-ec9b02aa553b/99383d90-87f9-57f9-bbf9-08e2c50786a8",
+  "pads": {
+   "1": "5V_ESP",
+   "2": "+5V"
+  }
+ },
+ {
+  "ref": "C36",
+  "value": "10u",
+  "footprint": "Capacitor_SMD:C_0805_2012Metric",
+  "lib_id": "Device:C",
+  "sheet": "mcu",
+  "block": "ESP",
+  "dnp": false,
+  "fields": {},
+  "path": "/9a1e992a-a3ac-5a6e-b667-ec9b02aa553b/a4acff9d-c5ee-5a91-8676-ea6f73297450",
+  "pads": {
+   "1": "5V_ESP",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R63",
+  "value": "1k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "mcu",
+  "block": "ESP",
+  "dnp": false,
+  "fields": {},
+  "path": "/9a1e992a-a3ac-5a6e-b667-ec9b02aa553b/ea431289-585b-5a82-93a3-17983e674ade",
+  "pads": {
+   "1": "LED_ERR",
+   "2": "LED_ERR_A"
+  }
+ },
+ {
+  "ref": "D16",
+  "value": "red ERR",
+  "footprint": "LED_SMD:LED_0603_1608Metric",
+  "lib_id": "Device:LED",
+  "sheet": "mcu",
+  "block": "ESP",
+  "dnp": false,
+  "fields": {},
+  "path": "/9a1e992a-a3ac-5a6e-b667-ec9b02aa553b/b08b5caa-ec1f-57ae-a0a6-e38f113b4091",
+  "pads": {
+   "1": "GND",
+   "2": "LED_ERR_A"
+  }
+ },
+ {
+  "ref": "J13",
+  "value": "E-STOP (NC loop)",
+  "footprint": "TerminalBlock_Phoenix:TerminalBlock_Phoenix_PT-1,5-2-3.5-H_1x02_P3.50mm_Horizontal",
+  "lib_id": "Connector_Generic:Conn_01x02",
+  "sheet": "mcu",
+  "block": "ESTOP",
+  "dnp": false,
+  "fields": {},
+  "path": "/9a1e992a-a3ac-5a6e-b667-ec9b02aa553b/7a6fc13d-58aa-53fc-98ea-d203805985a8",
+  "pads": {
+   "1": "ESTOP_SRC",
+   "2": "ESTOP_RET"
+  }
+ },
+ {
+  "ref": "R64",
+  "value": "470",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "mcu",
+  "block": "ESTOP",
+  "dnp": false,
+  "fields": {},
+  "path": "/9a1e992a-a3ac-5a6e-b667-ec9b02aa553b/ebfdb006-9ba9-5a3e-b9f9-054a54127d67",
+  "pads": {
+   "1": "ACT_EN",
+   "2": "ESTOP_SRC"
+  }
+ },
+ {
+  "ref": "R65",
+  "value": "1k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "mcu",
+  "block": "ESTOP",
+  "dnp": false,
+  "fields": {},
+  "path": "/9a1e992a-a3ac-5a6e-b667-ec9b02aa553b/f1d30fb6-65fb-5956-86a9-c492188af9a8",
+  "pads": {
+   "1": "ESTOP_RET",
+   "2": "ACT_GATE"
+  }
+ },
+ {
+  "ref": "R66",
+  "value": "100k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "mcu",
+  "block": "ESTOP",
+  "dnp": false,
+  "fields": {},
+  "path": "/9a1e992a-a3ac-5a6e-b667-ec9b02aa553b/2fe17c3e-a704-5ea5-b624-bf2133dcfd6e",
+  "pads": {
+   "1": "ACT_GATE",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "C37",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "mcu",
+  "block": "ESTOP",
+  "dnp": false,
+  "fields": {},
+  "path": "/9a1e992a-a3ac-5a6e-b667-ec9b02aa553b/50844837-1f90-59e1-8bd3-cd8638193971",
+  "pads": {
+   "1": "ACT_GATE",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R67",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "mcu",
+  "block": "ESTOP",
+  "dnp": false,
+  "fields": {},
+  "path": "/9a1e992a-a3ac-5a6e-b667-ec9b02aa553b/b9aea66d-54af-59d9-8462-d611f2c34ca9",
+  "pads": {
+   "1": "ESTOP_RET",
+   "2": "ESTOP_SENSE"
+  }
+ },
+ {
+  "ref": "Q16",
+  "value": "2N7002",
+  "footprint": "Package_TO_SOT_SMD:SOT-23",
+  "lib_id": "Device:Q_NMOS_GSD",
+  "sheet": "mcu",
+  "block": "ESTOP",
+  "dnp": false,
+  "fields": {},
+  "path": "/9a1e992a-a3ac-5a6e-b667-ec9b02aa553b/6aa484d2-2f79-5c72-a54b-a78f478f042c",
+  "pads": {
+   "1": "ACT_GATE",
+   "2": "GND",
+   "3": "ACT_OE_N"
+  }
+ },
+ {
+  "ref": "R68",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "mcu",
+  "block": "ESTOP",
+  "dnp": false,
+  "fields": {},
+  "path": "/9a1e992a-a3ac-5a6e-b667-ec9b02aa553b/74b74be9-8b9c-5527-a9c3-74318f50a953",
+  "pads": {
+   "1": "+5V",
+   "2": "ACT_OE_N"
+  }
+ },
+ {
+  "ref": "J14",
+  "value": "IMU BNO085",
+  "footprint": "Connector_JST:JST_XH_B6B-XH-A_1x06_P2.50mm_Vertical",
+  "lib_id": "Connector_Generic:Conn_01x06",
+  "sheet": "mcu",
+  "block": "IMU",
+  "dnp": false,
+  "fields": {},
+  "path": "/9a1e992a-a3ac-5a6e-b667-ec9b02aa553b/2d99b486-306c-5f95-b59b-a0d35fdc62d9",
+  "pads": {
+   "1": "+5V",
+   "2": "GND",
+   "3": "SCL_A",
+   "4": "SDA_A",
+   "5": "IMU_INT",
+   "6": "IMU_RST"
+  }
+ },
+ {
+  "ref": "R69",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "mcu",
+  "block": "IMU",
+  "dnp": false,
+  "fields": {},
+  "path": "/9a1e992a-a3ac-5a6e-b667-ec9b02aa553b/b95c0cb7-9cca-5f63-adeb-d6752038bb32",
+  "pads": {
+   "1": "+3V3A",
+   "2": "IMU_INT"
+  }
+ },
+ {
+  "ref": "C38",
+  "value": "10u",
+  "footprint": "Capacitor_SMD:C_0805_2012Metric",
+  "lib_id": "Device:C",
+  "sheet": "mcu",
+  "block": "IMU",
+  "dnp": false,
+  "fields": {},
+  "path": "/9a1e992a-a3ac-5a6e-b667-ec9b02aa553b/256b59f7-49d8-5aec-9be8-2ca05e70df0d",
+  "pads": {
+   "1": "+5V",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "H1",
+  "value": "M3",
+  "footprint": "MountingHole:MountingHole_3.2mm_M3",
+  "lib_id": "Mechanical:MountingHole",
+  "sheet": "mcu",
+  "block": "MECH",
+  "dnp": false,
+  "fields": {},
+  "path": "/9a1e992a-a3ac-5a6e-b667-ec9b02aa553b/95cb2e1d-638c-592b-8129-d28d4dbac2a9",
+  "pads": {}
+ },
+ {
+  "ref": "H2",
+  "value": "M3",
+  "footprint": "MountingHole:MountingHole_3.2mm_M3",
+  "lib_id": "Mechanical:MountingHole",
+  "sheet": "mcu",
+  "block": "MECH",
+  "dnp": false,
+  "fields": {},
+  "path": "/9a1e992a-a3ac-5a6e-b667-ec9b02aa553b/77654d7e-497f-5cd7-92fd-c813da426a26",
+  "pads": {}
+ },
+ {
+  "ref": "H3",
+  "value": "M3",
+  "footprint": "MountingHole:MountingHole_3.2mm_M3",
+  "lib_id": "Mechanical:MountingHole",
+  "sheet": "mcu",
+  "block": "MECH",
+  "dnp": false,
+  "fields": {},
+  "path": "/9a1e992a-a3ac-5a6e-b667-ec9b02aa553b/c2f4ecaf-d407-539a-b984-ab67e437bb0f",
+  "pads": {}
+ },
+ {
+  "ref": "H4",
+  "value": "M3",
+  "footprint": "MountingHole:MountingHole_3.2mm_M3",
+  "lib_id": "Mechanical:MountingHole",
+  "sheet": "mcu",
+  "block": "MECH",
+  "dnp": false,
+  "fields": {},
+  "path": "/9a1e992a-a3ac-5a6e-b667-ec9b02aa553b/5704e37d-a6ae-5aae-8073-0d573ff197d3",
+  "pads": {}
+ },
+ {
+  "ref": "U13",
+  "value": "74HCT244",
+  "footprint": "Package_SO:SOIC-20W_7.5x12.8mm_P1.27mm",
+  "lib_id": "74xx:74HCT244",
+  "sheet": "actuators",
+  "block": "BUF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/58cddc4d-76e4-5b2e-889d-46d2c645f255",
+  "pads": {
+   "1": "ACT_OE_N",
+   "10": "GND",
+   "11": "A4_LPWM",
+   "12": "A2_LPWM5",
+   "13": "A4_RPWM",
+   "14": "A2_RPWM5",
+   "15": "A3_LPWM",
+   "16": "A1_LPWM5",
+   "17": "A3_RPWM",
+   "18": "A1_RPWM5",
+   "19": "ACT_OE_N",
+   "2": "A1_RPWM",
+   "20": "+5V",
+   "3": "A3_RPWM5",
+   "4": "A1_LPWM",
+   "5": "A3_LPWM5",
+   "6": "A2_RPWM",
+   "7": "A4_RPWM5",
+   "8": "A2_LPWM",
+   "9": "A4_LPWM5"
+  }
+ },
+ {
+  "ref": "C39",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "BUF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/bf50c804-825d-5f14-b7bc-03c7464f99bb",
+  "pads": {
+   "1": "+5V",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "U14",
+  "value": "74HCT244",
+  "footprint": "Package_SO:SOIC-20W_7.5x12.8mm_P1.27mm",
+  "lib_id": "74xx:74HCT244",
+  "sheet": "actuators",
+  "block": "BUF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/53a29231-3340-5898-8dce-9481716a00d2",
+  "pads": {
+   "1": "ACT_OE_N",
+   "10": "GND",
+   "11": "GND",
+   "12": "A6_LPWM5",
+   "13": "GND",
+   "14": "A6_RPWM5",
+   "15": "GND",
+   "16": "A5_LPWM5",
+   "17": "+3V3A",
+   "18": "A5_RPWM5",
+   "19": "ACT_OE_N",
+   "2": "A5_RPWM",
+   "20": "+5V",
+   "3": "ACT_EN5",
+   "4": "A5_LPWM",
+   "6": "A6_RPWM",
+   "8": "A6_LPWM"
+  }
+ },
+ {
+  "ref": "C40",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "BUF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/320fc37e-597a-518f-96d9-058c796d2502",
+  "pads": {
+   "1": "+5V",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R70",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "BUF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/bf6dfb84-6e83-5a18-ade7-dc21e3ff1344",
+  "pads": {
+   "1": "A1_RPWM5",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R71",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "BUF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/7387fa71-ff64-538a-8f43-7d834ba4c483",
+  "pads": {
+   "1": "A1_LPWM5",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R72",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "BUF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/48e9250b-063a-5030-9e18-5cf5764cfa48",
+  "pads": {
+   "1": "A2_RPWM5",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R73",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "BUF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/02e78e07-cab5-54f1-b7ed-efe8e557fb18",
+  "pads": {
+   "1": "A2_LPWM5",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R74",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "BUF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/c7a0719b-68fb-55f3-8c4a-264c1d78bcf3",
+  "pads": {
+   "1": "A3_RPWM5",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R75",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "BUF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/972ee208-1464-5c2a-9035-b87de4e9cb39",
+  "pads": {
+   "1": "A3_LPWM5",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R76",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "BUF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/3058a86e-c859-5f5e-ba17-8b74d98ec0d5",
+  "pads": {
+   "1": "A4_RPWM5",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R77",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "BUF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/46053ab9-ae4d-59fc-bcf1-61e4e7fdd9fb",
+  "pads": {
+   "1": "A4_LPWM5",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R78",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "BUF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/add19916-df79-50c3-ae57-0562f676de73",
+  "pads": {
+   "1": "A5_RPWM5",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R79",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "BUF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/b9d4aa02-a790-5bfd-85a6-e33e90a859ef",
+  "pads": {
+   "1": "A5_LPWM5",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R80",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "BUF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/f0d583cf-8f8e-55fa-9dea-26dc37cf6df5",
+  "pads": {
+   "1": "A6_RPWM5",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R81",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "BUF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/92d203d1-035e-5e1d-bc9d-6d471c042836",
+  "pads": {
+   "1": "A6_LPWM5",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R82",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "BUF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/13de2657-fbec-50dc-aa5d-e66363f67337",
+  "pads": {
+   "1": "ACT_EN5",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "C41",
+  "value": "2.2u",
+  "footprint": "Capacitor_SMD:C_0805_2012Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "POSREF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/7eb833d0-8468-52c2-a89d-218f92d3d569",
+  "pads": {
+   "1": "+5V",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "U15",
+  "value": "AP2112K-3.3",
+  "footprint": "Package_TO_SOT_SMD:SOT-23-5",
+  "lib_id": "Regulator_Linear:AP2112K-3.3",
+  "sheet": "actuators",
+  "block": "POSREF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/216527ca-a2bc-5412-9b1b-b60101440af4",
+  "pads": {
+   "1": "+5V",
+   "2": "GND",
+   "3": "+5V",
+   "5": "+3V3_POT"
+  }
+ },
+ {
+  "ref": "C42",
+  "value": "2.2u",
+  "footprint": "Capacitor_SMD:C_0805_2012Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "POSREF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/c61c903a-82ac-595c-9cd5-22cf40a953fc",
+  "pads": {
+   "1": "+3V3_POT",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R83",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "POSREF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/d113393c-a07e-5cd9-97bb-fd2d0906c602",
+  "pads": {
+   "1": "+3V3_POT",
+   "2": "VREF_SNS"
+  }
+ },
+ {
+  "ref": "R84",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "POSREF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/8c949230-1fd8-580e-b57e-675565ee8cc9",
+  "pads": {
+   "1": "VREF_SNS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "C43",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "POSREF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/4052d672-af96-5eaa-be1f-370ee88e3d23",
+  "pads": {
+   "1": "VREF_SNS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R85",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "POSREF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/52c90ded-aeeb-5e35-8b26-aa4712155dfd",
+  "pads": {
+   "1": "+5V",
+   "2": "V5_SNS"
+  }
+ },
+ {
+  "ref": "R86",
+  "value": "10k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "POSREF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/5a8b8ba5-d75d-5a64-86d9-e3beb0f82102",
+  "pads": {
+   "1": "V5_SNS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "C44",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "POSREF",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/4a5a266b-0206-5768-bf82-c7cc6fc4e123",
+  "pads": {
+   "1": "V5_SNS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "U16",
+  "value": "ADS1115IDGS",
+  "footprint": "Package_SO:TSSOP-10_3x3mm_P0.5mm",
+  "lib_id": "Analog_ADC:ADS1115IDGS",
+  "sheet": "actuators",
+  "block": "AADC",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/c0d2ff25-b78b-5a51-b140-46295be82e2e",
+  "pads": {
+   "1": "GND",
+   "10": "SCL_A",
+   "3": "GND",
+   "4": "A1_POS",
+   "5": "A2_POS",
+   "6": "A3_POS",
+   "7": "A4_POS",
+   "8": "+3V3A",
+   "9": "SDA_A"
+  }
+ },
+ {
+  "ref": "C45",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "AADC",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/c6b885c6-2403-5ba2-b219-391ad1c3f4e3",
+  "pads": {
+   "1": "+3V3A",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "U17",
+  "value": "ADS1115IDGS",
+  "footprint": "Package_SO:TSSOP-10_3x3mm_P0.5mm",
+  "lib_id": "Analog_ADC:ADS1115IDGS",
+  "sheet": "actuators",
+  "block": "AADC",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/de5893d5-4c66-5888-9e3c-73da61ca6b27",
+  "pads": {
+   "1": "+3V3A",
+   "10": "SCL_A",
+   "3": "GND",
+   "4": "A5_POS",
+   "5": "A6_POS",
+   "6": "VREF_SNS",
+   "7": "V5_SNS",
+   "8": "+3V3A",
+   "9": "SDA_A"
+  }
+ },
+ {
+  "ref": "C46",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "AADC",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/e555c493-eb42-52bf-b922-c1ff21661e5a",
+  "pads": {
+   "1": "+3V3A",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "J15",
+  "value": "IBT-2 #1",
+  "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical",
+  "lib_id": "Connector_Generic:Conn_01x08",
+  "sheet": "actuators",
+  "block": "A1",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/c42ea72e-a0e8-5fe8-a76c-6c515cc3ee86",
+  "pads": {
+   "1": "A1_RPWM5",
+   "2": "A1_LPWM5",
+   "3": "ACT_EN5",
+   "4": "ACT_EN5",
+   "5": "A1_IS",
+   "6": "A1_IS",
+   "7": "+5V",
+   "8": "GND"
+  }
+ },
+ {
+  "ref": "R87",
+  "value": "1k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A1",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/cd32c1a6-0ad4-534b-a2f5-1a79d87324bf",
+  "pads": {
+   "1": "A1_IS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R88",
+  "value": "4.7k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A1",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/7ec2563e-7396-5bcd-83c7-395eeef0656e",
+  "pads": {
+   "1": "A1_IS",
+   "2": "A1_ISA"
+  }
+ },
+ {
+  "ref": "C47",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "A1",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/2818e21f-cf89-59dd-8e37-0305e75e5984",
+  "pads": {
+   "1": "A1_ISA",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "J16",
+  "value": "POS 1",
+  "footprint": "TerminalBlock_Phoenix:TerminalBlock_Phoenix_PT-1,5-3-3.5-H_1x03_P3.50mm_Horizontal",
+  "lib_id": "Connector_Generic:Conn_01x03",
+  "sheet": "actuators",
+  "block": "A1",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/e6c3bff0-d033-560d-87c5-1f8971f93ee8",
+  "pads": {
+   "1": "A1_VREF",
+   "2": "A1_WIP",
+   "3": "GND"
+  }
+ },
+ {
+  "ref": "R89",
+  "value": "47",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A1",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/9a676585-bf04-5283-b891-55d74e9c375d",
+  "pads": {
+   "1": "+3V3_POT",
+   "2": "A1_VREF"
+  }
+ },
+ {
+  "ref": "R90",
+  "value": "1M",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A1",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/c23a0366-abb9-54ca-b336-e8e14e17933a",
+  "pads": {
+   "1": "A1_WIP",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R91",
+  "value": "4.7k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A1",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/12cc451b-52a8-5532-a783-c671647cb1c7",
+  "pads": {
+   "1": "A1_WIP",
+   "2": "A1_POS"
+  }
+ },
+ {
+  "ref": "C48",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "A1",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/6257d56e-bcc4-5c8b-a01b-306aa6853e86",
+  "pads": {
+   "1": "A1_POS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "D17",
+  "value": "BAT54S",
+  "footprint": "Package_TO_SOT_SMD:SOT-23",
+  "lib_id": "Diode:BAT54S",
+  "sheet": "actuators",
+  "block": "A1",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/af1f0457-2f0b-5a45-8444-80538bc41ad7",
+  "pads": {
+   "1": "GND",
+   "2": "+3V3A",
+   "3": "A1_POS"
+  }
+ },
+ {
+  "ref": "J17",
+  "value": "IBT-2 #2",
+  "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical",
+  "lib_id": "Connector_Generic:Conn_01x08",
+  "sheet": "actuators",
+  "block": "A2",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/71947494-e2c2-54f7-9b45-dfede07cec73",
+  "pads": {
+   "1": "A2_RPWM5",
+   "2": "A2_LPWM5",
+   "3": "ACT_EN5",
+   "4": "ACT_EN5",
+   "5": "A2_IS",
+   "6": "A2_IS",
+   "7": "+5V",
+   "8": "GND"
+  }
+ },
+ {
+  "ref": "R92",
+  "value": "1k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A2",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/ef517bcd-854e-5410-93d2-9742d6fad31f",
+  "pads": {
+   "1": "A2_IS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R93",
+  "value": "4.7k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A2",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/dc7dcd08-dd69-5954-a91d-d627c63cd261",
+  "pads": {
+   "1": "A2_IS",
+   "2": "A2_ISA"
+  }
+ },
+ {
+  "ref": "C49",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "A2",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/83325075-cb6d-5c17-a7b2-e2254ed23af8",
+  "pads": {
+   "1": "A2_ISA",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "J18",
+  "value": "POS 2",
+  "footprint": "TerminalBlock_Phoenix:TerminalBlock_Phoenix_PT-1,5-3-3.5-H_1x03_P3.50mm_Horizontal",
+  "lib_id": "Connector_Generic:Conn_01x03",
+  "sheet": "actuators",
+  "block": "A2",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/c09c90ef-bac8-526d-ba90-11aa5d01e9fe",
+  "pads": {
+   "1": "A2_VREF",
+   "2": "A2_WIP",
+   "3": "GND"
+  }
+ },
+ {
+  "ref": "R94",
+  "value": "47",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A2",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/08a49d9f-1a68-52cb-8aa2-9ec0df01c035",
+  "pads": {
+   "1": "+3V3_POT",
+   "2": "A2_VREF"
+  }
+ },
+ {
+  "ref": "R95",
+  "value": "1M",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A2",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/f3bdaf44-60a1-5f43-94a9-eec9d64fcdf4",
+  "pads": {
+   "1": "A2_WIP",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R96",
+  "value": "4.7k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A2",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/bd8c1f91-85e2-52c0-9e0d-272251629f88",
+  "pads": {
+   "1": "A2_WIP",
+   "2": "A2_POS"
+  }
+ },
+ {
+  "ref": "C50",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "A2",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/a22bc450-ebcc-5d74-817d-080a7adbfbf4",
+  "pads": {
+   "1": "A2_POS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "D18",
+  "value": "BAT54S",
+  "footprint": "Package_TO_SOT_SMD:SOT-23",
+  "lib_id": "Diode:BAT54S",
+  "sheet": "actuators",
+  "block": "A2",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/592fe3d0-e5bd-5723-a6f0-13b85218f549",
+  "pads": {
+   "1": "GND",
+   "2": "+3V3A",
+   "3": "A2_POS"
+  }
+ },
+ {
+  "ref": "J19",
+  "value": "IBT-2 #3",
+  "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical",
+  "lib_id": "Connector_Generic:Conn_01x08",
+  "sheet": "actuators",
+  "block": "A3",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/99d3f56f-15ac-5eda-839c-2188c33db57e",
+  "pads": {
+   "1": "A3_RPWM5",
+   "2": "A3_LPWM5",
+   "3": "ACT_EN5",
+   "4": "ACT_EN5",
+   "5": "A3_IS",
+   "6": "A3_IS",
+   "7": "+5V",
+   "8": "GND"
+  }
+ },
+ {
+  "ref": "R97",
+  "value": "1k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A3",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/b6788518-3161-577b-9442-40e03531a940",
+  "pads": {
+   "1": "A3_IS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R98",
+  "value": "4.7k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A3",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/b3d32278-b4a4-5fcd-b3ed-a36d6077b65c",
+  "pads": {
+   "1": "A3_IS",
+   "2": "A3_ISA"
+  }
+ },
+ {
+  "ref": "C51",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "A3",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/c60b2dbc-5a74-55d4-a558-1e722f49bc33",
+  "pads": {
+   "1": "A3_ISA",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "J20",
+  "value": "POS 3",
+  "footprint": "TerminalBlock_Phoenix:TerminalBlock_Phoenix_PT-1,5-3-3.5-H_1x03_P3.50mm_Horizontal",
+  "lib_id": "Connector_Generic:Conn_01x03",
+  "sheet": "actuators",
+  "block": "A3",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/05882e41-ea03-5ba4-a05e-a1a9576f8f8f",
+  "pads": {
+   "1": "A3_VREF",
+   "2": "A3_WIP",
+   "3": "GND"
+  }
+ },
+ {
+  "ref": "R99",
+  "value": "47",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A3",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/72fbf3ac-ed16-5d94-b64d-83bfb154166f",
+  "pads": {
+   "1": "+3V3_POT",
+   "2": "A3_VREF"
+  }
+ },
+ {
+  "ref": "R100",
+  "value": "1M",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A3",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/66cbc4b9-f75a-54c9-b675-3a0285a19195",
+  "pads": {
+   "1": "A3_WIP",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R101",
+  "value": "4.7k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A3",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/e576970e-eeee-51d9-85db-4030fa6a99cb",
+  "pads": {
+   "1": "A3_WIP",
+   "2": "A3_POS"
+  }
+ },
+ {
+  "ref": "C52",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "A3",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/a821557d-f4f7-53c6-9d6f-08cbc90b79d9",
+  "pads": {
+   "1": "A3_POS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "D19",
+  "value": "BAT54S",
+  "footprint": "Package_TO_SOT_SMD:SOT-23",
+  "lib_id": "Diode:BAT54S",
+  "sheet": "actuators",
+  "block": "A3",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/4488925a-f53f-54d8-8a44-61afd62bffea",
+  "pads": {
+   "1": "GND",
+   "2": "+3V3A",
+   "3": "A3_POS"
+  }
+ },
+ {
+  "ref": "J21",
+  "value": "IBT-2 #4",
+  "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical",
+  "lib_id": "Connector_Generic:Conn_01x08",
+  "sheet": "actuators",
+  "block": "A4",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/2784aab6-aade-528c-9472-510d1440864e",
+  "pads": {
+   "1": "A4_RPWM5",
+   "2": "A4_LPWM5",
+   "3": "ACT_EN5",
+   "4": "ACT_EN5",
+   "5": "A4_IS",
+   "6": "A4_IS",
+   "7": "+5V",
+   "8": "GND"
+  }
+ },
+ {
+  "ref": "R102",
+  "value": "1k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A4",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/cac69a94-3da0-5c3e-a785-925486b7f3ec",
+  "pads": {
+   "1": "A4_IS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R103",
+  "value": "4.7k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A4",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/90d373af-e22b-5059-bafd-360a15ed6870",
+  "pads": {
+   "1": "A4_IS",
+   "2": "A4_ISA"
+  }
+ },
+ {
+  "ref": "C53",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "A4",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/7158143f-c214-5468-854d-c1d5fef9d2b6",
+  "pads": {
+   "1": "A4_ISA",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "J22",
+  "value": "POS 4",
+  "footprint": "TerminalBlock_Phoenix:TerminalBlock_Phoenix_PT-1,5-3-3.5-H_1x03_P3.50mm_Horizontal",
+  "lib_id": "Connector_Generic:Conn_01x03",
+  "sheet": "actuators",
+  "block": "A4",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/1ad49961-efb4-5f9a-998b-dd5defdcf50b",
+  "pads": {
+   "1": "A4_VREF",
+   "2": "A4_WIP",
+   "3": "GND"
+  }
+ },
+ {
+  "ref": "R104",
+  "value": "47",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A4",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/d858cc6c-2b78-5fe4-8e5a-5c6d27ad2ec6",
+  "pads": {
+   "1": "+3V3_POT",
+   "2": "A4_VREF"
+  }
+ },
+ {
+  "ref": "R105",
+  "value": "1M",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A4",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/a5747390-cf07-581d-88a7-a9f45d261752",
+  "pads": {
+   "1": "A4_WIP",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R106",
+  "value": "4.7k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A4",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/b4a74846-7679-5bf3-9fc9-61b36b12d112",
+  "pads": {
+   "1": "A4_WIP",
+   "2": "A4_POS"
+  }
+ },
+ {
+  "ref": "C54",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "A4",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/b5b69eb0-77ea-5489-bc22-a0aeb55725d4",
+  "pads": {
+   "1": "A4_POS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "D20",
+  "value": "BAT54S",
+  "footprint": "Package_TO_SOT_SMD:SOT-23",
+  "lib_id": "Diode:BAT54S",
+  "sheet": "actuators",
+  "block": "A4",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/724ce839-3370-56fb-8c00-f22e57686431",
+  "pads": {
+   "1": "GND",
+   "2": "+3V3A",
+   "3": "A4_POS"
+  }
+ },
+ {
+  "ref": "J23",
+  "value": "IBT-2 #5",
+  "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical",
+  "lib_id": "Connector_Generic:Conn_01x08",
+  "sheet": "actuators",
+  "block": "A5",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/4177d0c9-ec6a-5f3d-ac6b-25584f7ef1e5",
+  "pads": {
+   "1": "A5_RPWM5",
+   "2": "A5_LPWM5",
+   "3": "ACT_EN5",
+   "4": "ACT_EN5",
+   "5": "A5_IS",
+   "6": "A5_IS",
+   "7": "+5V",
+   "8": "GND"
+  }
+ },
+ {
+  "ref": "R107",
+  "value": "1k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A5",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/04fba35f-71e8-5afc-99a8-fe4c630df9cd",
+  "pads": {
+   "1": "A5_IS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R108",
+  "value": "4.7k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A5",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/ce8a2cad-44e5-5eb3-af53-a5d986a84088",
+  "pads": {
+   "1": "A5_IS",
+   "2": "A5_ISA"
+  }
+ },
+ {
+  "ref": "C55",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "A5",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/0238c2fd-488a-5a8d-897e-7337aa6f0ac7",
+  "pads": {
+   "1": "A5_ISA",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "J24",
+  "value": "POS 5",
+  "footprint": "TerminalBlock_Phoenix:TerminalBlock_Phoenix_PT-1,5-3-3.5-H_1x03_P3.50mm_Horizontal",
+  "lib_id": "Connector_Generic:Conn_01x03",
+  "sheet": "actuators",
+  "block": "A5",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/a8328d8a-47a8-5adc-970c-fce5896718fa",
+  "pads": {
+   "1": "A5_VREF",
+   "2": "A5_WIP",
+   "3": "GND"
+  }
+ },
+ {
+  "ref": "R109",
+  "value": "47",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A5",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/0de39c3c-af21-5f58-9e77-679a049c48f7",
+  "pads": {
+   "1": "+3V3_POT",
+   "2": "A5_VREF"
+  }
+ },
+ {
+  "ref": "R110",
+  "value": "1M",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A5",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/a14f518c-1df2-51d5-9d6f-bbba1b6ad68e",
+  "pads": {
+   "1": "A5_WIP",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R111",
+  "value": "4.7k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A5",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/014f3d1d-217f-5542-99db-5ef174582d2a",
+  "pads": {
+   "1": "A5_WIP",
+   "2": "A5_POS"
+  }
+ },
+ {
+  "ref": "C56",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "A5",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/a9edfcb3-32b1-5bc4-bc7b-06dba16c49d9",
+  "pads": {
+   "1": "A5_POS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "D21",
+  "value": "BAT54S",
+  "footprint": "Package_TO_SOT_SMD:SOT-23",
+  "lib_id": "Diode:BAT54S",
+  "sheet": "actuators",
+  "block": "A5",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/c00e9ce2-bdcb-536a-9ea2-16031d1da034",
+  "pads": {
+   "1": "GND",
+   "2": "+3V3A",
+   "3": "A5_POS"
+  }
+ },
+ {
+  "ref": "J25",
+  "value": "IBT-2 #6",
+  "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical",
+  "lib_id": "Connector_Generic:Conn_01x08",
+  "sheet": "actuators",
+  "block": "A6",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/26786518-fee4-5603-8401-f79c69d2889d",
+  "pads": {
+   "1": "A6_RPWM5",
+   "2": "A6_LPWM5",
+   "3": "ACT_EN5",
+   "4": "ACT_EN5",
+   "5": "A6_IS",
+   "6": "A6_IS",
+   "7": "+5V",
+   "8": "GND"
+  }
+ },
+ {
+  "ref": "R112",
+  "value": "1k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A6",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/14bef177-93d5-595e-81b1-03faa4420099",
+  "pads": {
+   "1": "A6_IS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R113",
+  "value": "4.7k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A6",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/b63b2126-9bd9-5cd0-855d-f8a4037c8b78",
+  "pads": {
+   "1": "A6_IS",
+   "2": "A6_ISA"
+  }
+ },
+ {
+  "ref": "C57",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "A6",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/2ecaed1d-ff46-5003-8dad-14ba4feab676",
+  "pads": {
+   "1": "A6_ISA",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "J26",
+  "value": "POS 6",
+  "footprint": "TerminalBlock_Phoenix:TerminalBlock_Phoenix_PT-1,5-3-3.5-H_1x03_P3.50mm_Horizontal",
+  "lib_id": "Connector_Generic:Conn_01x03",
+  "sheet": "actuators",
+  "block": "A6",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/b45983f9-c64d-5d6b-8e6c-c3b5a57e9163",
+  "pads": {
+   "1": "A6_VREF",
+   "2": "A6_WIP",
+   "3": "GND"
+  }
+ },
+ {
+  "ref": "R114",
+  "value": "47",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A6",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/176e6722-fa3a-55ba-9865-bda9a32b2e80",
+  "pads": {
+   "1": "+3V3_POT",
+   "2": "A6_VREF"
+  }
+ },
+ {
+  "ref": "R115",
+  "value": "1M",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A6",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/02918144-6513-5b20-a943-7e7b50027061",
+  "pads": {
+   "1": "A6_WIP",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "R116",
+  "value": "4.7k",
+  "footprint": "Resistor_SMD:R_0603_1608Metric",
+  "lib_id": "Device:R",
+  "sheet": "actuators",
+  "block": "A6",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/5414aad3-6309-5117-bb51-e5e1fb0343e8",
+  "pads": {
+   "1": "A6_WIP",
+   "2": "A6_POS"
+  }
+ },
+ {
+  "ref": "C58",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "A6",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/b29064aa-bea9-5046-9166-ee449e592758",
+  "pads": {
+   "1": "A6_POS",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "D22",
+  "value": "BAT54S",
+  "footprint": "Package_TO_SOT_SMD:SOT-23",
+  "lib_id": "Diode:BAT54S",
+  "sheet": "actuators",
+  "block": "A6",
+  "dnp": false,
+  "fields": {},
+  "path": "/06eab743-9b71-5d2f-8b74-705f790d8491/8d4a4a83-8b84-587e-b837-bff822cb85a1",
+  "pads": {
+   "1": "GND",
+   "2": "+3V3A",
+   "3": "A6_POS"
+  }
+ }
+]

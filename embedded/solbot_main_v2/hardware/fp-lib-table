@@ -1,0 +1,3 @@
+(fp_lib_table
+  (lib (name "solbot")(type "KiCad")(uri "${KIPRJMOD}/lib/solbot.pretty")(options "")(descr "Project footprints"))
+)

@@ -1,0 +1,42 @@
+Qty,Value,Footprint,MPN / note,References
+13,100n,C_0603_1608Metric,,C10 C11 C12 C14 C15 C16 C17 C18 C19 C20 C21 C22 C23
+4,10u 25V,C_0805_2012Metric,,C3 C5 C6 C13
+2,10u 50V,C_1206_3216Metric,,C1 C2
+2,1u,C_0603_1608Metric,,C8 C9
+2,22u 25V,C_0805_2012Metric,,C4 C7
+5,BAV99,SOT-23,,D5 D9 D10 D11 D12
+1,KT-0603R red,LED_0603_1608Metric,,D8
+1,KT-0805G green,LED_0805_2012Metric,,D4
+2,KT-0805Y yellow,LED_0805_2012Metric,,D6 D7
+1,SMBJ18A,D_SMB,,D2
+2,SS34,D_SMA,,D1 D3
+1,12V IN,"TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal",,J1
+1,BUS SENSE,"TerminalBlock_Phoenix_PT-1,5-2-3.5-H_1x02_P3.50mm_Horizontal",,J2
+1,E-STOP (NC loop),"TerminalBlock_Phoenix_PT-1,5-2-3.5-H_1x02_P3.50mm_Horizontal",,J5
+1,IBT-2 LIFT,IDC-Header_2x05_P2.54mm_Vertical,,J9
+1,IBT-2 SLIDE,IDC-Header_2x05_P2.54mm_Vertical,,J11
+1,IBT-2 SPARE,IDC-Header_2x05_P2.54mm_Vertical,,J13
+1,IBT-2 TURN,IDC-Header_2x05_P2.54mm_Vertical,,J7
+1,IMU BNO085,JST_XH_B6B-XH-A_1x06_P2.50mm_Vertical,,J6
+1,POS LIFT (+ W -),"TerminalBlock_Phoenix_PT-1,5-3-3.5-H_1x03_P3.50mm_Horizontal",,J10
+1,POS SLIDE (+ W -),"TerminalBlock_Phoenix_PT-1,5-3-3.5-H_1x03_P3.50mm_Horizontal",,J12
+1,POS SPARE (+ W -),"TerminalBlock_Phoenix_PT-1,5-3-3.5-H_1x03_P3.50mm_Horizontal",,J14
+1,POS TURN (+ W -),"TerminalBlock_Phoenix_PT-1,5-3-3.5-H_1x03_P3.50mm_Horizontal",,J8
+1,SSR1 PV (+in / -in),"TerminalBlock_Phoenix_PT-1,5-2-3.5-H_1x02_P3.50mm_Horizontal",,J3
+1,SSR2 PV (+in / -in),"TerminalBlock_Phoenix_PT-1,5-2-3.5-H_1x02_P3.50mm_Horizontal",,J4
+4,2N7002,SOT-23,,Q1 Q2 Q3 Q4
+2,100,R_0603_1608Metric,,R9 R12
+4,100k,R_0603_1608Metric,,R7 R10 R13 R20
+12,10k,R_0603_1608Metric,,R8 R21 R22 R24 R25 R26 R27 R28 R29 R30 R31 R32
+4,1M,R_0603_1608Metric,,R36 R41 R46 R51
+10,1k,R_0603_1608Metric,,R15 R19 R33 R35 R38 R40 R43 R45 R48 R50
+2,2.2k,R_0603_1608Metric,,R3 R23
+2,22R 0.25W,R_1206_3216Metric,,R1 R2
+1,30k,R_0603_1608Metric,,R6
+12,4.7k,R_0603_1608Metric,,R11 R14 R16 R17 R34 R37 R39 R42 R44 R47 R49 R52
+1,470,R_0603_1608Metric,,R18
+2,470k 150V,R_0805_2012Metric,,R4 R5
+2,74HC14D,SOIC-14_3.9x8.7mm_P1.27mm,,U5 U6
+2,AMS1117-5.0,SOT-223-3_TabPin2,,U1 U2
+1,ESP32-S3-DevKitC-1,ESP32-S3-DevKitC-1_Socket,,U4
+1,XC6206P332MR-G,SOT-23-3,,U3
