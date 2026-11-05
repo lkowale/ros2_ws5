@@ -52,10 +52,14 @@ Gotchas:
   Re-flash: `cd ~/ros2_ws4/embedded/main_esp32_pio && OTA_HOST=192.168.0.104 ~/.platformio/penv/bin/pio run -e esp32dev_ota -t upload`
 - [x] Firmware safeguards in `main_esp32_pio` (ws4): toolbar idle until the first `toolbar/set_position`, stall
   (1.5 s, ≤3 counts) and max-drive-time (20 s) trips, `TPS_fault` / `TPS_active` in `ads`. Built, host unit-tested.
-  - [ ] set `TOOLBAR_GOAL_MIN` / `TOOLBAR_GOAL_MAX` (end-of-travel TPS) and OTA-flash
-  - [ ] tune `TOOLBAR_MAX_DRIVE_MS` to the measured full-travel time
-- [ ] Calibrate `counts_at_min` / `counts_at_max` in `src/solbot4_toolbar/config/toolbar.yaml` (placeholders 400 / 1400)
-- [ ] Wire the actuator, `toolbar enable`, small `set_position` moves
+  - [x] goal clamp 370..1280 (~2 mm inside the ends), max drive 10 s. OTA-flashed 2026-11-05
+- [ ] First powered move: check direction. `toolbar_act` is `CW`, meaning error > 0 (goal counts > TPS, i.e. moving left)
+  drives RPWM (GPIO26). If it runs the wrong way, the stall or jam trip stops it. Fix with `Lin_act_pid::CCW`
+  or by swapping the motor leads
+- [ ] Vision loop on solbot4: `tool_slider_controller` `slider_limit_m` is 0.10 in the sim, but the real travel is ±0.05
+- [x] Calibrated: TPS **1300 far left, 350 far right**, 100 mm stroke (9.5 counts/mm, counts fall going right),
+  actuator 15 mm/s (full stroke ~6.7 s). Node limits ±0.050 m (centre 825 counts)
+- [ ] Wire the actuator, `toolbar enable` (holds at the current position, clamped into 370..1280), small `set_position` moves
 - [x] IBT-2 pins: GPIO26 RPWM / GPIO27 LPWM (confirmed 2026-11-05)
 - [ ] Vision loop on solbot4: deploy `tool_slider` + `crop_row_vision` (`PKGS=... bash pd600.sh deploy`), camera topic on solbot4
 
@@ -120,6 +124,11 @@ range with a meter before connecting it to an ESP32 ADC pin, and use a divider
 Newest first. Toolbar and solbot4-test work. Add an entry with every change.
 
 ### 2026-11-05
+- **Toolbar calibrated and firmware flashed:** TPS 1300 left / 350 right, 100 mm stroke, 15 mm/s.
+  `solbot4_toolbar/config/toolbar.yaml`: ±0.050 m, counts 1300/350, tolerances 2 mm and jam 5 mm.
+  Firmware: clamp 370..1280, max drive 10 s. OTA-flashed: boots idle (`TPS_active` false, PWM 0). Before the flash,
+  the old firmware was again driving PWM 250 (goal 1313, TPS 495, after the toolbar was moved by hand to measure).
+  Deployed to pd600.
 - **Firmware toolbar safeguards** (ws4 `main_esp32_pio`, `Lin_act_pid::enable_safeguards`, opt-in, so steering and lift
   are unchanged): idle at boot until the first command, goal clamp, stall trip (driving, ≤3 counts of movement in
   1.5 s) and timeout trip (driving > 20 s). Trips stop the motor and set goal := position, and a new
