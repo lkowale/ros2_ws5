@@ -53,6 +53,11 @@ Gotchas:
 - [x] Firmware safeguards in `main_esp32_pio` (ws4): toolbar idle until the first `toolbar/set_position`, stall
   (1.5 s, ≤3 counts) and max-drive-time (20 s) trips, `TPS_fault` / `TPS_active` in `ads`. Built, host unit-tested.
   - [x] goal clamp 370..1280 (~4 mm inside the ends), max drive 10 s. OTA-flashed 2026-11-05
+- [ ] Actuator does not move (first test 2026-11-05: PWM ~142 for 1.5 s, TPS 982–983 unchanged, firmware stall trip).
+  Check: actuator connected to IBT-2 M+/M-, 12 V motor supply on B+/B-, IBT-2 VCC 5 V + R_EN/L_EN high,
+  PWM on GPIO26/27 reaching RPWM/LPWM, pot mechanically coupled to the toolbar
+- [ ] Node: on a firmware-reported fault, `_latch` sends a hold goal, which re-arms the firmware (`TPS_active` true).
+  It should leave the firmware idle
 - [ ] First powered move: check direction. `toolbar_act` is `CW`, meaning error > 0 (goal counts > TPS, i.e. moving left)
   drives RPWM (GPIO26). If it runs the wrong way, the stall or jam trip stops it. Fix with `Lin_act_pid::CCW`
   or by swapping the motor leads
@@ -123,6 +128,10 @@ range with a meter before connecting it to an ESP32 ADC pin, and use a divider
 Newest first. Toolbar and solbot4-test work. Add an entry with every change.
 
 ### 2026-11-05
+- **First powered toolbar test** (standalone `toolbar_service` on pd600, no robot stack): enable held at TPS 983
+  (−0.033 m). `set_position −0.023` (goal 934) drove PWM ~142 for 1.5 s, but TPS stayed at 982–983. The firmware
+  tripped `stall`, the node latched `actuator_fault`. **No movement, so the direction is still unknown.**
+  The safeguards worked as designed.
 - **Toolbar travel corrected to ±0.10 m** (200 mm toolbar travel from the 100 mm actuator stroke): node limits
   ±0.10 m, 4.75 counts/mm. Firmware clamp and timers are unchanged (counts/seconds), comments only, no reflash.
 - **Toolbar calibrated and firmware flashed:** TPS 1300 left / 350 right, actuator 100 mm stroke, 15 mm/s.
