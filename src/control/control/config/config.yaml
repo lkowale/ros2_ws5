@@ -23,6 +23,20 @@ wheels:
 lift:
   up_position: 800
   down_position: 1100
+toolbar:                     # control/toolbar_service, metres from centre, +right
+  actuator_enabled: false    # monitor only until the actuator is wired; or `toolbar/cmd enable`
+  firmware: solbot_main      # solbot_main (metres) | main_esp32_pio (solbot4, counts)
+  device_name: ESP32_solbot_main
+  min_position: -0.10        # soft limits enforced by the node (keep inside firmware u_min/u_max)
+  max_position: 0.10
+  center_position: 0.0
+  sensor_margin: 0.02        # TBS beyond limits by more than this = sensor fault
+  position_tolerance: 0.005  # at_target / in_motion threshold
+  cmd_timeout_s: 1.0         # auto stream silence before holding
+  sensor_timeout_s: 1.0
+  jam_tolerance: 0.01        # jam if error > this ...
+  jam_progress: 0.003        # ... and it moved less than this ...
+  jam_timeout_s: 3.0         # ... for this long
 drive:
   speed_multiplier: 5
 planter:

@@ -1,0 +1,19 @@
+# Toolbar control service (control/toolbar_service)
+# Commands:
+#   set_position  move to `position` (m), switches to manual mode
+#   center        move to configured centre, switches to manual mode
+#   hold          hold current position, switches to manual mode
+#   auto          follow /tool_bar_position_cmd stream again
+#   enable        allow commands to reach the actuator
+#   disable       monitor only, actuator holds where it is
+#   reset_fault   clear a latched fault (holds current position)
+#   get_status
+
+string command
+float32 position
+---
+bool success
+string message
+string state
+float32 current_position
+float32 target_position
