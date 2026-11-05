@@ -59,7 +59,7 @@ Gotchas:
 - [x] Direction correct, no change needed (`CW`): +right → TPS falls, −left → TPS rises. Both IBT-2 inputs work
 - [x] Calibrated: TPS **1300 far left, 350 far right**, toolbar travel **±0.10 m** (200 mm; actuator stroke
   100 mm at 15 mm/s, full stroke ~6.7 s) → 4.75 counts/mm, counts fall going right. Centre 825 counts
-- [ ] Wire the actuator, `toolbar enable` (holds at the current position, clamped into 370..1280), small `set_position` moves
+- [x] Wire the actuator, `toolbar enable` (holds at the current position, clamped into 370..1280), small `set_position` moves
 - [x] IBT-2 pins: GPIO26 RPWM / GPIO27 LPWM (confirmed 2026-11-05)
 - [ ] Vision loop on solbot4: deploy `tool_slider` + `crop_row_vision` (`PKGS=... bash pd600.sh deploy`), camera topic on solbot4
 
