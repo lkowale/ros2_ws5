@@ -7,20 +7,21 @@ toolbar_service:
     firmware: main_esp32_pio
     actuator_enabled: false   # monitor only until calibrated + actuator wired;
                               # runtime (laptop): bash pd600.sh toolbar enable
-    # --- calibration, measured 2026-11-05: TPS 1300 far left, 350 far right, 100 mm stroke
-    # (9.5 counts/mm, counts fall going right). Firmware additionally clamps goals to
-    # 370..1280 (~2 mm inside the ends, TOOLBAR_GOAL_MIN/MAX in main_esp32_pio).
+    # --- calibration, measured 2026-11-05: TPS 1300 far left, 350 far right, toolbar travel
+    # ±0.10 m (200 mm; actuator stroke 100 mm) -> 4.75 counts/mm, counts fall going right.
+    # Firmware additionally clamps goals to 370..1280 (~4 mm inside the ends,
+    # TOOLBAR_GOAL_MIN/MAX in main_esp32_pio).
     counts_at_min: 1300.0     # raw TPS at min_position (left end)
     counts_at_max: 350.0      # raw TPS at max_position (right end)
-    min_position: -0.050
-    max_position: 0.050
+    min_position: -0.10
+    max_position: 0.10
     center_position: 0.0      # = 825 counts
     raw_valid_min: 10.0       # TPS outside this = pot open / shorted -> sensor_fault
     raw_valid_max: 1650.0
     sensor_margin: 0.02       # beyond limits by more than this = sensor_out_of_range
-    position_tolerance: 0.002 # ~19 counts
+    position_tolerance: 0.002 # ~10 counts
     cmd_timeout_s: 1.0
     sensor_timeout_s: 1.0     # ads arrives every ~150 ms
-    jam_tolerance: 0.005      # ~48 counts
-    jam_progress: 0.002       # must move ~19 counts ...
+    jam_tolerance: 0.005      # ~24 counts
+    jam_progress: 0.002       # must move ~10 counts ...
     jam_timeout_s: 3.0        # ... within this (15 mm/s actuator: full stroke ~6.7 s)
