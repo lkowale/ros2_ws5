@@ -51,14 +51,10 @@ Gotchas:
 - [ ] Confirm the pd600 ESP32 runs `main_esp32_pio` ≥ ws4 `ee2e8b7` (publishes `TPS`). If not, `state` shows `no_sensor`
 - [ ] Calibrate `counts_at_min` / `counts_at_max` in `src/solbot4_toolbar/config/toolbar.yaml` (placeholders 400 / 1400)
 - [ ] Wire the actuator, `toolbar enable`, small `set_position` moves
-- [ ] Resolve the IBT-2 pin mismatch (see below)
+- [x] IBT-2 pins: GPIO26 RPWM / GPIO27 LPWM (confirmed 2026-11-05)
 - [ ] Vision loop on solbot4: deploy `tool_slider` + `crop_row_vision` (`PKGS=... bash pd600.sh deploy`), camera topic on solbot4
 
 ## Tool slider actuator — IBT-2 on the old main ESP32 board
-
-> **Mismatch:** the assignment below (RPWM 27 / LPWM 13) is not what ws4 commit `ee2e8b7` put in
-> `main_esp32_pio` (`TOOLBAR_RPWM_PIN 26`, `TOOLBAR_LPWM_PIN 27`, LEDC ch 4/5, sensor on ADS A2).
-> Check which matches the wiring before driving the actuator.
 
 The sliding toolbar actuator is driven by an IBT-2 (BTS7960) plugged into one of
 the spare IBT-2 ports on the old classic-ESP32 main board.
@@ -72,9 +68,9 @@ Sources:
 | Port (solbot2)   | RPWM | LPWM | Current use (main_esp32_pio)                         |
 |------------------|------|------|------------------------------------------------------|
 | Front-left wheel | 32   | 33   | taken: steering_act (LEDC ch 0/1)                    |
-| Front-right wheel| 25   | 26   | 25 taken: `PV_SWITCH_PIN`; 26 free                   |
+| Front-right wheel| 25   | 26   | 25 taken: `PV_SWITCH_PIN`; **26 = toolbar RPWM**     |
 | Rear-left wheel  | 23   | 22   | 22 taken: I2C SCL (BNO08x + ADS1115, default Wire)   |
-| **Rear-right wheel** | **27** | **13** | **free**                                   |
+| Rear-right wheel | 27   | 13   | **27 = toolbar LPWM**; 13 free                       |
 | Lifter           | 19   | 21   | 21 taken: I2C SDA                                    |
 | Planter          | 18   | 17   | taken: lift_act (LEDC ch 2/3)                        |
 | LAS analog in    | 35   | –    | free (input-only ADC)                                |
@@ -83,18 +79,20 @@ Also in use: GPIO34 = steering pot ADC.
 
 ### Assignment for the slider
 
-- RPWM = **GPIO27**, LPWM = **GPIO13** (old rear-right wheel port). Neither is a
-  strapping pin. GPIO13 is a JTAG pin, which only matters if you debug over JTAG.
+Used (confirmed 2026-11-05), as in ws4 `main_esp32_pio` since `ee2e8b7`:
+
+- RPWM = **GPIO26**, LPWM = **GPIO27**. Neither is a strapping pin.
 - LEDC channels **4 / 5** (5 kHz, 8-bit, same as `IBT_2.cpp`)
-- Optional position feedback: GPIO35 (or 36/39, input-only ADC), or a spare ADS1115 channel
+- Position sensor (TPS): **ADS1115 AIN2** (`TOOLBAR_ADS_CH 2`), published as `TPS` in the `ads` topic
 
 ```cpp
-Lin_act_pid slider_act;
-slider_act.begin(0, "slider_act", 27, 13, 4, 5, Lin_act_pid::CW);
+#define TOOLBAR_RPWM_PIN 26
+#define TOOLBAR_LPWM_PIN 27
+#define TOOLBAR_ADS_CH   2
+toolbar_act.begin(0, "toolbar_act", TOOLBAR_RPWM_PIN, TOOLBAR_LPWM_PIN, 4, 5, Lin_act_pid::CW);
 ```
 
-Not yet checked on the physical board: confirm the rear-right header actually
-routes to GPIO27/13 and provides 5V/GND and R_EN/L_EN for the IBT-2.
+(An earlier plan used RPWM 27 / LPWM 13, the old rear-right wheel port. Not used.)
 
 ## WAS (wheel angle sensor) — salvaged BMW position sensor
 
@@ -117,6 +115,8 @@ range with a meter before connecting it to an ESP32 ADC pin, and use a divider
 Newest first. Toolbar and solbot4-test work. Add an entry with every change.
 
 ### 2026-11-05
+- **Toolbar IBT-2 pins confirmed:** GPIO26 RPWM / GPIO27 LPWM (matches `main_esp32_pio`). README hardware
+  section corrected (it had said 27/13).
 - **Toolbar runs on solbot4 from ws5** (`bfe66d9`): `toolbar_service` moved from `control` into its own
   `toolbar` package. Interfaces moved from `solbot5_msgs` into `toolbar_msgs`. New `solbot4_toolbar` package
   (launch + solbot4 calibration), `pd600.sh` (laptop: deploy/start/attach/stop/status/state/toolbar/ros2),
