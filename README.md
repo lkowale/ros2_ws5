@@ -1,6 +1,64 @@
 # ros2_ws5
 
+## Sliding toolbar — software
+
+All toolbar code lives here (ros2_ws5). It runs in the Gazebo sim and, for testing,
+on the physical **solbot4** robot (pd600) as an overlay on `~/ros2_ws4`. Do not copy
+it into ros2_ws4; change it here and redeploy.
+
+| Package | What |
+|---|---|
+| `toolbar` | `toolbar_service`: executes toolbar moves, enforces soft limits, monitors the actuator, reports to PauseManager. `firmware` param: `solbot_main` (solbot5 board, metres) or `main_esp32_pio` (solbot4 board, ADC counts). Config: `config/toolbar_solbot5.yaml` |
+| `toolbar_msgs` | `ToolbarState.msg` (`/toolbar/state`, 10 Hz), `ToolbarControl.srv` (`/toolbar_control`) |
+| `solbot4_toolbar` | solbot4 launch (`core_toolbar.launch.py` = ws4 `pd600_core.launch.py` + `toolbar_service`) and calibration (`config/toolbar.yaml`) |
+| `tool_slider` | `tool_slider_controller` (row offset → `/tool_bar_position_cmd`, PID), sim actuator + plant-row sim |
+| `crop_row_vision` | camera crop-row detection → `/plant_row_offset` |
+
+Interface (metres from centre, +right): `toolbar_service` follows `/tool_bar_position_cmd`
+in `auto` mode and publishes the measured `/tool_bar_position`, the same topics
+`tool_actuator_sim` uses in the sim. Commands: `set_position`, `center`, `hold`, `auto`,
+`enable`, `disable`, `reset_fault`, `get_status` (service `/toolbar_control` or
+topic `/toolbar/cmd`). Starts **monitor only** (`actuator_enabled: false`). A disabled
+toolbar never pauses the robot.
+
+### Running on solbot4 from the laptop
+
+```bash
+bash pd600.sh deploy                # rsync toolbar packages to pd600:~/ros2_ws5, build there on ws4
+bash pd600.sh start                 # core stack (run_core_um982.sh, field_nav_hw params) + toolbar, tmux "solbot4"
+bash pd600.sh attach                # watch (Ctrl-b d detach, Ctrl-c stop)
+bash pd600.sh state                 # one /toolbar/state (raw_position = TPS counts)
+bash pd600.sh toolbar enable        # set_position 0.02 | center | hold | auto | reset_fault | disable
+bash pd600.sh stop | status
+bash pd600.sh ros2 <args...>        # any ros2 command on the robot
+```
+
+Requirements on pd600: `~/ros2_ws4` on branch `feature/toolbar-service` (adds the
+`CORE_PKG` / `CORE_LAUNCH` / `OVERLAY_SETUP` hook to `run_core_um982.sh`).
+`pd600:~/ros2_ws5` is build-only: `deploy` overwrites it, and the deployed version is in `DEPLOYED`.
+
+Gotchas:
+- ws4's `run_core*.sh` begin with `pkill -9 -f "ros2|..."`, which kills **any** process with "ros2" in its
+  command line, `ros2_ws5` paths included. `pd600.sh start` avoids this. If you start by hand, use
+  `cd ~/ros2_ws5 && bash run_solbot4_toolbar.sh` from an interactive shell.
+- After removing messages from a rosidl package, rebuild it clean (`rm -rf build/<pkg> install/<pkg>`),
+  otherwise typesupport fails to import.
+- solbot4 firmware (`main_esp32_pio`) has no goal clamp and no stall, overcurrent or comm-timeout
+  protection. The node's limits and jam check are the only guard.
+
+### Status / TODO
+
+- [ ] Confirm the pd600 ESP32 runs `main_esp32_pio` ≥ ws4 `ee2e8b7` (publishes `TPS`). If not, `state` shows `no_sensor`
+- [ ] Calibrate `counts_at_min` / `counts_at_max` in `src/solbot4_toolbar/config/toolbar.yaml` (placeholders 400 / 1400)
+- [ ] Wire the actuator, `toolbar enable`, small `set_position` moves
+- [ ] Resolve the IBT-2 pin mismatch (see below)
+- [ ] Vision loop on solbot4: deploy `tool_slider` + `crop_row_vision` (`PKGS=... bash pd600.sh deploy`), camera topic on solbot4
+
 ## Tool slider actuator — IBT-2 on the old main ESP32 board
+
+> **Mismatch:** the assignment below (RPWM 27 / LPWM 13) is not what ws4 commit `ee2e8b7` put in
+> `main_esp32_pio` (`TOOLBAR_RPWM_PIN 26`, `TOOLBAR_LPWM_PIN 27`, LEDC ch 4/5, sensor on ADS A2).
+> Check which matches the wiring before driving the actuator.
 
 The sliding toolbar actuator is driven by an IBT-2 (BTS7960) plugged into one of
 the spare IBT-2 ports on the old classic-ESP32 main board.
@@ -53,3 +111,25 @@ Pins 2 and 3: unknown / not used.
 The sensor runs on 5 V, so its output may go above 3.3 V. Measure the signal
 range with a meter before connecting it to an ESP32 ADC pin, and use a divider
 (e.g. 10k/20k) if it exceeds ~3.1 V.
+
+## Changelog
+
+Newest first. Toolbar and solbot4-test work. Add an entry with every change.
+
+### 2026-11-05
+- **Toolbar runs on solbot4 from ws5** (`bfe66d9`): `toolbar_service` moved from `control` into its own
+  `toolbar` package. Interfaces moved from `solbot5_msgs` into `toolbar_msgs`. New `solbot4_toolbar` package
+  (launch + solbot4 calibration), `pd600.sh` (laptop: deploy/start/attach/stop/status/state/toolbar/ros2),
+  `run_solbot4_toolbar.sh` (pd600). Node takes ROS params only (dropped the `config.yaml` `toolbar:` section).
+  ws4 `feature/toolbar-service` reduced to the `run_core_um982.sh` overlay hook (ws4 `27420a8`).
+  Deployed and built on pd600; not yet started on the robot.
+- **`firmware` parameter** (in `bfe66d9`, first in the ws4 port `4a126bf`): adds the solbot4 `main_esp32_pio` protocol (`TPS` counts,
+  `toolbar/set_position`, counts↔metres calibration, pot-rail check). Monitor-only mode downgrades every
+  condition to LOW and never latches. MQTT disconnects are logged.
+- **`toolbar_service` node** (`6ad17d5`): lift_service-style toolbar controller for the solbot5 `solbot_main` board.
+  Soft limits, auto stream with 1 s hold-on-timeout, jam detection, firmware stall/OC/pot faults latched until
+  `reset_fault`, e-stop handling, `/toolbar/state`. Tested against fake ESP32s for both firmwares.
+
+### Earlier
+- `8fa20e3` crop_row_vision detection, tool slider control loop fixed (PID instead of feedforward)
+- `0ff59b8` toolbar re-enabled in the sim, green crop rows
