@@ -23,10 +23,10 @@ float32 min_position          # soft limits enforced by this node
 float32 max_position
 float32 center_position
 
-# solbot_main: from <dev>/act/state. main_esp32_pio: duty = TPS_pwm/255, rest NaN/"".
+# solbot_main: from <dev>/act/state. main_esp32_pio: duty = TPS_pwm/255, fault = TPS_fault, current NaN.
 float32 duty                  # -1..1
 float32 current_a
-string firmware_fault         # none | sensor | overcurrent | stall
+string firmware_fault         # none | sensor | overcurrent | stall | timeout
 
 bool enabled
 bool sensor_ok

@@ -13,11 +13,13 @@ firmware: solbot_main   (solbot5 board, actuator #2 "slider", calibrated on the 
   pub  slider/set_position   {"data": m}
 
 firmware: main_esp32_pio (solbot4 main ESP32, toolbar IBT-2 + pot on ADS1015 A2)
-  sub  ads                   {"TPS": counts, "TPS_pwm": 0..255, "TPS_pos_goal": counts}  ~7 Hz
+  sub  ads                   {"TPS": counts, "TPS_pwm": 0..255, "TPS_pos_goal": counts,
+                              "TPS_fault": none|stall|timeout, "TPS_active": bool}  ~7 Hz
   pub  toolbar/set_position  {"data": counts}
   Raw counts <-> metres: linear through (counts_at_min, min_position) and
-  (counts_at_max, max_position). This firmware has NO goal clamp, stall,
-  overcurrent or comm-timeout protection, so this node is the only guard.
+  (counts_at_max, max_position). Firmware safeguards (ws4 main_esp32_pio): idle until
+  the first goal, goal clamp to the travel, stall / max-drive-time trip (TPS_fault).
+  No overcurrent or comm-timeout protection.
 
 Lives in ros2_ws5 (package `toolbar`, interfaces in `toolbar_msgs`). On solbot4
 it runs as an overlay on ros2_ws4 (see ros2_ws5/pd600.sh deploy); DiagnosticReport
@@ -75,9 +77,10 @@ from toolbar_msgs.srv import ToolbarControl
 
 # firmware profiles: ads keys, goal topic, whether ESP32 reports in metres
 FIRMWARE = {
-    'solbot_main': dict(pos_key='TBS', goal_key='TBS_goal', pwm_key=None,
+    'solbot_main': dict(pos_key='TBS', goal_key='TBS_goal', pwm_key=None, fault_key=None,
                         goal_topic='slider/set_position', metres=True),
     'main_esp32_pio': dict(pos_key='TPS', goal_key='TPS_pos_goal', pwm_key='TPS_pwm',
+                           fault_key='TPS_fault',
                            goal_topic='toolbar/set_position', metres=False),
 }
 
@@ -273,7 +276,9 @@ class ToolbarServiceNode(Node, DiagnosticMixin):
             g = data.get(self.fw['goal_key'])
             self.fw_goal = self._raw_to_m(float(g)) if isinstance(g, (int, float)) else NAN
             if self.fw['pwm_key'] and isinstance(data.get(self.fw['pwm_key']), (int, float)):
-                self.duty = data[self.fw['pwm_key']] / 255.0   # unsigned, and stale when stopped
+                self.duty = data[self.fw['pwm_key']] / 255.0   # unsigned
+            if self.fw['fault_key'] and self.fw['fault_key'] in data:
+                self.fw_fault = str(data[self.fw['fault_key']])
             self.estop = bool(data.get('estop', False))
             self.last_sensor_t = time.monotonic()
         try:
@@ -512,7 +517,7 @@ class ToolbarServiceNode(Node, DiagnosticMixin):
         f = self.fw_fault
         if f == 'sensor':
             self._latch(self.COND_SENSOR_FAULT, 'ESP32 reports toolbar pot fault (wiper at rail)')
-        elif f in ('stall', 'overcurrent'):
+        elif f in ('stall', 'overcurrent', 'timeout'):
             self._latch(self.COND_ACTUATOR_FAULT, f'ESP32 reports toolbar actuator {f}')
 
     def _check_estop(self):

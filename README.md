@@ -50,9 +50,10 @@ Gotchas:
 
 - [x] pd600 ESP32 (`ESP32_solbot_main`, 192.168.0.104 on `solap`) runs `main_esp32_pio` ws4 `ee2e8b7`, OTA-flashed 2026-11-05.
   Re-flash: `cd ~/ros2_ws4/embedded/main_esp32_pio && OTA_HOST=192.168.0.104 ~/.platformio/penv/bin/pio run -e esp32dev_ota -t upload`
-- [ ] Firmware safety: the toolbar drives whenever `TPS_pos_goal` ≠ `TPS` (no enable, no stall cutoff). Seen before
-  the flash: `TPS_pwm` 250 for a long time with goal 931 / TPS 1313. Consider: toolbar idle until the first
-  `toolbar/set_position`, plus a stall/timeout cutoff in `Lin_act_pid`
+- [x] Firmware safeguards in `main_esp32_pio` (ws4): toolbar idle until the first `toolbar/set_position`, stall
+  (1.5 s, ≤3 counts) and max-drive-time (20 s) trips, `TPS_fault` / `TPS_active` in `ads`. Built, host unit-tested.
+  - [ ] set `TOOLBAR_GOAL_MIN` / `TOOLBAR_GOAL_MAX` (end-of-travel TPS) and OTA-flash
+  - [ ] tune `TOOLBAR_MAX_DRIVE_MS` to the measured full-travel time
 - [ ] Calibrate `counts_at_min` / `counts_at_max` in `src/solbot4_toolbar/config/toolbar.yaml` (placeholders 400 / 1400)
 - [ ] Wire the actuator, `toolbar enable`, small `set_position` moves
 - [x] IBT-2 pins: GPIO26 RPWM / GPIO27 LPWM (confirmed 2026-11-05)
@@ -119,6 +120,13 @@ range with a meter before connecting it to an ESP32 ADC pin, and use a divider
 Newest first. Toolbar and solbot4-test work. Add an entry with every change.
 
 ### 2026-11-05
+- **Firmware toolbar safeguards** (ws4 `main_esp32_pio`, `Lin_act_pid::enable_safeguards`, opt-in, so steering and lift
+  are unchanged): idle at boot until the first command, goal clamp, stall trip (driving, ≤3 counts of movement in
+  1.5 s) and timeout trip (driving > 20 s). Trips stop the motor and set goal := position, and a new
+  `toolbar/set_position` re-arms. Null or invalid `data` is ignored, where before it read as goal 0. Motor is stopped
+  when exactly on target (the old code kept the previous PWM). `ads` gains `TPS_fault` and `TPS_active`.
+  `toolbar_service` latches `TPS_fault` stall/timeout as `actuator_fault`. Not flashed yet: waiting for the
+  end-of-travel TPS values for the clamp.
 - **ESP32 OTA flash** (`ESP32_solbot_main` @ 192.168.0.104): ws4 `main_esp32_pio` `ee2e8b7`. Before the flash it was already
   publishing `TPS`, but was driving the toolbar output at PWM 250 (goal 931, TPS 1313). After the reboot it holds:
   goal = TPS = 1313, PWM 0.
