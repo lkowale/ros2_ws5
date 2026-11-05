@@ -48,7 +48,11 @@ Gotchas:
 
 ### Status / TODO
 
-- [ ] Confirm the pd600 ESP32 runs `main_esp32_pio` ≥ ws4 `ee2e8b7` (publishes `TPS`). If not, `state` shows `no_sensor`
+- [x] pd600 ESP32 (`ESP32_solbot_main`, 192.168.0.104 on `solap`) runs `main_esp32_pio` ws4 `ee2e8b7`, OTA-flashed 2026-11-05.
+  Re-flash: `cd ~/ros2_ws4/embedded/main_esp32_pio && OTA_HOST=192.168.0.104 ~/.platformio/penv/bin/pio run -e esp32dev_ota -t upload`
+- [ ] Firmware safety: the toolbar drives whenever `TPS_pos_goal` ≠ `TPS` (no enable, no stall cutoff). Seen before
+  the flash: `TPS_pwm` 250 for a long time with goal 931 / TPS 1313. Consider: toolbar idle until the first
+  `toolbar/set_position`, plus a stall/timeout cutoff in `Lin_act_pid`
 - [ ] Calibrate `counts_at_min` / `counts_at_max` in `src/solbot4_toolbar/config/toolbar.yaml` (placeholders 400 / 1400)
 - [ ] Wire the actuator, `toolbar enable`, small `set_position` moves
 - [x] IBT-2 pins: GPIO26 RPWM / GPIO27 LPWM (confirmed 2026-11-05)
@@ -115,6 +119,9 @@ range with a meter before connecting it to an ESP32 ADC pin, and use a divider
 Newest first. Toolbar and solbot4-test work. Add an entry with every change.
 
 ### 2026-11-05
+- **ESP32 OTA flash** (`ESP32_solbot_main` @ 192.168.0.104): ws4 `main_esp32_pio` `ee2e8b7`. Before the flash it was already
+  publishing `TPS`, but was driving the toolbar output at PWM 250 (goal 931, TPS 1313). After the reboot it holds:
+  goal = TPS = 1313, PWM 0.
 - **Toolbar IBT-2 pins confirmed:** GPIO26 RPWM / GPIO27 LPWM (matches `main_esp32_pio`). README hardware
   section corrected (it had said 27/13).
 - **Toolbar runs on solbot4 from ws5** (`bfe66d9`): `toolbar_service` moved from `control` into its own
