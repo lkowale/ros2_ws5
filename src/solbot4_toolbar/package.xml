@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>solbot4_toolbar</name>
+  <version>0.1.0</version>
+  <description>Run the solbot5 sliding toolbar on the solbot4 robot (pd600): launch + calibration.
+    Overlay on ros2_ws4; deployed from ros2_ws5 with deploy_pd600.sh.</description>
+  <maintainer email="lkowale@gmail.com">lkowale</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>toolbar</exec_depend>
+  <!-- solbot4_hw_bringup (ros2_ws4 underlay) is resolved at launch time only; not declared,
+       so ros2_ws5 still builds on machines without ros2_ws4. -->
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

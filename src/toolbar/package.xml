@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>toolbar</name>
+  <version>0.1.0</version>
+  <description>Sliding toolbar controller node: executes toolbar movement commands, enforces
+    safety limits, monitors the actuator. Talks MQTT to the solbot5 (solbot_main) or solbot4
+    (main_esp32_pio) ESP32.</description>
+  <maintainer email="lkowale@gmail.com">lkowale</maintainer>
+  <license>Apache-2.0</license>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>toolbar_msgs</exec_depend>
+  <!-- DiagnosticReport via DiagnosticMixin: ws5's solbot_telemetry (solbot5_msgs) in the sim,
+       ws4's (solbot4_msgs) when overlaid on solbot4 — same API, same /diagnostic_report topic. -->
+  <exec_depend>solbot_telemetry</exec_depend>
+  <exec_depend>python3-paho-mqtt</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

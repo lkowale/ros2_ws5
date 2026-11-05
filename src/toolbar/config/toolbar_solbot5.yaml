@@ -1,0 +1,18 @@
+# toolbar_service on solbot5 (solbot_main board, actuator #2 "slider", calibrated on the ESP32).
+# Metres from centre, +right.
+toolbar_service:
+  ros__parameters:
+    firmware: solbot_main
+    actuator_enabled: false    # monitor only until the actuator is wired; or `toolbar/cmd enable`
+    device_name: ESP32_solbot_main
+    broker_ip_address: t630
+    min_position: -0.10        # keep inside firmware u_min/u_max
+    max_position: 0.10
+    center_position: 0.0
+    sensor_margin: 0.02
+    position_tolerance: 0.005
+    cmd_timeout_s: 1.0
+    sensor_timeout_s: 1.0
+    jam_tolerance: 0.01
+    jam_progress: 0.003
+    jam_timeout_s: 3.0

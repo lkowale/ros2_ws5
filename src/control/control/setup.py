@@ -32,7 +32,6 @@ setup(
             'steering = control.steering:main',
             'imu_bridge = control.imu_bridge:main',
             'navsat_init = control.navsat_init:main',
-            'toolbar_service = control.toolbar_service:main',
         ],
     },
 )

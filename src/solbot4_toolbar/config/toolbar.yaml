@@ -1,0 +1,25 @@
+# toolbar_service on solbot4 (main_esp32_pio firmware: toolbar IBT-2 GPIO26/27, pot on ADS1015 A2).
+# Node: ros2_ws5 src/toolbar. Edit on the laptop (ros2_ws5), then: bash pd600.sh deploy
+# Positions in metres from centre, +right. This firmware has no goal clamp and no
+# stall / overcurrent / comm-timeout protection: these limits are the only guard.
+toolbar_service:
+  ros__parameters:
+    firmware: main_esp32_pio
+    actuator_enabled: false   # monitor only until calibrated + actuator wired;
+                              # runtime (laptop): bash pd600.sh toolbar enable
+    # --- CALIBRATE: watch raw_position (bash pd600.sh state), move the toolbar by hand
+    # to each end of the travel you want to allow, put the counts here.
+    counts_at_min: 400.0      # raw TPS at min_position (left end)
+    counts_at_max: 1400.0     # raw TPS at max_position (right end); swap if the pot runs the other way
+    min_position: -0.10
+    max_position: 0.10
+    center_position: 0.0
+    raw_valid_min: 10.0       # TPS outside this = pot open / shorted -> sensor_fault
+    raw_valid_max: 1650.0
+    sensor_margin: 0.02       # beyond limits by more than this = sensor_out_of_range
+    position_tolerance: 0.005
+    cmd_timeout_s: 1.0
+    sensor_timeout_s: 1.0     # ads arrives every ~150 ms
+    jam_tolerance: 0.01
+    jam_progress: 0.003
+    jam_timeout_s: 3.0

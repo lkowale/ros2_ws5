@@ -19,16 +19,18 @@ firmware: main_esp32_pio (solbot4 main ESP32, toolbar IBT-2 + pot on ADS1015 A2)
   (counts_at_max, max_position). This firmware has NO goal clamp, stall,
   overcurrent or comm-timeout protection, so this node is the only guard.
 
-Same file in solbot5 (ros2_ws5, package `control`, solbot5_msgs) and solbot4
-(ros2_ws4, package `solbot_control`, solbot4_msgs); the master copy is ws5.
+Lives in ros2_ws5 (package `toolbar`, interfaces in `toolbar_msgs`). On solbot4
+it runs as an overlay on ros2_ws4 (see ros2_ws5/pd600.sh deploy); DiagnosticReport
+then comes from ws4's solbot_telemetry / solbot4_msgs. Parameters: ROS params only,
+see toolbar/config/toolbar_solbot5.yaml and solbot4_toolbar/config/toolbar.yaml.
 
 ROS interface
   sub  tool_bar_position_cmd (Float32, m)  streaming target from tool_slider_controller
                                            (followed only in "auto" mode)
   sub  toolbar/cmd           (String)      same commands as the service, no position
   pub  tool_bar_position     (Float32, m)  measured position, on every sensor sample
-  pub  /toolbar/state        (solbot5_msgs/ToolbarState, 10 Hz)
-  srv  toolbar_control       (solbot5_msgs/ToolbarControl)
+  pub  /toolbar/state        (toolbar_msgs/ToolbarState, 10 Hz)
+  srv  toolbar_control       (toolbar_msgs/ToolbarControl)
        set_position | center | hold | auto | enable | disable | reset_fault | get_status
 
 Safety
@@ -58,25 +60,18 @@ Diagnostic conditions (to PauseManager via /diagnostic_report)
 
 import json
 import math
-import os
 import threading
 import time
 
 import paho.mqtt.client as mqtt
 import rclpy
 import rclpy.executors
-import yaml
-from ament_index_python.packages import get_package_share_directory
 from rclpy.node import Node
 from std_msgs.msg import Float32, String
 
-try:  # solbot5
-    from solbot5_msgs.msg import ToolbarState
-    from solbot5_msgs.srv import ToolbarControl
-except ImportError:  # solbot4
-    from solbot4_msgs.msg import ToolbarState
-    from solbot4_msgs.srv import ToolbarControl
 from solbot_telemetry.diagnostic_mixin import DiagnosticMixin
+from toolbar_msgs.msg import ToolbarState
+from toolbar_msgs.srv import ToolbarControl
 
 # firmware profiles: ads keys, goal topic, whether ESP32 reports in metres
 FIRMWARE = {
@@ -106,10 +101,8 @@ class ToolbarServiceNode(Node, DiagnosticMixin):
         self._lock = threading.Lock()
         self.setup_diagnostics('toolbar_service')
 
-        cfg = self._load_yaml_section('toolbar')
-
         def p(name, default):
-            return self.declare_parameter(name, cfg.get(name, default)).value
+            return self.declare_parameter(name, default).value
 
         self.firmware = p('firmware', 'solbot_main')
         if self.firmware not in FIRMWARE:
@@ -221,22 +214,6 @@ class ToolbarServiceNode(Node, DiagnosticMixin):
             return round(m, 4)
         return int(round(self.counts_at_min + (m - self.min_position) / (
             self.max_position - self.min_position) * (self.counts_at_max - self.counts_at_min)))
-
-    # ======================================================================
-    # Config
-    # ======================================================================
-
-    def _load_yaml_section(self, section):
-        err = None
-        for pkg in ('control', 'solbot_control'):   # solbot5, solbot4
-            try:
-                path = os.path.join(get_package_share_directory(pkg), 'config', 'config.yaml')
-                with open(path, 'r') as f:
-                    return (yaml.safe_load(f) or {}).get(section, {}) or {}
-            except Exception as e:
-                err = e
-        self.get_logger().warn(f'config.yaml [{section}] not loaded ({err}), using defaults')
-        return {}
 
     # ======================================================================
     # MQTT
