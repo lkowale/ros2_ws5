@@ -1,0 +1,23 @@
+# OAK-D on solbot4 (pd600): RGB only, sized for viewing over Tailscale.
+/**:
+  ros__parameters:
+    camera:
+      i_pipeline_type: RGB
+      i_nn_type: none
+      i_enable_imu: false
+      i_enable_ir: false
+      i_usb_speed: SUPER_PLUS
+    rgb:
+      i_fps: 10.0
+      # 1080p sensor output scaled 2/3 on the device -> 1280x720
+      i_set_isp_scale: true
+      i_isp_num: 2
+      i_isp_den: 3
+    # image_transport compressed publisher (param oakd.rgb.image_raw.compressed.*): q95 gave
+    # 426 kB frames (~4 MB/s at 10 Hz), which saturated the shared solap WiFi (ping 460 ms, stalls).
+    # q50: ~140 kB, ~1.4 MB/s
+    oakd:
+      rgb:
+        image_raw:
+          compressed:
+            jpeg_quality: 50

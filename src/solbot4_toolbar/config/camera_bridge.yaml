@@ -1,0 +1,13 @@
+# domain_bridge for the OAK-D: robot domain 0 (loopback) -> domain 1 (Tailscale, hp-zbook).
+# Only the JPEG stream crosses. Image best effort: on a weak WiFi link frames drop instead of
+# reliable retransmits stalling the stream.
+from_domain: 0
+to_domain: 1
+topics:
+  oakd/rgb/image_raw/compressed:
+    type: sensor_msgs/msg/CompressedImage
+    qos:
+      reliability: best_effort
+      depth: 1
+  oakd/rgb/camera_info:
+    type: sensor_msgs/msg/CameraInfo

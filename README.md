@@ -31,6 +31,10 @@ bash pd600.sh state                 # one /toolbar/state (raw_position = TPS cou
 bash pd600.sh toolbar enable        # set_position 0.02 | center | hold | auto | reset_fault | disable
 bash pd600.sh stop | status
 bash pd600.sh ros2 <args...>        # any ros2 command on the robot
+bash pd600.sh camera                # OAK-D (solbot4_toolbar/oakd.launch.py, RGB 1280x720 @10 fps) + JPEG
+                                    #   domain_bridge 0→1 to hp-zbook, tmux "oakd"; start AFTER `start`
+bash pd600.sh view                  # laptop: oakd_view.py (OpenCV window, Hz/kB overlay) of /oakd/rgb/image_raw/compressed, domain 1
+bash pd600.sh camera_stop
 ```
 
 Requirements on pd600: `~/ros2_ws4` on branch `feature/toolbar-service` (adds the
@@ -61,6 +65,9 @@ Gotchas:
   100 mm at 15 mm/s, full stroke ~6.7 s) → 4.75 counts/mm, counts fall going right. Centre 825 counts
 - [x] Wire the actuator, `toolbar enable` (holds at the current position, clamped into 370..1280), small `set_position` moves
 - [x] IBT-2 pins: GPIO26 RPWM / GPIO27 LPWM (confirmed 2026-11-05)
+- [ ] **IMPORTANT — motion interlock:** lift **down** → toolbar may only move while the robot is moving
+  (tool in the soil, sliding sideways while stationary would gouge/strain it); lift **up** → always allowed.
+  Needs lift state + robot speed in the node (and ideally a firmware-side guard too)
 - [ ] Vision loop on solbot4: deploy `tool_slider` + `crop_row_vision` (`PKGS=... bash pd600.sh deploy`), camera topic on solbot4
 
 ## Tool slider actuator — IBT-2 on the old main ESP32 board
@@ -122,6 +129,29 @@ range with a meter before connecting it to an ESP32 ADC pin, and use a divider
 ## Changelog
 
 Newest first. Toolbar and solbot4-test work. Add an entry with every change.
+
+### 2026-11-06
+- OAK-D on solbot4: `solbot4_toolbar/launch/oakd.launch.py` + `config/oakd.yaml` (depthai_ros_driver, RGB only,
+  720p 10 fps, `CAMERA_MODEL` default OAK-D-LITE), `config/camera_bridge.yaml`, `run_solbot4_camera.sh`;
+  `pd600.sh camera | camera_stop | view`. `pd600.sh stop` now waits for `core_toolbar.launch.py` only.
+  First run: OAK-D-LITE (MXID 19443010A18FDC7D00) on the pd600 front USB-C, USB3 SUPER_PLUS after a replug
+  (first plug-in: no Type-C partner detected). 10 Hz on pd600, only ~3 Hz arriving on hp-zbook over Tailscale.
+  Replugging re-enumerated the UM982 CH340 (`/dev/um982` → ttyUSB1); GPS kept running.
+  JPEG q95 (426 kB frames, ~4 MB/s) saturated the solap WiFi once the laptop joined it (LAN ping 460 ms, viewer
+  stalled): `oakd.yaml` sets jpeg_quality 50 (~140 kB, ping 1.5 ms, 8 Hz on the laptop), bridge image QoS best effort.
+  `view` runs `oakd_view.py` (rqt_image_view / image_view never subscribed to the bridged compressed topic), under `env -i` (rqt crashed in the VS Code snap shell: GLib-GIO settings schema).
+- OAK-D ground footprint (1280x720, fx 912), tape measures on flat concrete:
+
+  | Lift | Camera height (measured) | Ground window | Scale | Optical-equivalent height |
+  |---|---|---|---|---|
+  | down | 44 cm | 55 × 31 cm, rectangular | 23.2 px/cm (0.43 mm/px), uniform | ~39 cm |
+  | up | 64 cm | ~79 × 50 cm, trapezoid | 17.8 (top) → 15.5 (mid) → 12.5 (bottom) px/cm | ~59 cm |
+
+  Lift up the camera pitches (bottom of the image looks farther away) and the lift frame hides the right ~15 %.
+  The measured heights are ~5 cm above the optical-equivalent height (measured to the mount, not the lens).
+  Lift down is a clean nadir view; lift up needs a tilt/homography correction before metric use.
+  Frames: `docs/oakd_ground/lift_down_44cm.jpg`, `docs/oakd_ground/lift_up_64cm.jpg`.
+- TODO added: toolbar motion interlock — lift down ⇒ move only while driving; lift up ⇒ always allowed.
 
 ### 2026-11-05
 - **Toolbar moves, direction correct** (2nd powered test, standalone node, no robot stack):

@@ -14,6 +14,9 @@
 #                                 enable | disable | set_position <m> | center | hold | auto |
 #                                 reset_fault | get_status
 #   bash pd600.sh ros2 <args...>  any ros2 CLI command on pd600 (robot DDS domain + overlay)
+#   bash pd600.sh camera [args]   start the OAK-D + image bridge in tmux "oakd" (after start)
+#   bash pd600.sh camera_stop     stop it
+#   bash pd600.sh view            on the laptop: oakd_view.py window of /oakd/rgb/image_raw/compressed
 #
 # The stack runs in tmux on pd600, so a dropped laptop connection does not stop the robot.
 
@@ -21,6 +24,7 @@ set -e
 
 HOST="${PD600_HOST:-pd600}"
 SESSION=solbot4
+CAM_SESSION=oakd
 WS5_LOCAL="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 # packages deployed to pd600 (add tool_slider crop_row_vision when running the vision loop there)
 PKGS="${PKGS:-toolbar_msgs toolbar solbot4_toolbar}"
@@ -48,7 +52,7 @@ deploy)
     for p in $PKGS; do
         rsync -az --delete --exclude __pycache__ "src/$p/" "$HOST:ros2_ws5/src/$p/"
     done
-    rsync -az run_solbot4_toolbar.sh "$HOST:ros2_ws5/"
+    rsync -az run_solbot4_toolbar.sh run_solbot4_camera.sh "$HOST:ros2_ws5/"
     rsh "cat > ~/ros2_ws5/README_PD600 <<'EOF'
 Build-only overlay on ~/ros2_ws4, deployed from the laptop's ros2_ws5 by pd600.sh deploy.
 Do not edit here: changes are overwritten on the next deploy.
@@ -78,7 +82,7 @@ stop)
     session_running || { echo "not running"; exit 0; }
     rsh "tmux send-keys -t $SESSION C-c"
     for _ in $(seq 1 30); do
-        rsh "pgrep -f 'ros2 launc[h]' >/dev/null" || break   # [h]: don't match this shell
+        rsh "pgrep -f 'core_toolbar.launch.p[y]' >/dev/null" || break   # [y]: don't match this shell
         sleep 1
     done
     rsh "tmux kill-session -t $SESSION"
@@ -102,7 +106,37 @@ toolbar)
 ros2)
     remote_ros2 "$@"
     ;;
+camera)
+    session_running || echo "NOTE: core not running; start it first (bash pd600.sh start), its startup pkill would kill the camera"
+    if rsh "tmux has-session -t $CAM_SESSION 2>/dev/null"; then
+        echo "tmux session '$CAM_SESSION' already exists on $HOST (bash pd600.sh camera_stop)"; exit 1
+    fi
+    args=""
+    [[ $# -gt 0 ]] && args=$(printf '%q ' "$@")
+    rsh "tmux new-session -d -s $CAM_SESSION -x 220 -y 50"
+    rsh "tmux send-keys -t $CAM_SESSION 'cd ~/ros2_ws5 && bash run_solbot4_camera.sh $args' Enter"
+    echo "Camera started in tmux '$CAM_SESSION' on $HOST.  Logs: ssh -t $HOST tmux attach -t $CAM_SESSION   View: bash pd600.sh view"
+    ;;
+camera_stop)
+    rsh "tmux has-session -t $CAM_SESSION 2>/dev/null" || { echo "not running"; exit 0; }
+    rsh "tmux send-keys -t $CAM_SESSION C-c"
+    for _ in $(seq 1 15); do
+        rsh "pgrep -f 'oakd.launch.p[y]' >/dev/null" || break
+        sleep 1
+    done
+    rsh "tmux kill-session -t $CAM_SESSION"
+    echo "camera stopped"
+    ;;
+view)
+    # laptop side: domain 1 over Tailscale, peer = robot (same as ws4 run_mapviz_remote.sh)
+    # env -i: a VS Code snap shell leaks GTK/GIO vars that crash rqt (GLib-GIO-ERROR settings schema)
+    env -i PATH=/usr/bin:/bin HOME="$HOME" DISPLAY="${DISPLAY:-}" XAUTHORITY="${XAUTHORITY:-}" \
+        WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-}" \
+        RMW_IMPLEMENTATION=rmw_cyclonedds_cpp ROS_DOMAIN_ID=1 \
+        CYCLONEDDS_URI="<CycloneDDS><Domain><General><AllowMulticast>false</AllowMulticast><NetworkInterfaceAddress>tailscale0</NetworkInterfaceAddress></General><Discovery><ParticipantIndex>auto</ParticipantIndex><MaxAutoParticipantIndex>200</MaxAutoParticipantIndex><Peers><Peer address=\"$HOST\"/></Peers></Discovery><Internal><HeartbeatInterval min=\"2s\" max=\"10s\"/></Internal></Domain></CycloneDDS>" \
+        WS5="$WS5_LOCAL" bash -c 'source /opt/ros/jazzy/setup.bash && exec python3 "$WS5/oakd_view.py" "$@"' view "$@"
+    ;;
 *)
-    sed -n '2,20p' "$0"; exit 1
+    sed -n '2,23p' "$0"; exit 1
     ;;
 esac
