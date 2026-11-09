@@ -1,13 +1,30 @@
-# solbot_main v2 (rev B) — compact ESP32-S3 main controller, JLCPCB Basic parts
+# solbot_main v2 (rev B / rev C) — compact ESP32-S3 main controller, JLCPCB Basic parts
 
-> **✅ READY TO ORDER — this commit (2026-10-16).**
-> Board `hardware/solbot_main_v2.kicad_pcb` (v2 rev B): DRC has 0 errors and 0 unconnected items.
-> JLC production files `hardware/production/` were generated with the Fabrication Toolkit
-> plugin. Their BOM (26 lines, all LCSC numbers matching `design.py`) and positions (96 SMD parts)
-> were checked against the design, and part placement/polarity was checked in JLC's placement
-> preview. Order: 2-layer, 1 oz. Upload `production/solbot_main_v2.zip` (Gerbers),
-> `production/bom.csv` and `production/positions.csv`. Through-hole parts are hand-soldered.
-> If you change anything, re-run the plugin and repeat these checks before ordering again.
+> **rev C (2026-11-09): production files regenerated and checked by script. Two manual checks
+> are left before ordering** (see the end of this list).
+> * **Hall position sensors on 5 V** (as on the ws4 toolbar): POS terminal pin 1 = +5V through a 0 R
+>   link (R35/R40/R45/R50; fit 10–47 R there if you want a shorted cable not to pull +5V down, at the
+>   cost of supply volts). The sensor output goes to the ESP ADC through a 100k/150k divider (5 V reads
+>   as 3.0 V; an open wiper reads 0) + 100 n + BAV99 clamp. The rev B 1 k from 3V3A and the 1M
+>   wiper pull-down are gone. R35/R40 (A1/A2 supply) moved to the free strip above the TURN
+>   terminal: their old spots could only be reached through the 3V3A pull-up row.
+> * A 1x10 socket (J15, hand-solder) for an optional **ADS1115 breakout module** plugged in flat,
+>   **powered from +5V like on ws4** and reading the **raw 0..5 V wipers** (PGA ±6.144 V). SDA/SCL
+>   reach it through two 2N7002 level shifters (Q5/Q6, gate 3V3A), so the module's own 10k pull-ups
+>   to 5 V never reach the ESP pins. C24 = 100 n on its VDD.
+> * Routing: the rev B copper is kept apart from the segments that ended on re-netted pads (dropped)
+>   and the dead stubs this left (pruned at the end). Only the nets this change touches differ from
+>   rev B. New connections: FreeRouting (`solbot_main_v2_pass4.ses`) + `gen/route_net.py` for the two
+>   it couldn't close (`solbot_main_v2_pass5_*.ses`).
+> * DRC: 0 unconnected, 0 clearance errors, 0 shorts. The other warnings are the same as rev B, plus
+>   headless-only `lib_footprint_issues` for J15/C24/Q5/Q6.
+> * `hardware/production/` was regenerated with the Fabrication Toolkit plugin (your saved
+>   options). BOM: 27 lines, all with LCSC numbers. New: 0 R (C21189) and 150k (C22807), both Basic;
+>   1M is gone; Q5/Q6 joined the 2N7002 line (C8545). Positions: 99 SMD parts. J15 is in neither file.
+> * **Still to do by hand:** look over the new routing in KiCad (resistor block, around R35/R40
+>   above the TURN terminal, under the ADS socket), and check Q5/Q6/C24/R35/R40 in JLC's placement
+>   preview. Order as before: 2-layer, 1 oz. Upload
+>   `production/solbot_main_v2.zip`, `production/bom.csv` and `production/positions.csv`.
 
 The ESP32-S3 main controller for solbot5. It replaced v1 (a 190 × 155 mm board with a full
 on-board 4-pack power path, removed from the repo 2026-11-09; see git history before that date).
@@ -54,7 +71,7 @@ Changes from rev A that this required (none of the replaced parts is Basic):
 |---|---|
 | AP63205 buck + 4.7 µH inductor | 2× AMS1117-5.0 (logic / ESP32, like v3's 2× 7805), 2×22 Ω pre-drop on the ESP rail |
 | AP2112K-3.3 | XC6206P332MR-G |
-| ADS1115 | ESP32-S3 ADC1 (GPIO1–10 all used), 16× oversampled; pot top fed from 3.3 V through 1 k (≈3.0 V, inside the ADC range) |
+| ADS1115 | ESP32-S3 ADC1 (GPIO1–10 all used), 16× oversampled; rev B: pot top from 3.3 V through 1 k. Rev C: 5 V sensors, wiper ×0.6 divider, optional ADS1115 module back on a socket |
 | 74HCT244 + /OE gate | 2× 74HC14 (inverting → PWM driven active-low, 10 k pull-ups keep it off at boot); E-stop now gates the IBT-2 **R_EN/L_EN** (IDC 3/4) through 2× 2N7002 |
 | BAT54S | BAV99 |
 | PTC fuse, 47 µF electrolytic | removed (fuse the 12 V feed externally, ≤ 2 A) / 2× 10 µF 1206 |
@@ -110,7 +127,7 @@ whenever the bus reading is implausible (sense wire disconnected).
 |---|---|
 | 12 V in | MKDS 5.08 terminal → SS34 reverse-polarity diode → SMBJ18A TVS (fuse externally) |
 | 5 V | 2× AMS1117-5.0: `5V_ESP` (DevKit, via SS34 USB back-feed block) and `+5V` (IBT-2 logic, 74HC14, IMU) |
-| 3.3 V | XC6206P332MR → pot excitation (1 k per pot), I2C pull-ups, clamps |
+| 3.3 V | XC6206P332MR → I2C pull-ups, clamps, level-shifter gates (rev B: also pot excitation) |
 | Bus monitor | `BUS SENSE` terminal → 470k+470k / 30k (2.94 V @ 95 V) → GPIO9, BAV99 clamp. **Bus GND must be common with the 12 V GND.** |
 | 12 V monitor | 100k / 10k → GPIO10 |
 | SSR drivers ×2 | 2N7002 low-side sink for the SSR input (powered from +12 V); yellow LED = SSR on |
@@ -176,14 +193,42 @@ New:
 |---|---|
 | `slider/set_position` / `slider/position` | `{"data": metres}` (toolbar slider, left end = −0.10 m) |
 | `<dev>/act/<1-4\|name>/set` | `{"pos": units}` or `{"raw": legacy}` or `{"ratio": 0..1}` |
-| `<dev>/act/<1-4\|name>/config` | partial update of `name, enabled, invert, r_min, r_max, u_min, u_max, deadband, slow_zone, pwm_min, pwm_max, pwm_slew, i_limit, oc_ms, stall_delta, stall_ms, cmd_timeout_ms, max_drive_ms, idle_at_boot, sensor_check` (saved to NVS) |
+| `<dev>/act/<1-4\|name>/config` | partial update of `name, enabled, invert, r_min, r_max, u_min, u_max, deadband, slow_zone, pwm_min, pwm_max, pwm_slew, i_limit, oc_ms, stall_delta, stall_ms, cmd_timeout_ms, max_drive_ms, idle_at_boot, sensor_check, pot_mv` (saved to NVS) |
 | `<dev>/act/reset`, `<dev>/act/enable {"data":0/1}` | clear faults / software enable |
-| `<dev>/act/state` (pub 5 Hz) | per actuator `pos, goal, ratio, duty, amps, fault, active` |
+| `<dev>/act/state` (pub 5 Hz) | per actuator `pos, goal, ratio, duty, amps, fault, active`; `pos_src` (`esp`/`ads`) |
 | `<dev>/power/cmd` | `{"pv":"auto\|on\|off"}`, `{"ssr2":"mirror\|on\|off"}` |
 | `<dev>/power/config` | `cells, v_chg, v_chg_hyst, v_hard, v_low, v_min_valid, min_on_s, min_off_s, v_scale, v12_scale` (NVS) |
-| `<dev>/settings` | `imu_hz, ads_hz, pot_mv` (measure the voltage at a pot's top terminal and set `pot_mv`; then the legacy WAS/LAS numbers match v3) |
+| `<dev>/settings` | `imu_hz, ads_hz, pot_mv, pos_adc` (`pot_mv`: default pot-top voltage, see below; `pos_adc`: `auto` \| `esp` \| `ads`, see "Pot ADC") |
 
 `<dev>` defaults to `ESP32_solbot_main`. Payloads that aren't valid JSON are ignored.
+
+### Pot ADC (ESP32 ADC1 or optional ADS1115)
+
+Each (Hall) position sensor is fed from **+5V through a 0 R link** (POS terminal: + W −). Its output goes through
+a 100k/150k divider (×0.6, so 5 V → 3.0 V) with 100 n and a BAV99 clamp to the ESP32-S3 ADC1; the
+firmware divides by `pins::POS_DIV` to get the wiper voltage back. It works in a ratio
+`r = wiper mV / pot_mv`, so `pot_mv` must be the **sensor supply voltage** at the terminal (default
+5000; measure it). Set the global `settings {"pot_mv":…}` or per
+actuator `act/<n>/config {"pot_mv":…}` (0 = use the global one). Range 3000–5500. The NVS key is
+`pot_mv5`, so an old 3 V value isn't loaded. The legacy WAS/LAS counts match v3 only when this is right.
+Hall outputs are low-impedance, so the divider stays linear. Many only swing about 0.5–4.5 V:
+calibrate `r_min`/`r_max` on the machine. The 150k to GND makes a disconnected output read 0.
+
+Rev C adds a 1x10 socket **J15** for an optional **ADS1115 breakout module** (the common blue one,
+about 28 × 17.6 mm, header `VDD GND SCL SDA ADDR ALRT A0 A1 A2 A3`), set up like the ws4 toolbar:
+**VDD = +5V, inputs = the raw 0..5 V wipers**, PGA ±6.144 V (0.1875 mV/LSB). The module's 10k pull-ups
+go to its VDD, so SDA/SCL pass two 2N7002 level shifters (Q5/Q6, gate on 3V3A; ESP side keeps its
+4.7 k pull-ups to 3V3A). It lies **flat**, with the header nearest the SPARE IDC and the body over the
+area above the pot terminals (Q5/Q6 sit under it). The module's print is then upside down: **match the
+pin names on the board (A3 … VDD, left to right) with the names on the module**. ADDR is tied to GND,
+so it sits at 0x48. Module input A0 = A4 wiper, A1 = A2, A2 = A3, A3 = A1 (PCB routing order; the
+firmware maps it in `pins::ADS_CH`). `pos_adc`:
+* `auto` (default): ADS if it answers at 0x48, else ESP ADC1. Re-probes every 5 s; falls back to
+  the ESP ADC after 10 failed reads in a row.
+* `esp` / `ads`: force one (`ads` still falls back to the ESP ADC if the module doesn't answer).
+`config_status` shows `pos_adc`, `pos_src`, `ads_found`, `ads_err`; `act/state` shows `pos_src`.
+To compare the two on the bench, switch `pos_adc` and watch `ratio` in `act/state`.
+Neither path is ratiometric: a drifting +5V shows up as position error (`pot_mv` is fixed).
 
 ### Actuator safeguards
 
@@ -231,13 +276,42 @@ env -i PATH=/usr/bin:/bin HOME=$HOME python3 gen_pcb.py place
 env -i PATH=/usr/bin:/bin HOME=$HOME python3 gen_pcb.py finish
 ```
 
+Adding parts to a routed board, or changing a pad's net (rev C): `place` (existing footprints don't
+move), then route only the open connections with all other copper locked. `build_copper` imports the
+base session, **drops the segments that end on (or touch) a pad whose net changed**, then imports the
+sessions in `SES_INCREMENTAL` in order. At the end of `finish` it **prunes dead stubs** (segments with a
+free end are trimmed back to their last T-junction, or removed; single-connection vias go too).
+
+```sh
+cd hardware/gen
+env -i PATH=/usr/bin:/bin HOME=$HOME python3 gen_pcb.py place
+env -i PATH=/usr/bin:/bin HOME=$HOME python3 gen_pcb.py export_incremental pass4   # -> solbot_main_v2_pass4.dsn (stubs kept)
+(cd .. && env -i PATH=/usr/bin:/bin HOME=$HOME timeout 1800 \
+   java -jar freerouting-2.0.1.jar -de solbot_main_v2_pass4.dsn -do solbot_main_v2_pass4.ses -mt 4 -mp 40 --gui.enabled=false)
+env -i PATH=/usr/bin:/bin HOME=$HOME python3 gen_pcb.py finish                     # imports pass4 (+ pass5_*)
+```
+
+FreeRouting doesn't always finish (or sometimes writes an empty session). For each connection it
+leaves open, `gen/route_net.py` does a grid search over the real copper (Default class rules) from
+one pad to **another island** of its net, and writes a session. `finish` picks up
+`solbot_main_v2_pass5_*.ses` in name order. Run it on a board finished with `NO_PRUNE=1`, so the
+stubs are still there to connect to, and finish again after each net (rev C: +5V at R50, A2_POS at R41):
+
+```sh
+env -i NO_PRUNE=1 PATH=/usr/bin:/bin HOME=$HOME python3 gen_pcb.py finish
+env -i PATH=/usr/bin:/bin HOME=$HOME python3 route_net.py ../solbot_main_v2.kicad_pcb +5V R50 1 \
+   ../solbot_main_v2_pass5_1__5V.ses 35 20 90 55
+env -i PATH=/usr/bin:/bin HOME=$HOME python3 gen_pcb.py finish
+```
+
 ## Status / check before ordering
 
-* Schematic: KiCad's netlist matches `design.py` exactly (70 nets). The firmware pin map was
+* Schematic: KiCad's netlist matches `design.py` exactly (rev C: 72 nets, adds SDA5/SCL5). The firmware pin map was
   checked against the board netlist (27/27 match).
 * PCB: fully routed. DRC finds 0 unconnected items, 0 clearance errors and 0 shorts. What's
   left are silkscreen warnings, plus `lib_footprint_issues`, which only appear in the
   headless run. The signal routing is autorouted, so look it over in KiCad before ordering.
+  Rev C: 5 V sensors + ADS module routed incrementally (rev B copper locked); same DRC result.
 * Firmware builds (RAM 17 %, flash 26 %). The host tests pass (and were mutation-checked).
   2026-11-09: ported the ws4 toolbar safeguards (per-target max-drive timeout, idle at boot,
   slider soft limits) and the PV 60 s on/off hold + 42 V hard cut-off; tests extended.

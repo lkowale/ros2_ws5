@@ -35,6 +35,7 @@ struct ActConfig {
   uint16_t max_drive_ms = 0;
   bool idle_at_boot = false;  // no drive (not even holding) until the first command
   bool sensor_check = true;   // fault if wiper reads <1% or >99%
+  float pot_mv = 0;           // supply voltage of this sensor (mV); 0 = global settings.pot_mv
 
   void toJson(JsonObject o) const;
   void fromJson(JsonObjectConst o);

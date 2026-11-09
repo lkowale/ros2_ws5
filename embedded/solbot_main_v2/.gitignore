@@ -7,6 +7,9 @@ hardware/fp-info-cache
 hardware/*.kicad_prl
 hardware/solbot_main_v2_pass*.dsn
 hardware/solbot_main_v2_pass*.ses
+# rev C incremental routing (5 V sensors, ADS module): FreeRouting is not deterministic, so keep these
+!hardware/solbot_main_v2_pass4.ses
+!hardware/solbot_main_v2_pass5_*.ses
 hardware/_autosave-*
 hardware/~*.lck
 hardware/production/backups/

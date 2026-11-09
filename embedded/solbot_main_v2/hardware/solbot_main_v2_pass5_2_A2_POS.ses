@@ -1,0 +1,12 @@
+(session route_net
+  (routes
+    (resolution um 10)
+    (network_out
+      (net A2_POS
+        (wire (path F.Cu 2500  619000 -379000  619000 -382000  621000 -384000))
+        (wire (path B.Cu 2500  621000 -384000  622000 -385000))
+        (via "Via[0-1]_600:300_um" 621000 -384000)
+      )
+    )
+  )
+)

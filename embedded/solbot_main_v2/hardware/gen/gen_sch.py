@@ -19,7 +19,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.abspath(os.path.join(HERE, '..'))
 NS = uuid.UUID('6f1c2b1e-5a1b-4c0d-8e7f-50b0750b0702')
 DATE = '2026-10-15'
-REV = 'v2 rev B'
+REV = 'v2 rev C'
 G = 2.54
 STUB = 2.54
 PAPERS = [('A3', 420, 297), ('A2', 594, 420), ('A1', 841, 594), ('A0', 1189, 841)]
@@ -275,10 +275,12 @@ def gen_sheet(name, desc, placed_by_block, notes, global_nets, page):
     return sheet_uuid, pname
 
 
-ROOT_NOTES = """solbot_main v2 rev B - compact ESP32-S3 main controller, JLCPCB basic parts
+ROOT_NOTES = """solbot_main v2 rev C - compact ESP32-S3 main controller, JLCPCB basic parts
 
 ESP32-S3-DevKitC-1 GPIO map
   ADC1: POS A1..A4 = GPIO1, 2, 3, 4   IS A1..A4 = GPIO5, 6, 7, 8   BUS_VS = GPIO9   V12_SNS = GPIO10
+  POS (Hall) sensors: +5V via 0R link; ESP ADC reads output x 0.6 (100k/150k, BAV99 clamp), ADS1115 the raw wiper
+  Optional ADS1115 module on 1x10 socket J15, VDD +5V, I2C 0x48 via 2N7002 shifters, A0..A3 = WIP A4, A2, A3, A1
   PWM R/L (active-low into 74HC14): A1 = 11/12  A2 = 13/14  A3 = 15/16  A4 = 17/18
   I2C (BNO085 0x4A): SDA = 41, SCL = 42      IMU_INT = 20, IMU_RST = 19
   SSR1 (PV) = GPIO21   SSR2 = GPIO47   ACT_EN = 39 (through E-stop loop)   ESTOP_SENSE = 40   LED_ERR = 46

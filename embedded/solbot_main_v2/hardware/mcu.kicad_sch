@@ -6,7 +6,7 @@
   (title_block
     (title "ESP32-S3, IMU, E-stop")
     (date "2026-10-15")
-    (rev "v2 rev B")
+    (rev "v2 rev C")
     (company "solbot")
     (comment 1 "Main controller - ESP32-S3")
     (comment 2 "Sheet: mcu"))
@@ -1840,14 +1840,20 @@
       (width 0)
       (type default))
     (uuid "edaba8b8-d629-5316-88ed-e82a11b2a0d3"))
-  (label "SCL"
+  (global_label "SCL"
+    (shape bidirectional)
     (at 73.66 52.07 0)
     (fields_autoplaced)
     (effects
       (font
         (size 1.27 1.27))
-      (justify left bottom))
-    (uuid "c46459f3-54a7-5d03-aa88-6a47bccfb747"))
+      (justify left))
+    (uuid "4b1a0d50-841d-54c9-b204-e2036afac34f")
+    (property "Intersheetrefs" "${INTERSHEET_REFS}"
+      (at 73.66 52.07 0)
+      (effects
+        (font
+          (size 1.27 1.27)) hide)))
   (wire
     (pts
       (xy 71.12 54.61)
@@ -1856,14 +1862,20 @@
       (width 0)
       (type default))
     (uuid "080fe915-f687-5f83-b987-4b6bba61a1b5"))
-  (label "SDA"
+  (global_label "SDA"
+    (shape bidirectional)
     (at 73.66 54.61 0)
     (fields_autoplaced)
     (effects
       (font
         (size 1.27 1.27))
-      (justify left bottom))
-    (uuid "0f476494-1a0b-5ab6-b32c-627ba70a3343"))
+      (justify left))
+    (uuid "cef15758-3bcd-5644-aa58-b722ce1680bb")
+    (property "Intersheetrefs" "${INTERSHEET_REFS}"
+      (at 73.66 54.61 0)
+      (effects
+        (font
+          (size 1.27 1.27)) hide)))
   (wire
     (pts
       (xy 71.12 57.15)
@@ -2137,14 +2149,20 @@
       (width 0)
       (type default))
     (uuid "6f30c749-40f5-521b-8136-d4b81194dbc9"))
-  (label "SDA"
+  (global_label "SDA"
+    (shape bidirectional)
     (at 227.33 38.1 0)
     (fields_autoplaced)
     (effects
       (font
         (size 1.27 1.27))
-      (justify left bottom))
-    (uuid "82820bb4-8a62-5424-a3f6-d7a2b045a6be"))
+      (justify left))
+    (uuid "d255dc26-3058-5d2b-af34-1133fa83fd21")
+    (property "Intersheetrefs" "${INTERSHEET_REFS}"
+      (at 227.33 38.1 0)
+      (effects
+        (font
+          (size 1.27 1.27)) hide)))
   (wire
     (pts
       (xy 34.29 104.14)
@@ -2175,14 +2193,20 @@
       (width 0)
       (type default))
     (uuid "9ec72833-6c04-53ee-a2c0-e97ecf259c52"))
-  (label "SCL"
+  (global_label "SCL"
+    (shape bidirectional)
     (at 44.45 104.14 0)
     (fields_autoplaced)
     (effects
       (font
         (size 1.27 1.27))
-      (justify left bottom))
-    (uuid "fff3d9ce-5dbe-5518-9824-ab34861862ed"))
+      (justify left))
+    (uuid "a19602fe-f489-58ab-bc70-a2d5a54f1d37")
+    (property "Intersheetrefs" "${INTERSHEET_REFS}"
+      (at 44.45 104.14 0)
+      (effects
+        (font
+          (size 1.27 1.27)) hide)))
   (polyline
     (pts
       (xy 13.24 119.92)
@@ -2685,14 +2709,20 @@
       (width 0)
       (type default))
     (uuid "9d1a366f-ac31-5ed2-8eca-fb6a23f71e57"))
-  (label "SCL"
+  (global_label "SCL"
+    (shape bidirectional)
     (at 274.32 144.78 180)
     (fields_autoplaced)
     (effects
       (font
         (size 1.27 1.27))
-      (justify right bottom))
-    (uuid "32320433-3c46-5db3-85e3-f02dba0da7b8"))
+      (justify right))
+    (uuid "c00659b5-4673-5e75-9f45-3934391df118")
+    (property "Intersheetrefs" "${INTERSHEET_REFS}"
+      (at 274.32 144.78 0)
+      (effects
+        (font
+          (size 1.27 1.27)) hide)))
   (wire
     (pts
       (xy 276.86 147.32)
@@ -2701,14 +2731,20 @@
       (width 0)
       (type default))
     (uuid "c0f88f01-8587-51ee-a6f7-040e46d23864"))
-  (label "SDA"
+  (global_label "SDA"
+    (shape bidirectional)
     (at 274.32 147.32 180)
     (fields_autoplaced)
     (effects
       (font
         (size 1.27 1.27))
-      (justify right bottom))
-    (uuid "f4ac0ac1-ee62-52bd-9f1b-a0f02d87139c"))
+      (justify right))
+    (uuid "845bb435-0f3d-5411-9827-26a973673aa6")
+    (property "Intersheetrefs" "${INTERSHEET_REFS}"
+      (at 274.32 147.32 0)
+      (effects
+        (font
+          (size 1.27 1.27)) hide)))
   (wire
     (pts
       (xy 276.86 149.86)

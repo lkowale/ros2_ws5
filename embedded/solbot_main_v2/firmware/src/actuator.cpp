@@ -34,6 +34,7 @@ void ActConfig::toJson(JsonObject o) const {
   o["max_drive_ms"] = max_drive_ms;
   o["idle_at_boot"] = idle_at_boot;
   o["sensor_check"] = sensor_check;
+  o["pot_mv"] = pot_mv;
 }
 
 void ActConfig::fromJson(JsonObjectConst o) {
@@ -57,6 +58,8 @@ void ActConfig::fromJson(JsonObjectConst o) {
   max_drive_ms = o["max_drive_ms"] | max_drive_ms;
   idle_at_boot = o["idle_at_boot"] | idle_at_boot;
   sensor_check = o["sensor_check"] | sensor_check;
+  pot_mv = o["pot_mv"] | pot_mv;
+  if (pot_mv != 0 && (pot_mv < 1000 || pot_mv > 3300)) pot_mv = 0;
   if (r_max < r_min) {
     float t = r_min;
     r_min = r_max;

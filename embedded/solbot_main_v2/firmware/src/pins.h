@@ -22,8 +22,13 @@ struct ActPins {
   int rpwm, lpwm, is_adc, pos_adc;
 };
 // A1..A4. PWM pins are ACTIVE-LOW (74HC14 inverter in front of the IBT-2).
-// is_adc: IBT-2 IS voltage (1k -> 8.5 A/V), pos_adc: pot wiper (pot top ~3.0 V)
+// is_adc: IBT-2 IS voltage (1k -> 8.5 A/V), pos_adc: sensor wiper x POS_DIV (5 V sensor -> 3.0 V)
 constexpr ActPins ACT[NACT] = {{11, 12, 5, 1}, {13, 14, 6, 2}, {15, 16, 7, 3}, {17, 18, 8, 4}};
+// rev C optional ADS1115 module (J15): module input A0..A3 for actuator A1..A4, in PCB routing order
+// (socket: A0 = A4_WIP, A1 = A2_WIP, A2 = A3_WIP, A3 = A1_WIP: raw 0..5 V, module on +5V)
+constexpr uint8_t ADS_CH[NACT] = {3, 1, 2, 0};
+// ESP ADC sees the wiper through a 100k/150k divider (5 V sensors -> 3.0 V); the ADS1115 sees it raw
+constexpr float POS_DIV = 150.0f / 250.0f;
 
 }  // namespace pins
 

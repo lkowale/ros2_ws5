@@ -1,9 +1,12 @@
-// solbot_main v2 rev B — compact ESP32-S3 main controller firmware (JLC basic-parts board)
+// solbot_main v2 rev B/C — compact ESP32-S3 main controller firmware (JLC basic-parts board)
 //
 // Tasks
 //   control (50 Hz): BNO085 (I2C), positions + IS currents (ADC1), H-bridge PWM
 //   pv      (10 Hz): bus / 12 V voltage (ESP ADC), PV SSR control
 //   loop()         : WiFi/MQTT/OTA, command parsing, telemetry
+//
+// Pot positions: ESP32-S3 ADC1, or the optional rev C ADS1115 module (J15 socket, 0x48) when fitted
+// (settings pos_adc auto|esp|ads; auto = ADS if it answers, ESP ADC as fallback).
 //
 // MQTT (v3-compatible topics marked *)
 //   sub  steer_position* {"data":legacy}   lift/set_position* {"data":legacy}
@@ -11,7 +14,7 @@
 //        <dev>/act/<n|name>/set {"pos":u}|{"raw":legacy}|{"ratio":r}
 //        <dev>/act/<n|name>/config {...}   <dev>/act/reset   <dev>/act/enable {"data":0|1}
 //        <dev>/power/cmd {"pv":"auto|on|off"} {"ssr2":"mirror|on|off"}
-//        <dev>/power/config {...}          <dev>/settings {"imu_hz":..,"ads_hz":..}
+//        <dev>/power/config {...}          <dev>/settings {"imu_hz":..,"ads_hz":..,"pot_mv":..,"pos_adc":"auto|esp|ads"}
 //        <dev>/get_config*  <dev>/config*  <dev>/enter_ap*
 //   ads: WAS/LAS* legacy counts, TBS/TBS_goal metres, TBS_pwm 0..255, TBS_fault, TBS_active
 //   pub  imu*  ads*  esp32/power*  esp32/diag*  slider/position  <dev>/act/state  <dev>/config_status
@@ -23,6 +26,7 @@
 #include <Wire.h>
 
 #include "actuator.h"
+#include "ads1115.h"
 #include "hal.h"
 #include "netcfg.h"
 #include "pins.h"
@@ -44,8 +48,15 @@ static Preferences prefs;
 struct Settings {
   uint16_t imu_hz = 5;  // v3 published at 5 Hz
   uint16_t ads_hz = 10;
-  float pot_mv = 3000;  // voltage at the pot top (3V3A through 1k into a ~10k pot): measure & set
+  float pot_mv = 5000;  // sensor supply at the POS terminal (+5V, 0R link): measure & set
+  uint8_t pos_adc = 0;  // PosAdc: where pot positions are read
 } settings;
+
+enum PosAdc : uint8_t { POS_AUTO, POS_ESP, POS_ADS };
+static const char *posAdcName(uint8_t m) { return m == POS_ESP ? "esp" : m == POS_ADS ? "ads" : "auto"; }
+static Ads1115 ads;
+static volatile bool posFromAds = false;  // what the last control cycle used
+static volatile uint32_t adsErr = 0;
 
 struct ImuData {
   float qi = 0, qj = 0, qk = 0, qr = 1, acc_heading = 0;
@@ -125,7 +136,8 @@ static void saveSettings() {
   prefs.begin("set", false);
   prefs.putUShort("imu_hz", settings.imu_hz);
   prefs.putUShort("ads_hz", settings.ads_hz);
-  prefs.putFloat("pot_mv", settings.pot_mv);
+  prefs.putFloat("pot_mv5", settings.pot_mv);  // new key: rev B/C-3V3 values were ~3000
+  prefs.putUChar("pos_adc", settings.pos_adc);
   prefs.end();
 }
 
@@ -133,7 +145,9 @@ static void loadSettings() {
   prefs.begin("set", true);
   settings.imu_hz = prefs.getUShort("imu_hz", settings.imu_hz);
   settings.ads_hz = prefs.getUShort("ads_hz", settings.ads_hz);
-  settings.pot_mv = prefs.getFloat("pot_mv", settings.pot_mv);
+  settings.pot_mv = prefs.getFloat("pot_mv5", settings.pot_mv);
+  settings.pos_adc = prefs.getUChar("pos_adc", settings.pos_adc);
+  if (settings.pos_adc > POS_ADS) settings.pos_adc = POS_AUTO;
   prefs.end();
 }
 
@@ -197,6 +211,32 @@ static float adcMv(int pin, int n) {
   return sum / (float)n;
 }
 
+// One single-shot ADS1115 conversion (~1.2 ms); the BNO085 is serviced while it runs.
+static uint32_t adsProbeMs = 0;
+static uint8_t adsFails = 0;
+static bool adsReadMv(int ch, float &mv) {
+  bool rdy = false;
+  int16_t raw;
+  bool ok = ads.start(ch);
+  if (ok) {
+    imuService();
+    uint32_t t0 = millis();
+    while (ok && !rdy && millis() - t0 < 5) {
+      vTaskDelay(1);
+      ok = ads.ready(rdy);
+    }
+  }
+  ok = ok && rdy && ads.result(raw);
+  if (!ok) {
+    adsErr++;
+    if (++adsFails >= 10) ads.lost(), adsFails = 0, adsProbeMs = millis();  // re-probe in 5 s
+    return false;
+  }
+  adsFails = 0;
+  mv = raw * Ads1115::MV_PER_LSB;
+  return true;
+}
+
 static void controlTask(void *) {
   const float dt = 0.02f;
   TickType_t last = xTaskGetTickCount();
@@ -215,14 +255,25 @@ static void controlTask(void *) {
       imu.last_ms = now;
     }
 
-    // positions: ESP32-S3 ADC1, 16x oversampled (pot top ~pot_mv)
+    // positions: ADS1115 (if fitted and selected) or ESP32-S3 ADC1 16x oversampled
+    if (settings.pos_adc != POS_ESP && !ads.ok() && now - adsProbeMs > 5000) {
+      adsProbeMs = now;
+      ads.probe();
+    }
+    bool useAds = settings.pos_adc != POS_ESP && ads.ok();
     float r[N];
     bool got[N] = {};
+    bool viaAds = false;
     for (int i = 0; i < N; i++) {
       if (!act[i].cfg.enabled) continue;
-      r[i] = adcMv(pins::ACT[i].pos_adc, 16) / settings.pot_mv;
+      float mv;
+      if (!(useAds && adsReadMv(pins::ADS_CH[i], mv))) mv = adcMv(pins::ACT[i].pos_adc, 16) / pins::POS_DIV;  // fallback: ESP sees wiper x 0.6
+      else viaAds = true;
+      float top = act[i].cfg.pot_mv > 0 ? act[i].cfg.pot_mv : settings.pot_mv;
+      r[i] = mv / top;
       got[i] = true;
     }
+    posFromAds = viaAds;
     imuService();
 
     // IBT-2 IS currents: 1k load, k_ILIS 8500 -> 8.5 A per volt
@@ -298,10 +349,14 @@ static void publishConfigStatus() {
   d["mqtt_port"] = cfg.mqtt_port;
   d["ip"] = WiFi.localIP().toString();
   d["mac"] = WiFi.macAddress();
-  d["fw"] = "solbot_main v2 revB";
+  d["fw"] = "solbot_main v2 rev B/C";
   d["imu_hz"] = settings.imu_hz;
   d["ads_hz"] = settings.ads_hz;
   d["pot_mv"] = settings.pot_mv;
+  d["pos_adc"] = posAdcName(settings.pos_adc);
+  d["pos_src"] = posFromAds ? "ads" : "esp";
+  d["ads_found"] = ads.ok();
+  d["ads_err"] = adsErr;
   {
     Lock l;
     JsonArray a = d.createNestedArray("actuators");
@@ -417,7 +472,13 @@ static void onMqtt(char *topic, byte *payload, unsigned int len) {
   if (!strcmp(sub, "settings") && json) {
     settings.imu_hz = constrain((int)(o["imu_hz"] | settings.imu_hz), 1, 100);
     settings.ads_hz = constrain((int)(o["ads_hz"] | settings.ads_hz), 1, 50);
-    settings.pot_mv = constrain((float)(o["pot_mv"] | settings.pot_mv), 1000.0f, 3300.0f);
+    settings.pot_mv = constrain((float)(o["pot_mv"] | settings.pot_mv), 3000.0f, 5500.0f);
+    if (o.containsKey("pos_adc")) {
+      const char *m = o["pos_adc"] | "";
+      if (!strcmp(m, "auto")) settings.pos_adc = POS_AUTO;
+      else if (!strcmp(m, "esp")) settings.pos_adc = POS_ESP;
+      else if (!strcmp(m, "ads")) settings.pos_adc = POS_ADS;
+    }
     saveSettings();
     return ack(sub, true);
   }
@@ -508,6 +569,7 @@ static void publishTelemetry() {
     }
     d["enabled"] = (bool)actEnable;
     d["estop"] = !estopOk;
+    d["pos_src"] = posFromAds ? "ads" : "esp";
     char t[80];
     netcfg::topic(t, sizeof(t), "act/state");
     serializeJson(d, out);
@@ -569,7 +631,7 @@ void setup() {
   hbridge::begin(20000);
   gLock = xSemaphoreCreateMutex();
 
-  Serial.println("\nsolbot_main v2 rev B starting");
+  Serial.println("\nsolbot_main v2 (rev B/C) starting");
   netcfg::loadConfig();
   loadSettings();
   loadAct();
@@ -578,6 +640,7 @@ void setup() {
   Wire.begin(pins::I2C_SDA, pins::I2C_SCL, 400000);
   Wire.setTimeOut(20);
   if (!imuBegin()) Serial.println("BNO085 not found");
+  Serial.println(ads.probe() ? "ADS1115 found at 0x48: pot positions via ADS" : "no ADS1115: pot positions via ESP ADC1");
 
   xTaskCreatePinnedToCore(controlTask, "control", 6144, nullptr, 5, nullptr, 1);
   xTaskCreatePinnedToCore(pvTask, "pv", 4096, nullptr, 4, nullptr, 1);

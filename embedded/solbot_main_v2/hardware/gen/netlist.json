@@ -1418,48 +1418,48 @@
  },
  {
   "ref": "R35",
-  "value": "1k",
+  "value": "0",
   "footprint": "Resistor_SMD:R_0603_1608Metric",
   "lib_id": "Device:R",
   "sheet": "actuators",
   "block": "A1",
   "dnp": false,
   "fields": {
-   "LCSC": "C21190"
+   "LCSC": "C21189"
   },
   "path": "/c058278c-fa35-5161-8e57-727f2002292b/f83f9327-cf11-51c3-8029-d4ed39209f1a",
   "pads": {
-   "1": "+3V3A",
+   "1": "+5V",
    "2": "A1_VREF"
   }
  },
  {
   "ref": "R36",
-  "value": "1M",
+  "value": "150k",
   "footprint": "Resistor_SMD:R_0603_1608Metric",
   "lib_id": "Device:R",
   "sheet": "actuators",
   "block": "A1",
   "dnp": false,
   "fields": {
-   "LCSC": "C22935"
+   "LCSC": "C22807"
   },
   "path": "/c058278c-fa35-5161-8e57-727f2002292b/59feb534-abc7-5b5f-8e0f-466c8d2b4b8f",
   "pads": {
-   "1": "A1_WIP",
+   "1": "A1_POS",
    "2": "GND"
   }
  },
  {
   "ref": "R37",
-  "value": "4.7k",
+  "value": "100k",
   "footprint": "Resistor_SMD:R_0603_1608Metric",
   "lib_id": "Device:R",
   "sheet": "actuators",
   "block": "A1",
   "dnp": false,
   "fields": {
-   "LCSC": "C23162"
+   "LCSC": "C25803"
   },
   "path": "/c058278c-fa35-5161-8e57-727f2002292b/ec8fc88a-1376-5c7e-a066-efdd1ca01f60",
   "pads": {
@@ -1596,48 +1596,48 @@
  },
  {
   "ref": "R40",
-  "value": "1k",
+  "value": "0",
   "footprint": "Resistor_SMD:R_0603_1608Metric",
   "lib_id": "Device:R",
   "sheet": "actuators",
   "block": "A2",
   "dnp": false,
   "fields": {
-   "LCSC": "C21190"
+   "LCSC": "C21189"
   },
   "path": "/c058278c-fa35-5161-8e57-727f2002292b/17d48748-2e2d-5e00-bb05-7388ac80572a",
   "pads": {
-   "1": "+3V3A",
+   "1": "+5V",
    "2": "A2_VREF"
   }
  },
  {
   "ref": "R41",
-  "value": "1M",
+  "value": "150k",
   "footprint": "Resistor_SMD:R_0603_1608Metric",
   "lib_id": "Device:R",
   "sheet": "actuators",
   "block": "A2",
   "dnp": false,
   "fields": {
-   "LCSC": "C22935"
+   "LCSC": "C22807"
   },
   "path": "/c058278c-fa35-5161-8e57-727f2002292b/e0b96765-cf01-534a-b2b2-81a6ed00899e",
   "pads": {
-   "1": "A2_WIP",
+   "1": "A2_POS",
    "2": "GND"
   }
  },
  {
   "ref": "R42",
-  "value": "4.7k",
+  "value": "100k",
   "footprint": "Resistor_SMD:R_0603_1608Metric",
   "lib_id": "Device:R",
   "sheet": "actuators",
   "block": "A2",
   "dnp": false,
   "fields": {
-   "LCSC": "C23162"
+   "LCSC": "C25803"
   },
   "path": "/c058278c-fa35-5161-8e57-727f2002292b/6c6c94a2-0c28-5666-a427-cc3a6ecc0245",
   "pads": {
@@ -1774,48 +1774,48 @@
  },
  {
   "ref": "R45",
-  "value": "1k",
+  "value": "0",
   "footprint": "Resistor_SMD:R_0603_1608Metric",
   "lib_id": "Device:R",
   "sheet": "actuators",
   "block": "A3",
   "dnp": false,
   "fields": {
-   "LCSC": "C21190"
+   "LCSC": "C21189"
   },
   "path": "/c058278c-fa35-5161-8e57-727f2002292b/19c15a13-22a8-5ab9-9072-09e39963047b",
   "pads": {
-   "1": "+3V3A",
+   "1": "+5V",
    "2": "A3_VREF"
   }
  },
  {
   "ref": "R46",
-  "value": "1M",
+  "value": "150k",
   "footprint": "Resistor_SMD:R_0603_1608Metric",
   "lib_id": "Device:R",
   "sheet": "actuators",
   "block": "A3",
   "dnp": false,
   "fields": {
-   "LCSC": "C22935"
+   "LCSC": "C22807"
   },
   "path": "/c058278c-fa35-5161-8e57-727f2002292b/2cf5aea7-a31a-5ca4-9f5b-45186da332b8",
   "pads": {
-   "1": "A3_WIP",
+   "1": "A3_POS",
    "2": "GND"
   }
  },
  {
   "ref": "R47",
-  "value": "4.7k",
+  "value": "100k",
   "footprint": "Resistor_SMD:R_0603_1608Metric",
   "lib_id": "Device:R",
   "sheet": "actuators",
   "block": "A3",
   "dnp": false,
   "fields": {
-   "LCSC": "C23162"
+   "LCSC": "C25803"
   },
   "path": "/c058278c-fa35-5161-8e57-727f2002292b/add281bb-9f34-5626-bae6-f953f6b412b2",
   "pads": {
@@ -1952,48 +1952,48 @@
  },
  {
   "ref": "R50",
-  "value": "1k",
+  "value": "0",
   "footprint": "Resistor_SMD:R_0603_1608Metric",
   "lib_id": "Device:R",
   "sheet": "actuators",
   "block": "A4",
   "dnp": false,
   "fields": {
-   "LCSC": "C21190"
+   "LCSC": "C21189"
   },
   "path": "/c058278c-fa35-5161-8e57-727f2002292b/02eee845-4cdd-5ced-8449-091da9d5cd9a",
   "pads": {
-   "1": "+3V3A",
+   "1": "+5V",
    "2": "A4_VREF"
   }
  },
  {
   "ref": "R51",
-  "value": "1M",
+  "value": "150k",
   "footprint": "Resistor_SMD:R_0603_1608Metric",
   "lib_id": "Device:R",
   "sheet": "actuators",
   "block": "A4",
   "dnp": false,
   "fields": {
-   "LCSC": "C22935"
+   "LCSC": "C22807"
   },
   "path": "/c058278c-fa35-5161-8e57-727f2002292b/4540fc8a-ac6c-58f1-bbc7-7ae42c115db2",
   "pads": {
-   "1": "A4_WIP",
+   "1": "A4_POS",
    "2": "GND"
   }
  },
  {
   "ref": "R52",
-  "value": "4.7k",
+  "value": "100k",
   "footprint": "Resistor_SMD:R_0603_1608Metric",
   "lib_id": "Device:R",
   "sheet": "actuators",
   "block": "A4",
   "dnp": false,
   "fields": {
-   "LCSC": "C23162"
+   "LCSC": "C25803"
   },
   "path": "/c058278c-fa35-5161-8e57-727f2002292b/04be9126-86b5-5eda-8e62-4f1826109d36",
   "pads": {
@@ -2034,6 +2034,83 @@
    "1": "GND",
    "2": "+3V3A",
    "3": "A4_POS"
+  }
+ },
+ {
+  "ref": "J15",
+  "value": "ADS1115 module",
+  "footprint": "Connector_PinSocket_2.54mm:PinSocket_1x10_P2.54mm_Vertical",
+  "lib_id": "Connector_Generic:Conn_01x10",
+  "sheet": "actuators",
+  "block": "ADC16",
+  "dnp": false,
+  "fields": {
+   "Assembly": "hand-solder (THT)"
+  },
+  "path": "/c058278c-fa35-5161-8e57-727f2002292b/4d4f6751-9274-500f-a490-4933f6026c81",
+  "pads": {
+   "1": "+5V",
+   "10": "A1_WIP",
+   "2": "GND",
+   "3": "SCL5",
+   "4": "SDA5",
+   "5": "GND",
+   "7": "A4_WIP",
+   "8": "A2_WIP",
+   "9": "A3_WIP"
+  }
+ },
+ {
+  "ref": "C24",
+  "value": "100n",
+  "footprint": "Capacitor_SMD:C_0603_1608Metric",
+  "lib_id": "Device:C",
+  "sheet": "actuators",
+  "block": "ADC16",
+  "dnp": false,
+  "fields": {
+   "LCSC": "C14663"
+  },
+  "path": "/c058278c-fa35-5161-8e57-727f2002292b/8588bd63-9f93-5e94-a879-9339cebdafd5",
+  "pads": {
+   "1": "+5V",
+   "2": "GND"
+  }
+ },
+ {
+  "ref": "Q5",
+  "value": "2N7002",
+  "footprint": "Package_TO_SOT_SMD:SOT-23",
+  "lib_id": "Device:Q_NMOS_GSD",
+  "sheet": "actuators",
+  "block": "ADC16",
+  "dnp": false,
+  "fields": {
+   "LCSC": "C8545"
+  },
+  "path": "/c058278c-fa35-5161-8e57-727f2002292b/5c670f9c-c6bd-52bb-bade-47bedee3e41d",
+  "pads": {
+   "1": "+3V3A",
+   "2": "SCL",
+   "3": "SCL5"
+  }
+ },
+ {
+  "ref": "Q6",
+  "value": "2N7002",
+  "footprint": "Package_TO_SOT_SMD:SOT-23",
+  "lib_id": "Device:Q_NMOS_GSD",
+  "sheet": "actuators",
+  "block": "ADC16",
+  "dnp": false,
+  "fields": {
+   "LCSC": "C8545"
+  },
+  "path": "/c058278c-fa35-5161-8e57-727f2002292b/1dd85d10-0ae2-52fa-b6da-83a6cab5dd33",
+  "pads": {
+   "1": "+3V3A",
+   "2": "SDA",
+   "3": "SDA5"
   }
  }
 ]

@@ -6,18 +6,18 @@
   (title_block
     (title "solbot_main v2 - compact ESP32-S3 controller")
     (date "2026-10-15")
-    (rev "v2 rev B")
+    (rev "v2 rev C")
     (company "solbot")
     (comment 1 "Main controller - ESP32-S3")
     (comment 2 "Root sheet"))
   (lib_symbols)
-  (text "solbot_main v2 rev B - compact ESP32-S3 main controller, JLCPCB basic parts\n\nESP32-S3-DevKitC-1 GPIO map\n  ADC1: POS A1..A4 = GPIO1, 2, 3, 4   IS A1..A4 = GPIO5, 6, 7, 8   BUS_VS = GPIO9   V12_SNS = GPIO10\n  PWM R/L (active-low into 74HC14): A1 = 11/12  A2 = 13/14  A3 = 15/16  A4 = 17/18\n  I2C (BNO085 0x4A): SDA = 41, SCL = 42      IMU_INT = 20, IMU_RST = 19\n  SSR1 (PV) = GPIO21   SSR2 = GPIO47   ACT_EN = 39 (through E-stop loop)   ESTOP_SENSE = 40   LED_ERR = 46\n\nIBT-2 IDC 2x5 (v3 pinout): 1 RPWM 2 LPWM 3 R_EN 4 L_EN (EN5 = E-stop gate) 5 R_IS 6 L_IS 7 VCC(+5V) 8 GND 9/10 n.c.\nPV switch: two DELIXI CDG1-1DD/25A DC SSRs, outputs in series back-to-back (- to -).\nThrough-hole parts are hand-soldered (not in the JLC assembly BOM).\n"
+  (text "solbot_main v2 rev C - compact ESP32-S3 main controller, JLCPCB basic parts\n\nESP32-S3-DevKitC-1 GPIO map\n  ADC1: POS A1..A4 = GPIO1, 2, 3, 4   IS A1..A4 = GPIO5, 6, 7, 8   BUS_VS = GPIO9   V12_SNS = GPIO10\n  POS (Hall) sensors: +5V via 0R link; ESP ADC reads output x 0.6 (100k/150k, BAV99 clamp), ADS1115 the raw wiper\n  Optional ADS1115 module on 1x10 socket J15, VDD +5V, I2C 0x48 via 2N7002 shifters, A0..A3 = WIP A4, A2, A3, A1\n  PWM R/L (active-low into 74HC14): A1 = 11/12  A2 = 13/14  A3 = 15/16  A4 = 17/18\n  I2C (BNO085 0x4A): SDA = 41, SCL = 42      IMU_INT = 20, IMU_RST = 19\n  SSR1 (PV) = GPIO21   SSR2 = GPIO47   ACT_EN = 39 (through E-stop loop)   ESTOP_SENSE = 40   LED_ERR = 46\n\nIBT-2 IDC 2x5 (v3 pinout): 1 RPWM 2 LPWM 3 R_EN 4 L_EN (EN5 = E-stop gate) 5 R_IS 6 L_IS 7 VCC(+5V) 8 GND 9/10 n.c.\nPV switch: two DELIXI CDG1-1DD/25A DC SSRs, outputs in series back-to-back (- to -).\nThrough-hole parts are hand-soldered (not in the JLC assembly BOM).\n"
     (at 20 25 0)
     (effects
       (font
         (size 2 2))
       (justify left bottom))
-    (uuid "84d7e74d-ffbb-5801-9d5a-35bc09f430fd"))
+    (uuid "2850965b-15c2-5bdb-9879-58094b09f148"))
   (sheet
     (at 20.32 135)
     (size 90 25)

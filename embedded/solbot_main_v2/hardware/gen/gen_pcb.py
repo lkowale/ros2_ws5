@@ -9,7 +9,9 @@ Phases:
 Run with a clean environment (KiCad python), e.g.
   env -i PATH=/usr/bin:/bin HOME=$HOME python3 gen_pcb.py place
 """
+import glob
 import json
+import math
 import os
 import shutil
 import sys
@@ -288,6 +290,47 @@ class Gen:
                 if not is_conn(r)]
         rest += [r for blk in ('ESP', 'ESTOP', 'IMU') for r in refs_in('mcu', blk) if not is_conn(r)]
         self.pack(by_area(rest), 48, 15.5, 84, 54.5, gap=1.4)
+        # rev C: the A1/A2 sensor-supply links (0R, +5V) sat in a pocket of the resistor block that
+        # only the old 3V3A pull-up row reached; move them to the free strip above the TURN terminal,
+        # next to their VREF traces (A1 at x 65.5, A2 at x 71.6). Their old spots stay empty.
+        for blk, (x, y, rot) in (('A1', (67.5, 62.0, 180)), ('A2', (69.0, 66.0, 0))):
+            ref = [r for r in refs_in('actuators', blk) if self.fps[r][0].GetValue() == '0'][0]
+            self.place(ref, x, y, rot)
+
+        # ---- optional ADS1115 breakout module (rev C) on a 1x10 socket below the SPARE IDC.
+        # Header row at the top, module body (28 x 17.6 mm) lying flat towards the pot terminals, so
+        # the module's own print is upside down: VDD (pin 1) is the RIGHT-hand pin. The row is the
+        # only one that clears the locked rev B copper (1.13 mm to the nearest track at y 59.0).
+        adc = refs_in('actuators', 'ADC16')
+        sock = [r for r in adc if lib(r).startswith('Connector')][0]
+        cap = [r for r in adc if r.startswith('C')][0]
+        shifters = [r for r in adc if r.startswith('Q')]   # SCL, SDA level shifters (module VDD = 5 V)
+        ax, ay = 104.9, 59.0                       # row centre
+        fp = self.fps[sock][0]
+        fp.SetOrientationDegrees(270)
+        fp.SetPosition(V(0, 0))
+        p1, p10 = self.pad_pos(sock, 1), self.pad_pos(sock, 10)
+        fp.SetPosition(V(ax - (p1[0] + p10[0]) / 2, ay - (p1[1] + p10[1]) / 2))
+        self.fps[sock][1]['_placed'] = True
+        fp.Reference().SetVisible(False)
+        names = ['VDD', 'GND', 'SCL', 'SDA', 'ADR', 'ALR', 'A0', 'A1', 'A2', 'A3']
+        for k, nm in enumerate(names):
+            px, py = self.pad_pos(sock, k + 1)
+            self.text(nm, px, py + 4.6, 0.8, rot=90)
+        vx = self.pad_pos(sock, 1)[0]
+        self.place(cap, vx - 1.27, ay + 3.0, 180)  # between the VDD and GND pins, +5V pad on the VDD side
+        self.fps[cap][0].Reference().SetVisible(False)   # would sit on the pin labels
+        for k, q in enumerate(shifters):           # free area under the module body, left of the x 110 track
+            self.place(q, 106.0 - 4.0 * k, ay + 9.0, 0)   # SCL right (under its pin), SDA left
+        self.text('ADS1115 module: match pin names', ax, ay + 12.0, 0.8)
+        l, t = ax - 14.0, ay - 1.3                 # module outline (fab layer only)
+        for (xa, ya), (xb, yb) in [((l, t), (l + 28, t)), ((l + 28, t), (l + 28, t + 17.6)),
+                                   ((l + 28, t + 17.6), (l, t + 17.6)), ((l, t + 17.6), (l, t))]:
+            sh = pcbnew.PCB_SHAPE(self.board)
+            sh.SetShape(pcbnew.SHAPE_T_SEGMENT)
+            sh.SetStart(V(xa, ya)); sh.SetEnd(V(xb, yb))
+            sh.SetLayer(pcbnew.F_Fab); sh.SetWidth(mm(0.1))
+            self.board.Add(sh)
 
         missing = [r for r, (fp, p) in self.fps.items() if not p.get('_placed')]
         if missing:
@@ -337,7 +380,7 @@ def phase_place():
     g.add_parts()
     g.outline()
     g.layout()
-    g.text('solbot_main v2 rev B  ESP32-S3 controller  2026-10-16', 60, 40, 2.0, pcbnew.B_SilkS)
+    g.text('solbot_main v2 rev C  ESP32-S3 controller  2026-11-09', 60, 40, 2.0, pcbnew.B_SilkS)
     pcbnew.SaveBoard(PCB, g.board)
     shutil.copy(PCB, PLACED)
     # reload so project net classes are applied, then export DSN
@@ -433,20 +476,141 @@ def import_ses(b, path):
 
 EDGE_MIN = 0.0   # mm, optional routing-boundary inset (0 = board outline; FreeRouting keeps ~0.3 mm itself)
 # later FreeRouting passes on the routed board (phase `export_routed`); the newest existing file wins
-SES_EXTRA = [os.path.join(OUT, 'solbot_main_v2_pass2.ses')]
+SES_EXTRA = []
+# incremental passes (phase `export_incremental`, old copper locked): FreeRouting writes ONLY the new
+# wires, so these are imported ON TOP of the base routing, in order
+SES_INCREMENTAL = [os.path.join(OUT, 'solbot_main_v2_pass4.ses')]   # FreeRouting: 5 V sensors, dividers, ADS module on 5 V
+# route_net.py, one net each, for what FreeRouting left open (pass5_1_<net>.ses, pass5_2_..., in order)
+SES_INCREMENTAL += sorted(glob.glob(os.path.join(OUT, 'solbot_main_v2_pass5_*.ses')))
+
+
+def on_segment(px, py, t, tol):
+    s, e = t.GetStart(), t.GetEnd()
+    ax, ay, bx, by = pcbnew.ToMM(s.x), pcbnew.ToMM(s.y), pcbnew.ToMM(e.x), pcbnew.ToMM(e.y)
+    dx, dy = bx - ax, by - ay
+    L = dx * dx + dy * dy
+    u = 0.0 if L == 0 else max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / L))
+    return math.hypot(px - ax - u * dx, py - ay - u * dy) <= tol
+
+
+def _pads(b):
+    return [p for fp in b.GetFootprints() for p in fp.Pads()]
+
+
+def drop_foreign(b):
+    """Pads whose net changed since the copper was routed (rev C: sensor supply 3V3A -> +5V, wiper
+    pull-down -> divider leg, ADS module moved to +5V / raw wipers): drop the track segments that end
+    on a pad of another net. The rest stays, as stubs the later sessions connect to."""
+    pads = _pads(b)
+    def touches(t, p):   # copper of t overlaps pad p, or comes closer than 0.12 mm (rule: 0.2)
+        if not p.IsOnLayer(t.GetLayer()) or p.GetNetname() == t.GetNetname():
+            return False
+        s, e = t.GetStart(), t.GetEnd()
+        n = max(1, int(pcbnew.ToMM((e - s).EuclideanNorm()) / 0.1))
+        acc = t.GetWidth() // 2 + pcbnew.FromMM(0.12)
+        return any(p.HitTest(pcbnew.VECTOR2I(int(s.x + (e.x - s.x) * k / n), int(s.y + (e.y - s.y) * k / n)), acc)
+                   for k in range(n + 1))
+    near = lambda t, p: p.GetBoundingBox().Intersects(t.GetBoundingBox())
+    bad = [t for t in b.GetTracks() if t.Type() != pcbnew.PCB_VIA_T and any(
+           touches(t, p) for p in pads if near(t, p))]
+    for t in bad:
+        b.Remove(t)
+    print('drop_foreign: %d segments removed' % len(bad))
+
+
+def prune_dangling(b):
+    """After the last session: remove copper left dangling (dead stubs, single-connection vias)."""
+    pads = _pads(b)
+    removed, nets = 0, set()
+    while True:
+        items = list(b.GetTracks())
+        segs = [t for t in items if t.Type() != pcbnew.PCB_VIA_T]
+        vias = [t for t in items if t.Type() == pcbnew.PCB_VIA_T]
+        dead = []
+        for t in vias:
+            c = t.GetPosition()
+            x, y = pcbnew.ToMM(c.x), pcbnew.ToMM(c.y)
+            r = pcbnew.ToMM(t.GetWidth()) / 2
+            n = sum(1 for o in segs if o.GetNetCode() == t.GetNetCode() and on_segment(x, y, o, r))
+            n += sum(1 for p in pads if p.GetNetCode() == t.GetNetCode() and p.HitTest(c))
+            if n < 2 and t.GetNetname() != 'GND':   # GND stitching vias tie the pours together
+                dead.append(t)
+        trimmed = 0
+        for t in segs:
+            L = t.GetLayer()
+            if t.GetLength() < pcbnew.FromMM(0.001):   # zero-length FreeRouting leftovers
+                dead.append(t)
+                continue
+            def anchored(pt):
+                x, y = pcbnew.ToMM(pt.x), pcbnew.ToMM(pt.y)
+                if t.GetNetname() == 'GND':   # ends in the pour
+                    return True
+                if any(p.GetNetCode() == t.GetNetCode() and p.IsOnLayer(L) and p.HitTest(pt) for p in pads):
+                    return True
+                if any(v.GetNetCode() == t.GetNetCode() and math.hypot(pcbnew.ToMM(v.GetPosition().x) - x,
+                       pcbnew.ToMM(v.GetPosition().y) - y) < pcbnew.ToMM(v.GetWidth()) / 2 for v in vias):
+                    return True
+                # ends inside another track's copper (route_net ends on the grid, not on the centre line)
+                return any(o is not t and o.GetNetCode() == t.GetNetCode() and o.GetLayer() == L
+                           and on_segment(x, y, o, pcbnew.ToMM(o.GetWidth()) / 2) for o in segs)
+            sa, ea = anchored(t.GetStart()), anchored(t.GetEnd())
+            if sa and ea:
+                continue
+            # dead end: trim back to the farthest junction on the segment (T joins), else remove it
+            s0, e0 = t.GetStart(), t.GetEnd()
+            ax, ay, bx, by = pcbnew.ToMM(s0.x), pcbnew.ToMM(s0.y), pcbnew.ToMM(e0.x), pcbnew.ToMM(e0.y)
+            dx, dy = bx - ax, by - ay
+            L2 = dx * dx + dy * dy
+            hw = pcbnew.ToMM(t.GetWidth()) / 2
+            us = ([0.0] if sa else []) + ([1.0] if ea else [])
+            pts = [o.GetStart() for o in segs if o is not t and o.GetNetCode() == t.GetNetCode() and o.GetLayer() == L]
+            pts += [o.GetEnd() for o in segs if o is not t and o.GetNetCode() == t.GetNetCode() and o.GetLayer() == L]
+            pts += [v.GetPosition() for v in vias if v.GetNetCode() == t.GetNetCode()]
+            for q in pts:
+                qx, qy = pcbnew.ToMM(q.x), pcbnew.ToMM(q.y)
+                if L2 > 0 and on_segment(qx, qy, t, hw):
+                    us.append(max(0.0, min(1.0, ((qx - ax) * dx + (qy - ay) * dy) / L2)))
+            if len(us) < 2 or (max(us) - min(us)) * math.sqrt(L2) < 0.01:
+                dead.append(t)
+                continue
+            u0, u1 = min(us), max(us)
+            t.SetStart(V(ax + u0 * dx, ay + u0 * dy))
+            t.SetEnd(V(ax + u1 * dx, ay + u1 * dy))
+            trimmed += 1
+        if trimmed and not dead:
+            removed += 0
+            continue
+        if not dead:
+            break
+        for t in dead:
+            nets.add(t.GetNetname())
+            b.Remove(t)
+        removed += len(dead)
+    print('prune_dangling: %d copper items removed (nets %s)' % (removed, ', '.join(sorted(nets)) or '-'))
+
+
+def build_copper(b, final=True):
+    """placed board + base routing + incremental passes; segments on re-netted pads dropped before
+    the passes, dead stubs pruned after them (final)."""
+    sessions = [f for f in [SES] + SES_EXTRA if os.path.exists(f)]
+    if sessions:
+        import_ses(b, sessions[-1])
+    drop_foreign(b)
+    for f in SES_INCREMENTAL:
+        if os.path.exists(f) and os.path.getsize(f):
+            import_ses(b, f)
+    if final:
+        prune_dangling(b)
 
 
 def phase_finish():
     # always start from the unrouted board written by `place` (idempotent)
     shutil.copy(PLACED, PCB)
     b = pcbnew.LoadBoard(PCB)
-    # each FreeRouting pass writes the complete routing -> import only the latest one
-    if len(sys.argv) > 2:  # explicit session file
-        sessions = [os.path.abspath(sys.argv[2])]
+    if len(sys.argv) > 2:  # explicit session file only
+        import_ses(b, os.path.abspath(sys.argv[2]))
     else:
-        sessions = [f for f in [SES] + SES_EXTRA if os.path.exists(f)]
-    if sessions:
-        import_ses(b, sessions[-1])
+        build_copper(b, final=not os.environ.get('NO_PRUNE'))   # NO_PRUNE=1: keep stubs (for route_net.py)
     g = Gen.__new__(Gen)
     g.board = b
     g.nets = {n: b.FindNet(n) for n in ('GND',)}
@@ -479,5 +643,32 @@ def phase_export_routed():
     print('exported', DSN)
 
 
+def phase_export_incremental():
+    """Placed board (new parts included) + all existing routing (base SES + the incremental
+    sessions that exist, pruned where pad nets changed), every track LOCKED (exported as
+    `type fix`), as solbot_main_v2_<tag>.dsn (tag = argv[2], default pass2). FreeRouting then
+    routes only the open connections; its session holds just the new wires, which `finish`
+    imports on top (add it to SES_INCREMENTAL)."""
+    global DSN
+    tag = sys.argv[2] if len(sys.argv) > 2 else 'pass2'
+    work = os.path.join(HERE, 'incremental.kicad_pcb')
+    shutil.copy(PLACED, work)
+    b = pcbnew.LoadBoard(work)
+    build_copper(b, final=False)   # keep the stubs: FreeRouting connects to them
+    for t in b.GetTracks():
+        t.SetLocked(True)
+    pcbnew.SaveBoard(work, b)
+    b = pcbnew.LoadBoard(work)
+    DSN = os.path.join(OUT, 'solbot_main_v2_%s.dsn' % tag)
+    pcbnew.ExportSpecctraDSN(b, DSN)
+    fix_dsn_classes()
+    for ext in ('.kicad_pcb', '.kicad_pro', '.kicad_prl'):   # pcbnew creates a project next to it
+        f = work[:-len('.kicad_pcb')] + ext
+        if os.path.exists(f):
+            os.remove(f)
+    print('exported', DSN)
+
+
 if __name__ == '__main__':
-    {'place': phase_place, 'finish': phase_finish, 'export_routed': phase_export_routed}[sys.argv[1]]()
+    {'place': phase_place, 'finish': phase_finish, 'export_routed': phase_export_routed,
+     'export_incremental': phase_export_incremental}[sys.argv[1]]()

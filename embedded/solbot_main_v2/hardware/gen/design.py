@@ -9,7 +9,9 @@ switching. Rev B uses JLCPCB *basic* parts wherever possible (LCSC field on ever
   * two external DC solid-state relays (DELIXI CDG1-1DD/25A) for PV on/off,
   * 4 IBT-2 ports on 2x5 IDC (v3 pinout, pins 5/6 = R_IS/L_IS used), 74HC14 level shift,
     E-stop gates the IBT-2 R_EN/L_EN pins,
-  * 4 position pots read directly by ADC1 (no ADS1115), BNO085 on I2C.
+  * 4 position pots read directly by ADC1, BNO085 on I2C. Optional ADS1115 breakout module
+    (1x10 socket, plugged flat, on +5V like the ws4 toolbar) reads the raw 0..5 V wipers at 16 bit
+    if the ESP ADC proves too noisy.
 Through-hole parts (connectors, DevKit sockets) are hand-soldered: not in the JLC BOM.
 """
 
@@ -95,7 +97,7 @@ V3A = '+3V3A'
 LCSC_R = {
     ('22', R0603): 'C23345', ('100', R0603): 'C22775', ('470', R0603): 'C23179', ('1k', R0603): 'C21190',
     ('2.2k', R0603): 'C4190', ('4.7k', R0603): 'C23162', ('10k', R0603): 'C25804', ('30k', R0603): 'C22984',
-    ('100k', R0603): 'C25803', ('1M', R0603): 'C22935', ('470k 150V', R0805): 'C17709',
+    ('100k', R0603): 'C25803', ('1M', R0603): 'C22935', ('0', R0603): 'C21189', ('150k', R0603): 'C22807', ('470k 150V', R0805): 'C17709',
     ('22R 0.25W', R1206): 'C17958',
 }
 LCSC_C = {
@@ -137,7 +139,7 @@ def build():
     d.R('2.2k', V5, 'LED_5V')
     d.add('D', 'Device:LED', 'KT-0805G green', LED0805, {'A': 'LED_5V', 'K': GND}, fields={'LCSC': 'C2297'})
 
-    d.blk('power', 'LDO3', 'XC6206P332MR 3.3 V (200 mA): I2C pull-ups, pot excitation, clamps.')
+    d.blk('power', 'LDO3', 'XC6206P332MR 3.3 V (200 mA): I2C pull-ups, clamps.')
     d.C('1u', V5, GND)
     d.add('U', 'Regulator_Linear:XC6206PxxxMR', 'XC6206P332MR-G', 'Package_TO_SOT_SMD:SOT-23-3',
           {'VI': V5, 'VO': V3A, 'GND': GND}, fields={'LCSC': 'C5446'})
@@ -246,8 +248,9 @@ def build():
         a = 'A%d' % n
         d.blk('actuators', a, 'Actuator %d (%s). IDC 2x5 (v3 pinout, flat cable 1:1 to the IBT-2 '
               'header): 1 RPWM, 2 LPWM, 3 R_EN, 4 L_EN (both = EN5 gate), 5 R_IS, 6 L_IS, 7 VCC, 8 GND, '
-              '9/10 n.c. IS: 1k (DNP if the module has one) -> 1.18 V @ 10 A. Pot: 3V3A via 1k '
-              '(keeps the wiper below ~3.0 V, inside the ESP ADC range), wiper -> 4.7k/100n -> ADC1.'
+              '9/10 n.c. IS: 1k (DNP if the module has one) -> 1.18 V @ 10 A. Sensor (Hall, active): +5V through a 0R '
+              'link (as ws4: direct; fit 10R..47R for short protection), output -> 100k/150k divider (5 V -> 3.0 V) + 100n -> ADC1, '
+              'BAV99 clamp to 3V3A.'
               % (n, roles[n]))
         d.add('J', 'Connector_Generic:Conn_02x05_Odd_Even', 'IBT-2 %s' % roles[n], IDC10,
               {1: a + '_RPWM5', 2: a + '_LPWM5', 3: 'ACT_EN5', 4: 'ACT_EN5', 5: a + '_IS', 6: a + '_IS',
@@ -257,11 +260,25 @@ def build():
         d.C('100n', a + '_ISA', GND)
         d.add('J', 'Connector_Generic:Conn_01x03', 'POS %s (+ W -)' % roles[n], PT3, {1: a + '_VREF', 2: a + '_WIP', 3: GND},
               fields=HAND)
-        d.R('1k', V3A, a + '_VREF')
-        d.R('1M', a + '_WIP', GND)
-        d.R('4.7k', a + '_WIP', a + '_POS')
+        d.R('0', V5, a + '_VREF')       # 0R link: Hall sensors draw mA, a series R costs supply volts
+        d.R('150k', a + '_POS', GND)     # divider lower leg (pad 1 was the wiper pull-down in rev B)
+        d.R('100k', a + '_WIP', a + '_POS')
         d.C('100n', a + '_POS', GND)
         d.add('D', 'Diode:BAV99', 'BAV99', SOT23, {1: GND, 2: V3A, 3: a + '_POS'}, fields={'LCSC': 'C2500'})
+
+    # Optional 16-bit pot ADC. Added LAST so the existing reference designators don't change.
+    d.blk('actuators', 'ADC16', 'OPTIONAL ADS1115 breakout module (blue clone, 28x17.6 mm, header '
+          'VDD GND SCL SDA ADDR ALRT A0 A1 A2 A3) plugged FLAT into a 1x10 socket; leave it out if the ESP '
+          'ADC is good enough. As on the ws4 toolbar: module on +5V, reads the RAW 0..5 V wipers A1..A4_WIP '
+          '(PGA +-6.144 V). Its 10k I2C pull-ups go to its VDD (5 V), so SDA/SCL pass a 2N7002 level shifter '
+          '(gate 3V3A; ESP side keeps the 4.7k pull-ups to 3V3A). ADDR = GND -> 0x48, ALRT n.c. '
+          'Channels (routing order): A0=A4 A1=A2 A2=A3 A3=A1 (firmware pins::ADS_CH).')
+    d.add('J', 'Connector_Generic:Conn_01x10', 'ADS1115 module', 'Connector_PinSocket_2.54mm:PinSocket_1x10_P2.54mm_Vertical',
+          {1: V5, 2: GND, 3: 'SCL5', 4: 'SDA5', 5: GND, 7: 'A4_WIP', 8: 'A2_WIP', 9: 'A3_WIP', 10: 'A1_WIP'},
+          nc=[6], fields=HAND)
+    d.C('100n', V5, GND)
+    for sig in ('SCL', 'SDA'):
+        d.add('Q', 'Device:Q_NMOS_GSD', '2N7002', SOT23, {'G': V3A, 'S': sig, 'D': sig + '5'}, fields={'LCSC': 'C8545'})
 
     d.assign_refs()
     return d

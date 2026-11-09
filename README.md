@@ -54,6 +54,8 @@ Gotchas:
   protection. The node's limits and jam check are the only guard.
 
 ### Status / TODO
+- [ ] solbot_main v2 rev C (5 V sensors, ADS1115 module on 5 V): review the new routing in KiCad, check
+  Q5/Q6/C24/R35/R40 in JLC's placement preview, order. Confirm the module pin order matches the board labels.
 
 - [x] pd600 ESP32 (`ESP32_solbot_main`, DHCP on `solap`: was .101/.104, **192.168.0.102** on 2026-11-07) runs
   `main_esp32_pio` ws4 (uncommitted: PV hold + per-target drive timer), OTA-flashed 2026-11-07.
@@ -144,6 +146,17 @@ range with a meter before connecting it to an ESP32 ADC pin, and use a divider
 Newest first. Toolbar and solbot4-test work. Add an entry with every change.
 
 ### 2026-11-09
+- **solbot_main v2 rev C: 5 V position sensors and an optional ADS1115 module on 5 V, as on the ws4 toolbar.**
+  Hall sensors: POS terminal pin 1 = +5V through a 0 R link (direct, as ws4). The output goes to the ESP ADC through 100k/150k (×0.6, 5 V → 3.0 V) + 100 n +
+  BAV99. The ADS1115 breakout module sits in a 1x10 socket (J15), lying flat below the SPARE IDC. It is powered from
+  +5V and reads the raw 0..5 V wipers (PGA ±6.144 V, I2C 0x48); SDA/SCL pass 2× 2N7002 level shifters (Q5/Q6) so its
+  5 V pull-ups don't reach the ESP. R35/R40 moved above the TURN terminal (their old spots were boxed in).
+  Routing: rev B copper locked; segments on re-netted pads dropped, dead stubs pruned (`gen_pcb.py`), new connections
+  by FreeRouting (pass4) + `gen/route_net.py` (pass5, 2 nets). Only the nets this change touches differ from rev B.
+  DRC: 0 unconnected, no clearance errors. Production: BOM 27 lines (new Basic 0 R C21189, 150k C22807; 1M gone),
+  99 placed parts. Firmware: `pot_mv` = sensor supply (default 5000, NVS key `pot_mv5`), ESP reading ÷ `pins::POS_DIV`,
+  ADS gain ±6.144 V, ADS auto-detect with fallback to the ESP ADC (`settings {"pos_adc":"auto|esp|ads"}`), channel map
+  `pins::ADS_CH`. Builds and the host tests pass; not run on hardware.
 - **solbot_main v2 firmware (solbot5): ported the ws4 toolbar and PV changes.** The slider (act 3) now starts idle
   until the first `slider/set_position`. It trips `timeout` after 10 s driving towards one target; a goal change of more
   than `stall_delta` restarts that clock. Soft limits come from the solbot4 measurements (counts 370..1280 = ±0.0958 m;

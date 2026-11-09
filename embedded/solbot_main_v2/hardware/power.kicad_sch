@@ -6,7 +6,7 @@
   (title_block
     (title "12 V input, 5 V / 3.3 V supplies, bus voltage monitor, SSR drivers")
     (date "2026-10-15")
-    (rev "v2 rev B")
+    (rev "v2 rev C")
     (company "solbot")
     (comment 1 "Main controller - ESP32-S3")
     (comment 2 "Sheet: power"))
@@ -1829,13 +1829,13 @@
         (size 2.5 2.5) bold)
       (justify left bottom))
     (uuid "894bcea5-11f1-53c0-9abd-93f399c18e2d"))
-  (text "XC6206P332MR 3.3 V (200 mA): I2C pull-ups, pot excitation, clamps."
+  (text "XC6206P332MR 3.3 V (200 mA): I2C pull-ups, clamps."
     (at 15.24 129.52 0)
     (effects
       (font
         (size 1.4 1.4))
       (justify left bottom))
-    (uuid "b59083f3-9cc7-5cb4-9918-52905e9f4f2a"))
+    (uuid "89f2c082-b78b-57e6-9f15-c8bbbf9e3fce"))
   (wire
     (pts
       (xy 31.75 139.7)
