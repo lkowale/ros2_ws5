@@ -1,3 +1,0 @@
-(sym_lib_table
-  (lib (name "solbot")(type "KiCad")(uri "${KIPRJMOD}/lib/solbot.kicad_sym")(options "")(descr "Project parts"))
-)

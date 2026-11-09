@@ -7,7 +7,9 @@
 // (SSR2 in MIRROR mode). Alternatively one SSR + a blocking Schottky diode.
 //
 // Charging is a bang-bang CV like v3: PV off when the bus reaches cells*v_chg,
-// back on below cells*(v_chg - v_chg_hyst) after a minimum off-time.
+// back on below cells*(v_chg - v_chg_hyst). In auto mode each state is held for at least
+// min_on_s / min_off_s (v3 switched up to 58x/h without a hold, 2026-11-07); above
+// cells*v_hard PV is cut immediately, ignoring the hold and the mode.
 #pragma once
 #include <ArduinoJson.h>
 #include <math.h>
@@ -27,7 +29,9 @@ struct PvConfig {
   float v_chg_hyst = 0.10f;   // per cell: back on below v_chg - hyst (v3: 40.0 V)
   float v_low = 3.40f;        // per cell: low-battery alarm (v3 monitor: 34 V)
   float v_min_valid = 2.0f;   // per cell: below this the sense wire is assumed open
-  uint16_t min_off_s = 30;
+  float v_hard = 4.20f;       // per cell: immediate cut-off, any mode (v3: 42.0 V @10S)
+  uint16_t min_on_s = 60;     // auto: min time PV stays on before "full" may switch it off
+  uint16_t min_off_s = 60;    // auto: min time PV stays off before switching on again
   float v_scale = 32.33f;     // bus divider (470k+470k+30k)/30k, calibrate
   float v12_scale = 11.0f;    // 12 V divider (100k+10k)/10k
 
@@ -50,7 +54,8 @@ class PvManager {
   void toJson(JsonObject o) const;
 
  private:
-  uint32_t offSince_ = 0;
+  uint32_t offSince_ = 0, onSince_ = 0;
   bool everOn_ = false;
+  void on(const char *why, uint32_t now);
   void off(const char *why, uint32_t now);
 };

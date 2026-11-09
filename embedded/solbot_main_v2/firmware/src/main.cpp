@@ -13,6 +13,7 @@
 //        <dev>/power/cmd {"pv":"auto|on|off"} {"ssr2":"mirror|on|off"}
 //        <dev>/power/config {...}          <dev>/settings {"imu_hz":..,"ads_hz":..}
 //        <dev>/get_config*  <dev>/config*  <dev>/enter_ap*
+//   ads: WAS/LAS* legacy counts, TBS/TBS_goal metres, TBS_pwm 0..255, TBS_fault, TBS_active
 //   pub  imu*  ads*  esp32/power*  esp32/diag*  slider/position  <dev>/act/state  <dev>/config_status
 #include <Adafruit_BNO08x.h>
 #include <Arduino.h>
@@ -80,7 +81,17 @@ static void loadAct() {
     c.u_min = 0.02f * LEGACY_SCALE;  // default units = legacy counts
     c.u_max = 0.98f * LEGACY_SCALE;
     if (i == 0) c.invert = true;     // v3: steering actuator was CCW
-    if (i == 2) c.u_min = -0.10f, c.u_max = 0.10f;  // slider metres (calibrate!)
+    if (i == 2) {
+      // slider (toolbar), ws4 solbot4 measurements 2026-11-05 (CALIBRATE on this robot):
+      // legacy counts 1300 = left end, 350 = right end, 4.75 counts/mm, travel +-0.10 m.
+      // Soft limits 370..1280 keep ~4 mm off the end stops. ROS: left = -0.10 m.
+      c.r_min = 370 / LEGACY_SCALE;       // right end side
+      c.r_max = 1280 / LEGACY_SCALE;      // left end side
+      c.u_min = (825 - 370) / 4750.0f;    // +0.0958 m
+      c.u_max = (825 - 1280) / 4750.0f;   // -0.0958 m
+      c.max_drive_ms = 10000;             // ~1.5x a full stroke (100 mm @ 15 mm/s)
+      c.idle_at_boot = true;
+    }
   }
   prefs.begin("act", true);
   for (int i = 0; i < N; i++) {
@@ -321,7 +332,7 @@ static void onMqtt(char *topic, byte *payload, unsigned int len) {
   DynamicJsonDocument d(1536);
   bool json = !deserializeJson(d, buf);
   JsonObjectConst o = d.as<JsonObjectConst>();
-  float data = json ? (o["data"] | NAN) : atof(buf);
+  float data = json ? (o["data"] | NAN) : NAN;  // garbage must not read as goal 0
 
   // ---- v3 compatible
   if (!strcmp(topic, "steer_position")) {
@@ -357,6 +368,7 @@ static void onMqtt(char *topic, byte *payload, unsigned int len) {
     return ack("act/reset", true);
   }
   if (!strcmp(sub, "act/enable")) {
+    if (isnan(data)) return ack("act/enable", false);  // NaN != 0 would enable
     actEnable = data != 0;
     return ack("act/enable", true);
   }
@@ -461,6 +473,9 @@ static void publishTelemetry() {
       d["LAS_pos_goal"] = lroundf(act[1].st.goal_r * LEGACY_SCALE);
       d["TBS"] = act[2].toUnits(act[2].st.r);
       d["TBS_goal"] = act[2].toUnits(act[2].st.goal_r);
+      d["TBS_pwm"] = lroundf(fabsf(act[2].st.duty) * 255);
+      d["TBS_fault"] = faultName(act[2].st.fault);
+      d["TBS_active"] = act[2].st.active;
       d["estop"] = !estopOk;
     }
     serializeJson(d, out);
@@ -488,6 +503,7 @@ static void publishTelemetry() {
         o["duty"] = act[i].st.duty;
         o["amps"] = act[i].st.current;
         o["fault"] = faultName(act[i].st.fault);
+        o["active"] = act[i].st.active;
       }
     }
     d["enabled"] = (bool)actEnable;

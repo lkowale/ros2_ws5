@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 
 #include "../../src/actuator.h"
 #include "../../src/pv.h"
@@ -115,6 +116,71 @@ static void test_actuator_limits_and_faults() {
   CHECK(fabsf(e.st.goal_r - 0.4f) < 1e-6, "goal not reset to position on estop");
 }
 
+static void test_max_drive_timeout() {
+  Actuator a;
+  a.cfg.enabled = true;
+  a.cfg.max_drive_ms = 10000;
+  g_millis = 0;
+  float r = 0.10f;
+  a.updatePosition(r, g_millis);
+  // streamed, slowly moving goal (follower): keeps driving > 10 s without tripping
+  for (int i = 0; i < 1500; i++) {  // 30 s
+    g_millis += 20;
+    if (i % 5 == 0) a.setGoalRatio(r + 0.01f);  // always just ahead
+    a.updatePosition(r, g_millis);
+    float d = a.control(0.02f, true, g_millis);
+    r = plant(r, d, false, 0.02f) - 0.0005f;  // load pushes back: slow progress
+  }
+  CHECK(a.st.fault == ActFault::NONE, "streamed target tripped (%s)", faultName(a.st.fault));
+  // one target that is never reached (slow, not stalled): trips after max_drive_ms
+  Actuator b;
+  b.cfg.enabled = true;
+  b.cfg.max_drive_ms = 10000;
+  r = 0.10f;
+  b.updatePosition(r, g_millis);
+  uint32_t t0 = g_millis;
+  b.setGoalRatio(0.90f);
+  while (b.st.fault == ActFault::NONE && g_millis - t0 < 20000) {
+    g_millis += 20;
+    b.setGoalRatio(0.90f);  // periodic resend of the same goal must not restart the clock
+    b.updatePosition(r, g_millis);
+    float d = b.control(0.02f, true, g_millis);
+    r += d > 0 ? 0.0002f : 0;  // crawls: moves > stall_delta per 1.5 s, never arrives
+  }
+  CHECK(b.st.fault == ActFault::TIMEOUT, "timeout not detected (%s)", faultName(b.st.fault));
+  CHECK(g_millis - t0 > 9900 && g_millis - t0 < 10500, "timeout after %u ms", g_millis - t0);
+  CHECK(b.st.duty == 0, "drives after timeout");
+  b.setGoalRatio(0.5f);
+  CHECK(b.st.fault == ActFault::NONE, "new goal re-arms after timeout");
+}
+
+static void test_idle_at_boot() {
+  Actuator a;
+  a.cfg.enabled = true;
+  a.cfg.idle_at_boot = true;
+  g_millis = 0;
+  float r = 0.5f;
+  a.updatePosition(r, g_millis);
+  CHECK(!a.st.active, "idle at boot");
+  int moves = 0;
+  for (int i = 0; i < 100; i++) {
+    g_millis += 20;
+    r += 0.002f;  // pushed by hand: must not fight back
+    a.updatePosition(r, g_millis);
+    if (fabsf(a.control(0.02f, true, g_millis)) > 0.01f) moves++;
+  }
+  CHECK(moves == 0, "idle actuator drove (%d)", moves);
+  CHECK(fabsf(a.st.goal_r - r) < 1e-6, "idle goal follows position");
+  a.setGoalRatio(0.3f);
+  CHECK(a.st.active, "command activates");
+  for (int i = 0; i < 1000; i++) {
+    g_millis += 20;
+    a.updatePosition(r, g_millis);
+    r = plant(r, a.control(0.02f, true, g_millis), false, 0.02f);
+  }
+  CHECK(fabsf(r - 0.3f) < 0.01f, "drives after first command r=%.3f", r);
+}
+
 static void test_units() {
   Actuator a;
   a.cfg.r_min = 0.1f, a.cfg.r_max = 0.9f, a.cfg.u_min = -0.1f, a.cfg.u_max = 0.1f;
@@ -137,14 +203,40 @@ static void test_pv_hysteresis() {
   pv_step(p, 39.0f);
   CHECK(p.pv_on && p.ssr2_on, "PV + mirrored SSR2 on at 39 V (%s)", p.reason);
   CHECK(fabsf(p.v12 - 12.0f) < 0.01f, "12 V monitor");
-  pv_step(p, 41.05f);
-  CHECK(!p.pv_on && !p.ssr2_on, "off at 41.0 V (v3 behaviour)");
+  pv_step(p, 41.05f, 10);
+  CHECK(p.pv_on, "min on-time: stays on at 41 V before 60 s (%s)", p.reason);
+  pv_step(p, 41.05f, 51);
+  CHECK(!p.pv_on && !p.ssr2_on, "off at 41.0 V after min on-time (%s)", p.reason);
   pv_step(p, 40.5f, 10);
   CHECK(!p.pv_on, "stays off inside hysteresis");
-  pv_step(p, 39.9f, 5);
+  pv_step(p, 39.9f, 40);
   CHECK(!p.pv_on, "min off-time respected");
-  pv_step(p, 39.9f, 30);
+  pv_step(p, 39.9f, 15);
   CHECK(p.pv_on, "back on below 40.0 V after min off-time (%s)", p.reason);
+}
+
+static void test_pv_hard_limit_and_rate() {
+  g_millis = 0;
+  PvManager p;
+  pv_step(p, 39.0f);
+  CHECK(p.pv_on, "on");
+  pv_step(p, 42.1f);
+  CHECK(!p.pv_on, "42 V cuts immediately, ignoring the hold (%s)", p.reason);
+  p.mode = PvMode::ON;
+  pv_step(p, 39.0f);
+  pv_step(p, 42.1f);
+  CHECK(!p.pv_on && !strcmp(p.reason, "hard_limit"), "42 V cuts manual too (%s)", p.reason);
+  // worst case oscillation: fast swing across the hysteresis -> at most one cycle per 2 min
+  p.mode = PvMode::AUTO;
+  g_millis = 1000000;
+  PvManager q;
+  int switches = 0;
+  bool last = q.pv_on;
+  for (int s = 0; s < 3600; s++) {  // one hour, bus jumps every second
+    pv_step(q, s % 2 ? 41.5f : 39.0f, 1);
+    if (q.pv_on != last) switches++, last = q.pv_on;
+  }
+  CHECK(switches <= 60, "PV switched %d times in one hour", switches);
 }
 
 static void test_pv_safety_and_modes() {
@@ -172,17 +264,25 @@ static void test_pv_safety_and_modes() {
   q.cfg.cells = 20;
   pv_step(q, 79.0f);
   CHECK(q.pv_on, "20S charging at 79 V");
-  pv_step(q, 82.1f);
-  CHECK(!q.pv_on, "20S off at 82 V");
+  pv_step(q, 82.1f, 61);
+  CHECK(!q.pv_on, "20S off at 82 V after min on-time");
+  PvManager h;
+  h.cfg.cells = 20;
+  pv_step(h, 79.0f);
+  pv_step(h, 84.1f);
+  CHECK(!h.pv_on, "20S hard cut at 84 V");
 }
 
 int main() {
   test_actuator_converges(false);
   test_actuator_converges(true);
   test_actuator_limits_and_faults();
+  test_max_drive_timeout();
+  test_idle_at_boot();
   test_units();
   test_pv_hysteresis();
   test_pv_safety_and_modes();
+  test_pv_hard_limit_and_rate();
   printf(fails ? "%d FAILED\n" : "all tests passed\n", fails);
   return fails ? 1 : 0;
 }

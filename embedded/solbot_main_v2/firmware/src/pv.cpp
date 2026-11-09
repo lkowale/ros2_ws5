@@ -30,6 +30,8 @@ void PvConfig::toJson(JsonObject o) const {
   o["v_chg_hyst"] = v_chg_hyst;
   o["v_low"] = v_low;
   o["v_min_valid"] = v_min_valid;
+  o["v_hard"] = v_hard;
+  o["min_on_s"] = min_on_s;
   o["min_off_s"] = min_off_s;
   o["v_scale"] = v_scale;
   o["v12_scale"] = v12_scale;
@@ -43,6 +45,9 @@ void PvConfig::fromJson(JsonObjectConst o) {
   v_chg_hyst = o["v_chg_hyst"] | v_chg_hyst;
   v_low = o["v_low"] | v_low;
   v_min_valid = o["v_min_valid"] | v_min_valid;
+  v_hard = o["v_hard"] | v_hard;
+  if (v_hard < v_chg) v_hard = v_chg;
+  min_on_s = o["min_on_s"] | min_on_s;
   min_off_s = o["min_off_s"] | min_off_s;
   v_scale = o["v_scale"] | v_scale;
   v12_scale = o["v12_scale"] | v12_scale;
@@ -51,6 +56,13 @@ void PvConfig::fromJson(JsonObjectConst o) {
 void PvManager::off(const char *why, uint32_t now) {
   if (pv_on) offSince_ = now;
   pv_on = false;
+  reason = why;
+}
+
+void PvManager::on(const char *why, uint32_t now) {
+  if (!pv_on) onSince_ = now;
+  pv_on = true;
+  everOn_ = true;
   reason = why;
 }
 
@@ -65,20 +77,21 @@ void PvManager::update(float bus_adc_v, float v12_adc_v, uint32_t now) {
     off("mode_off", now);
   } else if (!valid) {
     off("bus_sense_invalid", now);  // can't see the battery: never charge blind
-  } else if (bus_v >= n * cfg.v_chg) {
-    off(mode == PvMode::ON ? "full_manual" : "full", now);
-  } else if (mode == PvMode::ON) {  // manual: no min off-time, but keep the hysteresis
-    if (pv_on || bus_v < n * (cfg.v_chg - cfg.v_chg_hyst)) {
-      pv_on = true;
-      reason = "manual";
-    }
-  } else if (!pv_on) {
-    bool rested = !everOn_ || now - offSince_ >= cfg.min_off_s * 1000UL;
-    if (bus_v < n * (cfg.v_chg - cfg.v_chg_hyst) && rested) {
-      pv_on = true;
-      everOn_ = true;
+  } else if (bus_v >= n * cfg.v_hard) {
+    off("hard_limit", now);  // ignores the hold and the mode
+  } else if (mode == PvMode::ON) {  // manual: no hold times, but keep the CV limit + hysteresis
+    if (bus_v >= n * cfg.v_chg) off("full_manual", now);
+    else if (pv_on || bus_v < n * (cfg.v_chg - cfg.v_chg_hyst)) on("manual", now);
+  } else if (pv_on) {
+    if (bus_v >= n * cfg.v_chg) {
+      if (now - onSince_ >= cfg.min_on_s * 1000UL) off("full", now);
+      else reason = "full_hold";  // stays on until min_on_s (bounded by v_hard)
+    } else {
       reason = "charging";
     }
+  } else {
+    bool rested = !everOn_ || now - offSince_ >= cfg.min_off_s * 1000UL;
+    if (bus_v < n * (cfg.v_chg - cfg.v_chg_hyst) && rested) on("charging", now);
   }
   ssr2_on = ssr2_mode == Ssr2Mode::MIRROR ? pv_on : ssr2_mode == Ssr2Mode::ON;
 }

@@ -9,7 +9,8 @@
 > `production/bom.csv` and `production/positions.csv`. Through-hole parts are hand-soldered.
 > If you change anything, re-run the plugin and repeat these checks before ordering again.
 
-A compact alternative to `../solbot_main` (v1, with the full on-board 4-pack power path).
+The ESP32-S3 main controller for solbot5. It replaced v1 (a 190 × 155 mm board with a full
+on-board 4-pack power path, removed from the repo 2026-11-09; see git history before that date).
 This board has **no battery switching on board**. It
 
 * runs from the robot's **12 V rail**
@@ -19,7 +20,7 @@ This board has **no battery switching on board**. It
   current sensing on the previously unused IDC pins 5/6
 * reads the **4 position pots directly on the ESP32-S3 ADC1**, plus the **BNO085** on I2C
 
-Board: **120 × 85 mm**, 2 layers, 1 oz is fine (v1 was 190 × 155 mm, 2 oz).
+Board: **120 × 85 mm**, 2 layers, 1 oz is fine.
 
 ## JLCPCB assembly (rev B)
 
@@ -150,20 +151,74 @@ OTA_HOST=<ip> pio run -e solbot_main_v2_ota -t upload
 test/host/run.sh       # actuator + PV logic tests (after one `pio run`)
 ```
 
-The MQTT API is the same as v1 (see `../solbot_main/README.md`). The v3 topics `steer_position`,
-`lift/set_position`, `motor_direction`, `ads`, `imu`, `esp32/power` (`voltage`, `pv_on`)
-and `esp32/diag` (`pv_switch` on/off) are unchanged. Differences from v1:
+Tasks: **control** at 50 Hz (BNO085, positions, IS currents, PWM), **pv** at 10 Hz (bus and
+12 V voltage, SSR control), **loop()** for WiFi/MQTT/OTA/telemetry. The control loops never
+depend on the network.
+
+### MQTT API
+
+v3 topics are unchanged (ROS `steering.py`, `imu_bridge.py`, `esp32_power_monitor.py` keep working):
+
+| Topic | Dir | Payload |
+|---|---|---|
+| `steer_position` | sub | `{"data": legacy}`. Legacy counts are the old ADS1015 scale (ratio × 1666.7), so `steering.yaml` stays valid |
+| `lift/set_position` | sub | `{"data": legacy}` |
+| `motor_direction` | sub | toggles the steering direction |
+| `ads` | pub 10 Hz | `WAS, WAS_pwm, WAS_pos_goal, LAS, LAS_pwm, LAS_pos_goal` (+ `TBS`, `TBS_goal` in metres, `TBS_pwm` 0..255, `TBS_fault`, `TBS_active`, `estop`) |
+| `imu` | pub 5 Hz | `orientation[4], heading_accuracy, angular_velocity[3], linear_acceleration[3]` |
+| `esp32/power` | pub 1 Hz | `voltage, pv_on, v12, low, mode, reason, ssr2_on, ssr2_mode` |
+| `esp32/diag` | pub | loop gaps, E-stop events, `pv_switch` on/off |
+| `<dev>/config`, `get_config`, `enter_ap` | sub | as v3 (`config_status` also contains actuator and PV configs) |
+
+New:
 
 | Topic | Payload |
 |---|---|
-| `esp32/power` (1 Hz) | `voltage, pv_on, v12, low, mode, reason, ssr2_on, ssr2_mode` |
+| `slider/set_position` / `slider/position` | `{"data": metres}` (toolbar slider, left end = −0.10 m) |
+| `<dev>/act/<1-4\|name>/set` | `{"pos": units}` or `{"raw": legacy}` or `{"ratio": 0..1}` |
+| `<dev>/act/<1-4\|name>/config` | partial update of `name, enabled, invert, r_min, r_max, u_min, u_max, deadband, slow_zone, pwm_min, pwm_max, pwm_slew, i_limit, oc_ms, stall_delta, stall_ms, cmd_timeout_ms, max_drive_ms, idle_at_boot, sensor_check` (saved to NVS) |
+| `<dev>/act/reset`, `<dev>/act/enable {"data":0/1}` | clear faults / software enable |
+| `<dev>/act/state` (pub 5 Hz) | per actuator `pos, goal, ratio, duty, amps, fault, active` |
 | `<dev>/power/cmd` | `{"pv":"auto\|on\|off"}`, `{"ssr2":"mirror\|on\|off"}` |
-| `<dev>/power/config` | `cells, v_chg, v_chg_hyst, v_low, v_min_valid, min_off_s, v_scale, v12_scale` (NVS) |
+| `<dev>/power/config` | `cells, v_chg, v_chg_hyst, v_hard, v_low, v_min_valid, min_on_s, min_off_s, v_scale, v12_scale` (NVS) |
 | `<dev>/settings` | `imu_hz, ads_hz, pot_mv` (measure the voltage at a pot's top terminal and set `pot_mv`; then the legacy WAS/LAS numbers match v3) |
-| actuators | `<dev>/act/1..4` (steer, lift, slider, a4) |
 
-Calibration: compare `voltage` with a multimeter and set `power/config {"v_scale": …}`.
-Actuator calibration is the same as v1 (`r_min/r_max`, `u_min/u_max`, `invert`).
+`<dev>` defaults to `ESP32_solbot_main`. Payloads that aren't valid JSON are ignored.
+
+### Actuator safeguards
+
+Every actuator has soft limits (goals are clamped to `r_min..r_max`), over-current and stall
+trips (driving but moved less than `stall_delta` for `stall_ms`) and a pot sanity check.
+A new goal clears a stall, over-current or timeout fault. Two more are on for the slider only by default
+(ported from the solbot4 toolbar firmware, ws4 `main_esp32_pio`):
+
+* `idle_at_boot`: no drive, not even holding, until the first command.
+* `max_drive_ms` (10 s, about 1.5× a full stroke): driving longer than that towards **one**
+  target trips with fault `timeout`. A goal change larger than `stall_delta` restarts the
+  clock, so a streamed, slowly moving target (vision follower) doesn't trip. Resending the same
+  goal doesn't restart it, and the stall reference is never reset by new goals.
+
+Slider defaults come from the solbot4 measurements (2026-11-05): legacy counts 1300 = left
+end, 350 = right end, 4.75 counts/mm. The soft limits are counts 370..1280 (about 4 mm off
+the end stops), which is `r_min=0.222` (+0.0958 m) and `r_max=0.768` (−0.0958 m).
+**Calibrate on this robot.**
+
+### PV control (auto mode)
+
+Bang-bang CV like v3: PV off at `cells × v_chg` (41.0 V at 10S), back on below
+`cells × (v_chg − v_chg_hyst)` (40.0 V). Each state is held for at least `min_on_s` /
+`min_off_s` (60 s / 60 s), because v3 switched up to 58 times an hour without a hold
+(2026-11-07). Above `cells × v_hard` (42.0 V) PV is cut immediately in any mode, ignoring the
+hold. Manual `on` ignores the hold times but still stops at `v_chg`. PV is never switched on
+when the bus sense reads open (`v_min_valid`).
+
+### Calibration (once per robot)
+
+1. Voltage: compare `voltage` with a multimeter and set `power/config {"v_scale": …}`.
+2. Actuators: jog to each mechanical end with `act/<n>/set {"ratio":…}`, read `ratio`
+   from `act/state`, then set `r_min/r_max` a little inside the ends, plus `u_min/u_max`
+   in your units. Steering and lift default to legacy counts; the slider to metres.
+3. Direction: if an actuator runs away from its goal, set `{"invert":true}`.
 
 ## Regenerate
 
@@ -184,6 +239,8 @@ env -i PATH=/usr/bin:/bin HOME=$HOME python3 gen_pcb.py finish
   left are silkscreen warnings, plus `lib_footprint_issues`, which only appear in the
   headless run. The signal routing is autorouted, so look it over in KiCad before ordering.
 * Firmware builds (RAM 17 %, flash 26 %). The host tests pass (and were mutation-checked).
+  2026-11-09: ported the ws4 toolbar safeguards (per-target max-drive timeout, idle at boot,
+  slider soft limits) and the PV 60 s on/off hold + 42 V hard cut-off; tests extended.
   **It hasn't run on hardware yet.**
 * **Verify** the DevKitC-1 header row spacing on your module (the footprint uses 25.4 mm;
   Espressif's own footprint says 22.86 mm).

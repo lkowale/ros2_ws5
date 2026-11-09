@@ -130,6 +130,15 @@ range with a meter before connecting it to an ESP32 ADC pin, and use a divider
 
 Newest first. Toolbar and solbot4-test work. Add an entry with every change.
 
+### 2026-11-09
+- **solbot_main v2 firmware (solbot5): ported the ws4 toolbar and PV changes.** The slider (act 3) now starts idle
+  until the first `slider/set_position`. It trips `timeout` after 10 s driving towards one target; a goal change of more
+  than `stall_delta` restarts that clock. Soft limits come from the solbot4 measurements (counts 370..1280 = ±0.0958 m;
+  calibrate on solbot5). PV: 60 s minimum on and off hold, 42 V immediate cut-off in any mode. `ads` adds `TBS_pwm`,
+  `TBS_fault`, `TBS_active`; `act/state` adds `active`. Payloads that aren't JSON are ignored (they used to read as goal 0).
+  Host tests extended, all pass; firmware builds. Not run on hardware (board not built yet).
+- **Removed `embedded/solbot_main` (v1 board)**; v2 is the only solbot5 controller. v1 is in git history before this commit.
+
 ### 2026-11-06
 - OAK-D on solbot4: `solbot4_toolbar/launch/oakd.launch.py` + `config/oakd.yaml` (depthai_ros_driver, RGB only,
   720p 10 fps, `CAMERA_MODEL` default OAK-D-LITE), `config/camera_bridge.yaml`, `run_solbot4_camera.sh`;

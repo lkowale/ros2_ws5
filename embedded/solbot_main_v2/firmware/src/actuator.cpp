@@ -8,6 +8,7 @@ const char *faultName(ActFault f) {
     case ActFault::SENSOR: return "sensor";
     case ActFault::OVERCURRENT: return "overcurrent";
     case ActFault::STALL: return "stall";
+    case ActFault::TIMEOUT: return "timeout";
     default: return "none";
   }
 }
@@ -30,6 +31,8 @@ void ActConfig::toJson(JsonObject o) const {
   o["stall_delta"] = stall_delta;
   o["stall_ms"] = stall_ms;
   o["cmd_timeout_ms"] = cmd_timeout_ms;
+  o["max_drive_ms"] = max_drive_ms;
+  o["idle_at_boot"] = idle_at_boot;
   o["sensor_check"] = sensor_check;
 }
 
@@ -51,6 +54,8 @@ void ActConfig::fromJson(JsonObjectConst o) {
   stall_delta = o["stall_delta"] | stall_delta;
   stall_ms = o["stall_ms"] | stall_ms;
   cmd_timeout_ms = o["cmd_timeout_ms"] | cmd_timeout_ms;
+  max_drive_ms = o["max_drive_ms"] | max_drive_ms;
+  idle_at_boot = o["idle_at_boot"] | idle_at_boot;
   sensor_check = o["sensor_check"] | sensor_check;
   if (r_max < r_min) {
     float t = r_min;
@@ -80,11 +85,18 @@ float Actuator::clampGoal(float r) const {
 
 void Actuator::setGoalRatio(float r) {
   if (isnan(r)) return;
-  st.goal_r = clampGoal(r);
-  lastCmdMs_ = millis();
+  float g = clampGoal(r);
+  uint32_t now = millis();
+  // a new target restarts the max-drive clock; resends of the same goal don't. The stall
+  // reference is NOT reset: a jammed actuator still trips however often the goal changes.
+  if (driving_ && fabsf(g - st.goal_r) > cfg.stall_delta) driveSinceMs_ = now;
+  st.goal_r = g;
+  lastCmdMs_ = now;
   goalPending_ = true;
+  st.active = true;
   // a fresh command clears latched motion faults (not sensor faults)
-  if (st.fault == ActFault::STALL || st.fault == ActFault::OVERCURRENT) st.fault = ActFault::NONE;
+  if (st.fault == ActFault::STALL || st.fault == ActFault::OVERCURRENT || st.fault == ActFault::TIMEOUT)
+    st.fault = ActFault::NONE;
 }
 
 void Actuator::hold() {
@@ -103,6 +115,7 @@ void Actuator::updatePosition(float r, uint32_t now_ms) {
   st.valid = true;
   if (first) {
     st.goal_r = clampGoal(r);  // boot: hold where we are
+    st.active = !cfg.idle_at_boot;
     stallRefR_ = r;
     stallRefMs_ = now_ms;
   }
@@ -125,14 +138,17 @@ float Actuator::control(float dt, bool allowed, uint32_t now_ms) {
     st.moving = false;
     return 0;
   }
-  if (!allowed) {
+  if (!st.active) {  // idle until the first command: no drive, not even holding
+    st.goal_r = clampGoal(st.r);
+    inDeadband_ = true;
+  } else if (!allowed) {
     hold();
   } else if (cfg.cmd_timeout_ms && now_ms - lastCmdMs_ > cfg.cmd_timeout_ms && goalPending_) {
     goalPending_ = false;
     hold();
   }
 
-  if (allowed && st.fault == ActFault::NONE) {
+  if (st.active && allowed && st.fault == ActFault::NONE) {
     float err = st.goal_r - st.r;
     float ae = fabsf(err);
     // deadband with hysteresis: stop inside db, restart only beyond 2*db
@@ -178,7 +194,15 @@ float Actuator::control(float dt, bool allowed, uint32_t now_ms) {
     stallRefR_ = st.r;
     stallRefMs_ = now_ms;
   }
+  // max drive time towards one target
+  if (st.moving) {
+    if (!driving_) driving_ = true, driveSinceMs_ = now_ms;
+    else if (cfg.max_drive_ms && now_ms - driveSinceMs_ > cfg.max_drive_ms) st.fault = ActFault::TIMEOUT;
+  } else {
+    driving_ = false;
+  }
   if (st.fault != ActFault::NONE) {
+    driving_ = false;
     st.duty = 0;
     st.moving = false;
   }

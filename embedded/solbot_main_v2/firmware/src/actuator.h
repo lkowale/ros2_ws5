@@ -30,13 +30,17 @@ struct ActConfig {
   float stall_delta = 0.002f; // ratio movement required ...
   uint16_t stall_ms = 1500;   // ... within this time while driving
   uint16_t cmd_timeout_ms = 0;  // 0 = hold goal forever
+  // max time driving towards ONE target (0 = off): a goal change > stall_delta restarts
+  // the clock, so a streamed, slowly moving target (vision follower) does not trip
+  uint16_t max_drive_ms = 0;
+  bool idle_at_boot = false;  // no drive (not even holding) until the first command
   bool sensor_check = true;   // fault if wiper reads <1% or >99%
 
   void toJson(JsonObject o) const;
   void fromJson(JsonObjectConst o);
 };
 
-enum class ActFault : uint8_t { NONE, SENSOR, OVERCURRENT, STALL };
+enum class ActFault : uint8_t { NONE, SENSOR, OVERCURRENT, STALL, TIMEOUT };
 const char *faultName(ActFault f);
 
 struct ActState {
@@ -47,6 +51,7 @@ struct ActState {
   ActFault fault = ActFault::NONE;
   bool moving = false;
   bool valid = false;    // position has been measured at least once
+  bool active = true;    // false: idle (idle_at_boot), goal follows the position
 };
 
 class Actuator {
@@ -77,4 +82,6 @@ class Actuator {
   uint32_t stallRefMs_ = 0;
   float stallRefR_ = 0;
   bool goalPending_ = false;
+  bool driving_ = false;      // for max_drive_ms
+  uint32_t driveSinceMs_ = 0;
 };
