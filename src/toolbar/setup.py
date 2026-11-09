@@ -24,6 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
             'toolbar_service = toolbar.toolbar_service:main',
+            'toolbar_outer_bridge = toolbar.toolbar_outer_bridge:main',
         ],
     },
 )

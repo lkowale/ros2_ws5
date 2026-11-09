@@ -25,6 +25,7 @@ toolbar never pauses the robot.
 
 ```bash
 bash pd600.sh deploy                # rsync toolbar packages to pd600:~/ros2_ws5, build there on ws4
+bash pd600.sh start_bar             # all-in-one: core + toolbar + OAK-D + bar_follower (one tmux)
 bash pd600.sh start                 # core stack (run_core_um982.sh, field_nav_hw params) + toolbar, tmux "solbot4"
 bash pd600.sh attach                # watch (Ctrl-b d detach, Ctrl-c stop)
 bash pd600.sh state                 # one /toolbar/state (raw_position = TPS counts)
@@ -35,6 +36,8 @@ bash pd600.sh camera                # OAK-D (solbot4_toolbar/oakd.launch.py, RGB
                                     #   domain_bridge 0→1 to hp-zbook, tmux "oakd"; start AFTER `start`
 bash pd600.sh view                  # laptop: oakd_view.py (OpenCV window, Hz/kB overlay) of /oakd/rgb/image_raw/compressed, domain 1
 bash pd600.sh camera_stop
+bash pd600.sh gui                   # laptop: toolbar_gui.py — slider (target sent on release), Enable/Disable/
+                                    #   Centre/Auto/Reset fault/HOLD, live state; ssh pipe to toolbar_gui_remote.py, no DDS
 ```
 
 Requirements on pd600: `~/ros2_ws4` on branch `feature/toolbar-service` (adds the
@@ -52,12 +55,20 @@ Gotchas:
 
 ### Status / TODO
 
-- [x] pd600 ESP32 (`ESP32_solbot_main`, 192.168.0.104 on `solap`) runs `main_esp32_pio` ws4 `ee2e8b7`, OTA-flashed 2026-11-05.
-  Re-flash: `cd ~/ros2_ws4/embedded/main_esp32_pio && OTA_HOST=192.168.0.104 ~/.platformio/penv/bin/pio run -e esp32dev_ota -t upload`
+- [x] pd600 ESP32 (`ESP32_solbot_main`, DHCP on `solap`: was .101/.104, **192.168.0.102** on 2026-11-07) runs
+  `main_esp32_pio` ws4 (uncommitted: PV hold + per-target drive timer), OTA-flashed 2026-11-07.
+  The laptop can't reach it; build here, relay through pd600 and resolve the IP there:
+  `pio run -e esp32dev_ota` (in `~/ros2_ws4/embedded/main_esp32_pio`), `scp .pio/build/esp32dev_ota/firmware.bin
+  ~/.platformio/packages/framework-arduinoespressif32/tools/espota.py pd600:/tmp/`, then
+  `ssh pd600 'python3 /tmp/espota.py -i $(getent hosts ESP32_solbot_main.local | cut -d" " -f1) -f /tmp/firmware.bin'`
 - [x] Firmware safeguards in `main_esp32_pio` (ws4): toolbar idle until the first `toolbar/set_position`, stall
   (1.5 s, ≤3 counts) and max-drive-time (20 s) trips, `TPS_fault` / `TPS_active` in `ads`. Built, host unit-tested.
   - [x] goal clamp 370..1280 (~4 mm inside the ends), max drive 10 s. OTA-flashed 2026-11-05
 - [x] Actuator moves (2nd test 2026-11-05; 1st test had no movement and tripped stall)
+- [x] PV SSR 60 s min on/off hold + 42 V hard cut-off in `main_esp32_pio`: OTA-flashed 2026-11-07
+  - [ ] commit in ws4; compare the next day's `~/ros2_ws4/logs/pv_ssr/` with 2026-11-07 (up to 58 switches/h)
+- [x] Toolbar max-drive timeout (10 s) now counts per target: a goal change > 3 counts restarts it (stall check
+  unchanged). OTA-flashed 2026-11-07 together with the PV hold
 - [ ] Node: on a firmware-reported fault, `_latch` sends a hold goal, which re-arms the firmware (`TPS_active` true).
   It should leave the firmware idle
 - [x] Direction correct, no change needed (`CW`): +right → TPS falls, −left → TPS rises. Both IBT-2 inputs work
@@ -68,6 +79,8 @@ Gotchas:
 - [ ] **IMPORTANT — motion interlock:** lift **down** → toolbar may only move while the robot is moving
   (tool in the soil, sliding sideways while stationary would gouge/strain it); lift **up** → always allowed.
   Needs lift state + robot speed in the node (and ideally a firmware-side guard too)
+- [x] Laptop slider GUI (`bash pd600.sh gui`)
+- [ ] Phone slider via HiveMQ (`outer/toolbar_pos`, `toolbar_outer_bridge`) — running on pd600, get_status round trip via HiveMQ OK; slider move not yet tested
 - [ ] Vision loop on solbot4: deploy `tool_slider` + `crop_row_vision` (`PKGS=... bash pd600.sh deploy`), camera topic on solbot4
 
 ## Tool slider actuator — IBT-2 on the old main ESP32 board
@@ -138,6 +151,44 @@ Newest first. Toolbar and solbot4-test work. Add an entry with every change.
   `TBS_fault`, `TBS_active`; `act/state` adds `active`. Payloads that aren't JSON are ignored (they used to read as goal 0).
   Host tests extended, all pass; firmware builds. Not run on hardware (board not built yet).
 - **Removed `embedded/solbot_main` (v1 board)**; v2 is the only solbot5 controller. v1 is in git history before this commit.
+
+### 2026-11-07
+- **Firmware: toolbar timeout per target** (ws4 `Lin_act_pid::command()`, flashed with the PV hold change). The
+  follower tripped `ESP32 reports toolbar actuator timeout` at 13:28: the target kept moving with the bar, the motor
+  never stopped, and the 10 s continuous-drive limit ran out. Now a new goal (> `stall_delta` = 3 counts, so the
+  node's periodic resends don't count) restarts the 10 s clock; the stall reference is not reset, so a jammed
+  actuator still trips after 1.5 s. After the flash: reset_fault / enable / auto, follower at target (−0.7 mm).
+  OTA: the ESP32 had moved to 192.168.0.102 (DHCP); resolve `ESP32_solbot_main.local` on pd600.
+- **PV SSR hold (firmware, not flashed):** `main_esp32_pio` (ws4) PV switch keeps each state >= 60 s
+  (`PV_MIN_HOLD_MS`) and still cuts PV at once above 42 V (`PV_HARD_OFF_VOLTAGE`). Reason: on 2026-11-07, with the
+  41/40 V thresholds, PV switched up to 58 times an hour, with 1-3 s bounces after reconnects.
+- **One-session startup for the bar-follower test:** `bash pd600.sh start_bar [launch args]` ->
+  `run_solbot4_bar_follower.sh` -> ws4 `run_core_um982.sh` with `CORE_LAUNCH=core_bar_follower.launch.py`
+  (`solbot4_toolbar/launch/`): core_toolbar (pd600_core + toolbar_service + toolbar_outer_bridge) + OAK-D +
+  camera domain_bridge (`CAMERA_BRIDGE_CYCLONEDDS_URI`) + bar_follower. Args `use_camera`, `use_bar_follower`,
+  `camera_model`, `bar_follower_params`. Replaces `start` + `camera` + `follow` (start_bar refuses if those
+  sessions run); `stop` handles both launches. Toolbar still starts disabled, follower in dry_run.
+- **`bar_follower`** (`solbot4_toolbar/scripts/bar_follower.py`, params in `config/toolbar_cam.yaml`): keeps the knife's
+  left edge `offset_mm` (30) right of a red bar/cable. Red mask -> per-row edge midpoints -> line fit -> bar column at
+  v_ref; target `p = (u_bar + offset·2.62 px/mm - u0 ∓ hysteresis/2) / px_per_m`, approach-direction aware, 5 mm
+  deadband, published on `/tool_bar_position_cmd` (no PID: the camera is frame-fixed, the firmware closes the loop).
+  Bar lost 0.5 s -> stops publishing, `toolbar_service` holds. Starts `dry_run: true`. Status JSON
+  `/bar_follower/status`, overlay `/bar_follower/image/compressed` (bridged to the laptop).
+  `pd600.sh follow | follow_stop | follow_view`, `view [topic]`. Static check: bar 795 px, toolbar −0.0236 ->
+  target −0.075 m; the TPS prediction matched the detected knife corner within 7 px (~3 mm).
+- **OAK-D <-> toolbar calibration** (`solbot4_toolbar/config/toolbar_cam.yaml`, data and frames in
+  `docs/toolbar_cam_calib/`): lift down, tape on the floor, toolbar swept ±0.08 m, knife bottom-left corner
+  auto-detected. `u_impl = 1071.7 + 2907·p ± 20 px` (px, p in m, +p = image right; knife visible only for p <= ~+0.01).
+  Ground scale 26.2 px/cm, so the knife moves 1.11 mm per TPS mm (TPS travel scale or knife pivoting).
+  **Hysteresis ~40 px = ~15 mm** between approach directions (repeatable to 1 px per direction): implement joint play.
+- `toolbar_gui.py` + `toolbar_gui_remote.py`, `bash pd600.sh gui`: tkinter slider GUI on the laptop. The robot graph is
+  loopback-only, so the GUI copies `toolbar_gui_remote.py` to pd600 and runs it over ssh (JSON lines: `/toolbar/state`
+  out, `/toolbar_control` requests in). Slider sends `set_position` on release; ←/→ ±5 mm (Shift ±1 mm), `c` centre,
+  space HOLD; closing the window sends hold if enabled. `deploy` also copies the remote helper.
+- `toolbar_outer_bridge` (package `toolbar`, started by `core_toolbar.launch.py`): phone MQTT app via the HiveMQ cloud
+  broker, same pattern as ws4 `mqtt_op` outer/steer + outer/speed. `outer/toolbar_pos` `{"data": mm}` (−100..100,
+  +right) → `toolbar_control set_position`; `outer/toolbar_cmd` `{"data": "enable"|"center"|"hold"|…}`; replies on
+  `outer/toolbar_state` `{pos_mm, target_mm, state, ok, message}`. Coalesces slider bursts (newest value, one call in flight).
 
 ### 2026-11-06
 - OAK-D on solbot4: `solbot4_toolbar/launch/oakd.launch.py` + `config/oakd.yaml` (depthai_ros_driver, RGB only,

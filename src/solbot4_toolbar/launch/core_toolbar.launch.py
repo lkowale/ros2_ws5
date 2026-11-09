@@ -39,9 +39,15 @@ def generate_launch_description():
         parameters=[LaunchConfiguration('toolbar_params'),
                     {'broker_ip_address': LaunchConfiguration('broker_ip')}])
 
+    # phone MQTT app via HiveMQ cloud: outer/toolbar_pos {"data": mm}, outer/toolbar_cmd
+    toolbar_outer_bridge = Node(
+        package='toolbar', executable='toolbar_outer_bridge', name='toolbar_outer_bridge',
+        output='screen')
+
     return LaunchDescription([
         declare_broker_ip,
         declare_toolbar_params,
         core,
         toolbar_service,
+        toolbar_outer_bridge,
     ])

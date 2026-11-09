@@ -11,3 +11,10 @@ topics:
       depth: 1
   oakd/rgb/camera_info:
     type: sensor_msgs/msg/CameraInfo
+  bar_follower/image/compressed:
+    type: sensor_msgs/msg/CompressedImage
+    qos:
+      reliability: best_effort
+      depth: 1
+  bar_follower/status:
+    type: std_msgs/msg/String
