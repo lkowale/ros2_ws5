@@ -57,8 +57,8 @@ Gotchas:
 - [ ] solbot_main v2 rev C (5 V sensors, ADS1115 module on 5 V): review the new routing in KiCad, check
   Q5/Q6/C24/R35/R40 in JLC's placement preview, order. Confirm the module pin order matches the board labels.
 
-- [x] pd600 ESP32 (`ESP32_solbot_main`, DHCP on `solap`: was .101/.104, **192.168.0.102** on 2026-11-07) runs
-  `main_esp32_pio` ws4 (uncommitted: PV hold + per-target drive timer), OTA-flashed 2026-11-07.
+- [x] pd600 ESP32 (`ESP32_solbot_main`, DHCP on `solap`: was .101/.104/.102, **192.168.0.106** on 2026-11-11) runs
+  `main_esp32_pio` ws4 (uncommitted: PV hold + per-target drive timer + toolbar min PWM 100), OTA-flashed 2026-11-11.
   The laptop can't reach it; build here, relay through pd600 and resolve the IP there:
   `pio run -e esp32dev_ota` (in `~/ros2_ws4/embedded/main_esp32_pio`), `scp .pio/build/esp32dev_ota/firmware.bin
   ~/.platformio/packages/framework-arduinoespressif32/tools/espota.py pd600:/tmp/`, then
@@ -144,6 +144,69 @@ range with a meter before connecting it to an ESP32 ADC pin, and use a divider
 ## Changelog
 
 Newest first. Toolbar and solbot4-test work. Add an entry with every change.
+
+### 2026-11-11
+- **bar_follower `reference: markers` (new default): two knives, one each side of the crop row, each with a
+  yellow marker; keep the red bar midway between the markers.** Visual servo on the image, no knife model:
+  markers (yellow H 18-45, S>50, V>130, compact 400-4000 px blobs, rows of the measuring tape rejected) ->
+  midpoint; bar centreline at the markers' row; `err = u_bar + center_offset_mm·2.62 - u_mid`. Only after the
+  toolbar reached its target and was still `settle_s` 0.6 s: median of `settle_frames` 3 errors, if over
+  `deadband_mm` (now 3) -> `target = p + err / gain(p)`, gain = `px_per_m + 2·px_per_m2·p` (new `px_per_m2`
+  −2867 from the 11-10 sweep). Joint play / scale errors are taken out by the next iteration. One marker
+  hidden: the other ± the remembered spacing. Markers or bar lost 0.5 s -> stop commanding (service holds).
+  Clamped to the service limits (asymmetric since the zero move). `reference: model` keeps the 11-07 mode.
+- Bar detection: tallest red component + pieces on its line (was: all red pieces merged), `red_v_min` 40 -> 75,
+  and in markers mode only columns within one marker spacing of the knives. The rusty frame at the left image
+  edge (V 43-62) was passing as the bar (u ≈ 18 px).
+- Live test markers mode: bar 9 mm off -> −0.8 mm in 2 moves; chasing the bar to the left end the target hit
+  −77.4 mm, but the firmware clamps goals at TPS 1280 (−75.2 mm), so the toolbar stayed "moving" until
+  `arrive_timeout_s`. Follower clamp now 5 mm inside the service limits (was 2). After the fix: reversal from
+  the left end +27 -> +17.6 (joint play ate half the first step) -> +4.1 -> +0.6 mm.
+- **bar_follower `reference: knives` (new default): the knives themselves at ground level, not the markers.**
+  The yellow markers sit 5-10 cm above the ground, and their parallax put the "centred" bar 22 mm off the
+  knives' real midpoint. Inner wing tip of each knife = extreme of the blue-steel mask on its side of the bar
+  centreline (left knife max u+v, right knife max v-u, mean of the 30 most extreme px), rows from the tape
+  top down ignored (tape and the shank bolt look bluish), blobs < `knife_min_blob_px` 1500 ignored (a bluish
+  dirt spot next to the left tip was taken as the tip now and then, error jumping ~6 mm), tips = median of
+  the last 3 frames. Stationary noise: sd 1.8 mm with outliers to −6 -> 0.28 mm, range 0.3-1.7 mm.
+- Continuous servo hysteresis: start correcting above `deadband_mm` (3), stop updating the target below
+  `release_frac`·deadband (1.5 mm) or when at rest inside the deadband. Without it the loop dithered back and
+  forth through the implement joint play (near the target small actuator moves don't move the knives).
+  After both fixes: target unchanged for 18 s with a still bar, error 0.1-0.3 mm.
+- **bar_follower `servo: continuous` (new default for markers mode):** the stepped loop (move, wait for the
+  target + 0.6 s + 3 frames, measure, move) made the toolbar visibly stop-and-go behind a moving bar. Now every
+  frame: `target = p(t_image) + servo_gain(0.8) * err / gain(p)`, `p(t_image)` interpolated from the
+  /toolbar/state history at the image header stamp (pd600 clock), resent only when it changes > 0.5 mm; held
+  when still and |err| <= deadband. `servo: stepped` keeps the old loop. Live: 44-50 mm bar moves followed in one
+  smooth motion, converged −0.4..+0.8 mm in 2.7-9.3 s, no stalls.
+- **Firmware `TOOLBAR_MIN_PWM` 100 (ws4 `main_esp32_pio`, uncommitted, OTA-flashed 2026-11-11 to .106):**
+  `Lin_act_pid::min_pwm` (default 40, steering/lift unchanged) is the bottom of `calculate_pwm`'s 5..100-count
+  ramp. A 3.5 mm (17-count) follower step got PWM ~75/255, didn't move with the knives on concrete, and tripped
+  `stall` after 1.5 s (latched until reset_fault + auto). After the flash: four 3 mm (12-count) steps both ways
+  reached the target, no stall.
+- pd600 rebooted again 2026-11-11 and the OAK-D was missing from `lsusb` until replugged (same as 11-10).
+
+### 2026-11-10
+- **Toolbar zero re-referenced to the bar's working centre (TPS 923, was 825 = mid-stroke).**
+  `config/toolbar.yaml`: same counts at the ends (1300 left, 350 right, 4.75 counts/mm), limits now
+  `min_position -0.0794` / `max_position +0.1206`; `center` command and 0 m go to TPS 923. Verified on
+  pd600 after deploy + restart: raw 923 reads 0.000 m. toolbar_gui picks the new limits up from `/toolbar/state`.
+- **`toolbar_cam.yaml` u0 1071.7 -> 1011.7** for the new zero (u0 − 2907·0.0206). Camera check of the sweep:
+  max left (raw 1277) knife ≈800 px vs 815 predicted, back to centre ≈1035 vs 1032. Against the tape the knife moves
+  ~1.1–1.18 mm per configured TPS mm (−88 mm at −74.6, +66 at +60.8), consistent with the 11-07 px_per_m (1.11).
+- Bar-follower test re-run with `start_bar`: bar at u 788 px, follower live (enable, auto, dry_run false) settled
+  at −0.056 m with err −0.7 mm.
+- **Follower accuracy sweep** (`measure_knife_bar.py` on pd600: after each settle, knife bottom-left corner
+  (blue-steel mask; the 11-07 V<95 mask misses the lit wing) vs red-bar centreline at that row, 2.62 px/mm;
+  data + annotated frames in `docs/toolbar_cam_calib/follow_check_2026-11-10/`). Goal offset 30 mm, 13 steps:
+  arriving from the right (−p) 29.3–31.7 mm; arriving from the left (+p) 27.3 mm at −46 mm, 24–26 mm around
+  0, 21.5 at +43, 14.5 at +90 (+94.5 saturated at `limit_m`). The follower's own err stayed within ±2 mm, so the
+  error is the camera model. Fit of knife u vs p (new frame): linear `999 + 2644·p ± 39/2` leaves 6.4 px rms
+  (10 px max, curved residuals); quadratic `1009.6 + 2788·p − 2867·p² − 47.8/2·dir` leaves 2.3 px rms (3.8 max,
+  < 1.5 mm). Local scale falls from 3130 px/m at −0.06 to 2270 at +0.09 (lens edge + linkage).
+  The 11-07 linear model (2907 px/m) was fitted on −0.10…−0.01 m (new frame) only. TODO: quadratic in bar_follower.
+- OAK-D on pd600 enumerated at 5 Gbps (USB SPEED: SUPER) on bus 2 port 10. pd600 rebooted once
+  unexpectedly with the camera attached: watch for a USB power brown-out.
 
 ### 2026-11-09
 - **solbot_main v2 rev C: 5 V position sensors and an optional ADS1115 module on 5 V, as on the ws4 toolbar.**
