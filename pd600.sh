@@ -24,6 +24,10 @@
 #                                 after camera; starts dry_run, see config/toolbar_cam.yaml
 #   bash pd600.sh follow_stop     stop it (toolbar_service holds when the stream stops)
 #   bash pd600.sh follow_view     on the laptop: view of /bar_follower/image/compressed
+#   bash pd600.sh rope            rope_follower (rope/cable texture -> knife_tps_cal -> /tool_bar_position_cmd)
+#                                 in tmux "rope", starts dry_run (start_bar use_bar_follower:=false first)
+#   bash pd600.sh rope_stop       stop it
+#   bash pd600.sh rope_view       on the laptop: view of /rope_follower/image/compressed
 #   bash pd600.sh gui             on the laptop: toolbar_gui.py slider window (ssh pipe, no DDS)
 #
 # The stack runs in tmux on pd600, so a dropped laptop connection does not stop the robot.
@@ -156,6 +160,40 @@ follow)
 follow_stop)
     rsh "tmux has-session -t follow 2>/dev/null" || { echo "not running"; exit 0; }
     rsh "tmux send-keys -t follow C-c"; sleep 2; rsh "tmux kill-session -t follow"
+    ;;
+rope)
+    if rsh "tmux has-session -t rope 2>/dev/null"; then
+        echo "tmux session 'rope' already exists on $HOST (bash pd600.sh rope_stop)"; exit 1
+    fi
+    rsh "tmux new-session -d -s rope -x 220 -y 50"
+    # TPS<->m map defaults in rope_follower.py = config/toolbar.yaml (counts_at_min/max, min/max_position)
+    rsh "tmux send-keys -t rope '$REMOTE_ENV && ros2 run solbot4_toolbar rope_follower.py --ros-args -p dry_run:=true $*' Enter"
+    echo "rope_follower started in tmux 'rope' (dry_run).  Logs: ssh -t $HOST tmux attach -t rope  View: bash pd600.sh rope_view"
+    echo "Commanding: bash pd600.sh toolbar auto ; bash pd600.sh ros2 param set /rope_follower dry_run false"
+    ;;
+rope_stop)
+    rsh "tmux has-session -t rope 2>/dev/null" || { echo "not running"; exit 0; }
+    rsh "tmux send-keys -t rope C-c"; sleep 2; rsh "tmux kill-session -t rope"
+    ;;
+ropelog)
+    # rope-following log on pd600: knife marker logger (tmux ropemark -> /rope_follower/knife_markers +
+    # ~/rope_logs/markers/precision_<stamp>.csv) and a bag of the follower/toolbar/lift/odom topics
+    # (tmux ropelog -> ~/rope_logs/rope_<tag>_<stamp>/).  bash pd600.sh ropelog [tag] [raw]
+    # raw: also the camera (/oakd/rgb/image_raw/compressed, ~1.5 MB/s) for offline re-detection /
+    # calibration: ros2 run solbot4_toolbar knife_tps_fit.py ~/rope_logs/rope_<tag>_*
+    tag="${1:-run}"
+    extra=""; [[ "${2:-}" == raw ]] && extra=" /oakd/rgb/image_raw/compressed"
+    bash "$0" ropelog_stop >/dev/null
+    rsh "mkdir -p ~/rope_logs/markers"
+    rsh "tmux new-session -d -s ropemark \"$REMOTE_ENV && ros2 run solbot4_toolbar rope_precision.py ~/rope_logs/markers\""
+    rsh "tmux new-session -d -s ropelog \"$REMOTE_ENV && cd ~/rope_logs && ros2 bag record -o rope_${tag}_\$(date +%Y%m%d_%H%M%S) /rope_follower/status /rope_follower/knife_markers /toolbar/state /lift/state /rope_follower/image/compressed /tool_bar_position_cmd /odom$extra\""
+    sleep 5; rsh "ls -td ~/rope_logs/rope_* | head -1; ls -t ~/rope_logs/markers/*.csv | head -1"
+    ;;
+ropelog_stop)
+    rsh "tmux has-session -t ropelog 2>/dev/null && { tmux send-keys -t ropelog C-c; sleep 4; tmux kill-session -t ropelog 2>/dev/null; }; tmux kill-session -t ropemark 2>/dev/null; true"
+    ;;
+rope_view)
+    exec bash "$0" view /rope_follower/image/compressed
     ;;
 follow_view)
     exec bash "$0" view /bar_follower/image/compressed

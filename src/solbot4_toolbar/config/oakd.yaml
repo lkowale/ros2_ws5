@@ -13,6 +13,11 @@
       i_set_isp_scale: true
       i_isp_num: 2
       i_isp_den: 3
+      # Motion blur: plain auto exposure went to ~35-40 ms in dull light -> ~20 mm smear at 0.53 m/s
+      # (2026-11-14). Cap the shutter at 1.5 ms (~0.8 mm at 0.53 m/s; use 1000 for 1 m/s), AE raises ISO.
+      # Dry test 2026-11-17: pavers 95 vs 118 (auto), noise lower, markers fine.
+      r_set_auto_exposure_limit: true
+      r_auto_exposure_limit: 1500
     # image_transport compressed publisher (param oakd.rgb.image_raw.compressed.*): q95 gave
     # 426 kB frames (~4 MB/s at 10 Hz), which saturated the shared solap WiFi (ping 460 ms, stalls).
     # q50: ~140 kB, ~1.4 MB/s
